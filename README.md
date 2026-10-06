@@ -16,7 +16,7 @@ SNCF_project/
 │   └── my_package/       # Paquet Python personnalisé contenant la logique métier
 │       ├── __init__.py   # Indique que le dossier est un package importable
 │       ├── module1.py    # Module 1
-│       └── module2.py    # Module 2
+│       ├── module2.py    # Module 2
 │       └── traiement.py  # Module de pour traitement et nettoyage des données
 │   ├── app.py            # Script principal de lancement de l'application
 │   └── core.py           # Cœur des calculs mathématiques, régressions et corrélations
