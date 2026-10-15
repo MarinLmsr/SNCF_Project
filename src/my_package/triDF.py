@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-file_path = 'data/regularite-mensuelle-tgv-aqst.csv'
+file_path = '../../data/regularite-mensuelle-tgv-aqst.csv'
 
 # ==============================================================================
 # 1. CHARGEMENT ET PRÉPARATIF
@@ -203,7 +203,7 @@ for idx, row in df_clean.iterrows():
 df_final = df_clean.drop(index=indices_a_supprimer) \
     .drop(columns=['duree_reference'])
 
-output_filename = 'regularite_tgv_clean.csv'
+output_filename = '../../regularite_tgv_clean.csv'
 df_final.to_csv(output_filename, sep=';', index=False)
 
 # Synthèse
