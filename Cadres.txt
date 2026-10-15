@@ -19,12 +19,34 @@ Une petite gare qui a énormément de retards mais peu de passage n’est pas un
 - Un classement des gares avec l'ICP par départ (ICP / nb de trains) : intensité du phénomène, qui permet de repérer les gares petites mais « riches en attente ».
 
 III/ STREAMLIT 
-Structure de l'app : 
+Structure de l'app (à consolider) : 
 1. Le classement : barres Plotly des gares, avec choix du critère (fiabilité vs opportunité).
 2. La carte : gares colorées par score, taille proportionnelle au volume (pydeck ou Folium).
 3. Zoom sur une gare : évolution mensuelle, saisonnalité, répartition des causes.
 4. Simulateur : sliders (panier moyen, durée d’attente par annulation, seuil de retard) qui recalculent le classement.
 5. Conclusion du journaliste : le top 3 des gares et ses limites.
+
+3 axes à aborder :
+A) L'opportunité est-elle consistante ?
+C'est à dire tracer ICP relatif en fonction du temps (années) puis calculer Spearman.
+Vérifier grâce à R2 la fiablité d'une régression linéaire.
+Fixer un seuil min de R2 puis classer les coeff directeur les plus grands par exemple.
+
+B) Retards structurels ou accidentels ?
+Réaliser un quadrant :
+Axe X : la volatilité, c’est-à-dire le coefficient de variation (écart-type / moyenne) de l’ICP relatif mensuel. On inverse l’axe pour que « stable » soit à droite, ce qui place la meilleure zone en haut à droite.
+Axe Y : l’ICP relatif moyen de la gare (l’intensité de l’opportunité).
+Couleur du point : la part de causes structurelles de la gare.
+Taille du point : le volume de trains, pour ne pas surévaluer une petite gare.
+
+Si hypothèse est juste, les points chauds (structurels) se concentrent dans le haut à droite et les points froids (externes) dans le haut à gauche. 
+Si les couleurs sont mélangées, on a un résultat : la nature des causes ne prédit pas la stabilité.
+
+C) Caractéristiques de la gare expliquent-elles l'ICP ?
+- volume de circulation
+- taux d'annulation 
+- Nb de destinations desservies 
+- durée moyenne des trajets au départ 
 
 IV/ TRAVAIL SUR LE DF
 1) Supprimer les années 2020 et 2021 car les données de ces 2 années faussent nos régressions linéaires.
