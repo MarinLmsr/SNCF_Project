@@ -1,0 +1,60 @@
+0/ CONCEPT
+« On joue des consultants RailInsight qui préparent un article pour un quotidien : où ouvrir une boutique Relay dans une gare TGV ? 
+Notre postulat : un voyageur qui attend, parce que son train est en retard ou annulé, consomme. 
+Plus il attend, plus il dépense. »
+
+I/ CONSTRUCTION
+Ce qu’on construit :
+« Un indicateur maison, l’Indice de Consommation Potentielle (ICP) par gare de départ, qui combine :
+- le volume de trains,
+- les minutes d’attente générées (retards + annulations),
+- une pondération selon la cause du retard (une grève ou un incident grave fait rester les gens en gare, un petit retard technique beaucoup moins). »
+
+II/ ETUDE
+« On compare deux classements : les gares les moins fiables et celles les plus rentables. 
+Ce ne sont pas les mêmes. 
+Une petite gare qui a énormément de retards mais peu de passage n’est pas une bonne affaire, et ce contraste est notre insight central. »
+2 classements : 
+- Un classement des gares avec l'ICP absolu : taille de l’opportunité. Il favorisera mécaniquement Paris, Lyon, Marseille.
+- Un classement des gares avec l'ICP par départ (ICP / nb de trains) : intensité du phénomène, qui permet de repérer les gares petites mais « riches en attente ».
+
+III/ STREAMLIT 
+Structure de l'app : 
+1. Le classement : barres Plotly des gares, avec choix du critère (fiabilité vs opportunité).
+2. La carte : gares colorées par score, taille proportionnelle au volume (pydeck ou Folium).
+3. Zoom sur une gare : évolution mensuelle, saisonnalité, répartition des causes.
+4. Simulateur : sliders (panier moyen, durée d’attente par annulation, seuil de retard) qui recalculent le classement.
+5. Conclusion du journaliste : le top 3 des gares et ses limites.
+
+IV/ TRAVAIL SUR LE DF
+1) Supprimer les années 2020 et 2021 car les données de ces 2 années faussent nos régressions linéaires.
+2) On ne suppose pas le nombre de voyageurs mais on utilise le dataset open cource SNCF : https://ressources.data.sncf.com/explore/dataset/frequentation-gares/export/?disjunctive.nom_gare&disjunctive.code_postal
+3) Chaque cause de retard à un coefficient différent (variables paramétrables depuis Streamlit)
+
+V/ IDEES CODE (d'après Claude)
+Cette idée se prête bien à la POO : 
+- une classe DataLoader (chargement et validation) ;
+- une classe StationAnalyzer (calcul des indicateurs et des scores) ; 
+- une classe ScoreConfig (dataclass avec les hypothèses) ;
+- et des exceptions personnalisées (StationNotFoundError, InvalidPeriodError). 
+Les calculs sont faciles à tester unitairement avec de petits DataFrames fabriqués à la main, ce qui aide pour les 90 % de couverture.
+
+VI/ FORMULE DE L'ICP 
+conso_retards   = nb_retard_depart × PAX × taux_conso(retard_moyen_depart) × w_cause
+conso_annul     = nb_annules × PAX × 0.20
+
+Avec comme fonction taux_conso() :
+
+def taux_conso(retard_min: float) -> float:
+    """Part des voyageurs qui consomment, selon le retard moyen (min)."""
+    # 0 % jusqu'à 15 min, 10 % à 30 min, 25 % à 60 min, plafonné au-delà
+    return float(np.interp(retard_min, [15, 30, 60], [0.0, 0.10, 0.25]))
+
+Ainsi, 
+conso_totale    = conso_retards + conso_annul
+
+Ensuite,
+ICP_gare = Σ conso_totale sur toutes les liaisons au départ de la gare (par mois ou en moyenne mensuelle)
+ICP_par_départ = ICP_gare / nb_circulations_prévues
+
+En multipliant par un panier moyen réglable (par exemple 6 €), on obtient des euros.
