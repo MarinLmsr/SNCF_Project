@@ -150,18 +150,35 @@ IV. TRAITEMENT DES DONNEES
    saisonnalite. Pour les comparaisons a perimetre egal, on peut comparer les
    memes mois d'une annee a l'autre.
 
-2) PERIMETRE
+2) PERIMETRE [A VALIDER]
    Filtrer sur Service = National, car les gares etrangeres (Stuttgart,
    Francfort...) ne sont pas des candidates a une boutique en France. Imposer
    un nombre minimum de circulations par gare.
 
-3) NOMBRE DE VOYAGEURS
-   L'ICP relatif utilise PAX constant, qui s'elimine du ratio, donc l'indice
-   ne depend pas de cette hypothese. Pour tenir compte du passage reel,
-   utiliser le dataset open data SNCF de frequentation des gares. Il est annuel
-   et couvre tous les types de trains, donc il sert a ponderer l'ICP relatif
-   (ICP relatif x frequentation) et non a le remplacer. La jointure par nom de
-   gare demandera un travail de rapprochement. [A VALIDER]
+3) NOMBRE DE VOYAGEURS PAR TRAIN (PAX)
+   PAX est determine gare par gare et annee par annee, avec une regle a deux
+   niveaux :
+
+   a) Donnees SNCF suffisantes : si la gare est presente dans le dataset open
+      data SNCF de frequentation des gares, avec une frequentation renseignee
+      et non nulle pour l'annee consideree (et un rapprochement de nom de gare
+      fiable), PAX est estime a partir de cette frequentation. [A VALIDER :
+      formule de conversion, voir ci-dessous]
+
+   b) Donnees insuffisantes : PAX est impute, soit par une valeur fixe de 550
+      voyageurs par train (hypothese arbitraire, valeur par defaut), soit par
+      une methode KNN : moyenne du PAX des k gares les plus proches parmi
+      celles du cas a), sur des variables connues pour toutes les gares
+      (nombre de circulations, nombre de destinations, duree moyenne des
+      trajets). Le choix entre 550 et KNN, et la valeur de k, sont valides
+      par validation croisee leave-one-out sur les gares du cas a). [A VALIDER]
+
+   Chaque valeur de PAX est etiquetee avec sa source (sncf / knn / defaut),
+   visible dans l'application, et les gares a PAX impute sont signalees.
+
+   Consequence : comme PAX multiplie a la fois la consommation (numerateur) et
+   le nombre de voyageurs programmes (denominateur) d'une meme gare, l'ICP
+   relatif ne depend pas de PAX. Seul l'ICP absolu est affecte par ce choix.
 
 4) CAUSES DE RETARD
    Chaque cause a un coefficient propre, reglable depuis Streamlit. Les
