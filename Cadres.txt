@@ -30,6 +30,8 @@ IV/ TRAVAIL SUR LE DF
 1) Supprimer les années 2020 et 2021 car les données de ces 2 années faussent nos régressions linéaires.
 2) On ne suppose pas le nombre de voyageurs mais on utilise le dataset open cource SNCF : https://ressources.data.sncf.com/explore/dataset/frequentation-gares/export/?disjunctive.nom_gare&disjunctive.code_postal
 3) Chaque cause de retard à un coefficient différent (variables paramétrables depuis Streamlit)
+4) On ne prend pas en compte 2026 car incomplète ?
+
 
 V/ IDEES CODE (d'après Claude)
 Cette idée se prête bien à la POO : 
@@ -41,7 +43,7 @@ Les calculs sont faciles à tester unitairement avec de petits DataFrames fabriq
 
 VI/ FORMULE DE L'ICP 
 conso_retards   = nb_retard_depart × PAX × taux_conso(retard_moyen_depart) × w_cause
-conso_annul     = nb_annules × PAX × 0.20
+conso_annul     = nb_annules × PAX × taux_annul
 
 Avec comme fonction taux_conso() :
 
@@ -54,7 +56,14 @@ Ainsi,
 conso_totale    = conso_retards + conso_annul
 
 Ensuite,
-ICP_gare = Σ conso_totale sur toutes les liaisons au départ de la gare (par mois ou en moyenne mensuelle)
-ICP_par_départ = ICP_gare / nb_circulations_prévues
+ICP absolu :
+ICP_abs (gare, période) = Σ conso_totale sur toutes les liaisons au départ de la gare (par mois ou en moyenne mensuelle)
+
+ICP relatif :
+ICP_rel (gare, période) = Σ conso_totale / (Σ Nombre_trains × PAX)
+
+Point technique important : 
+somme d’abord, division ensuite. 
+Ne surtout pas faire la moyenne des ratios par liaison, sinon une liaison avec 5 trains pèse autant qu’une liaison avec 500 (paradoxe de Simpson).
 
 En multipliant par un panier moyen réglable (par exemple 6 €), on obtient des euros.
