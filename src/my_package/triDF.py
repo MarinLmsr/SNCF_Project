@@ -135,6 +135,14 @@ for idx, row in df.iterrows():
         raisons.append("Retard moyen non nul alors qu'aucun train n'est en retard")
         action_suggeree = "SUPPRIMER"
 
+    # -------------------------------------------------------------------------
+    # RÈGLE 8 : Covid Exlcusion
+    # -------------------------------------------------------------------------
+
+    if row["Date"] >= "2020-03" and row["Date"] <= "2021-05":
+        raisons.append("Exclusion Covid")
+        action_suggeree = "SUPPRIMER"
+
     # Si au moins une anomalie ou un statut particulier a été détecté
     if action_suggeree != "CONSERVER":
         anomalies_list.append(
@@ -249,6 +257,11 @@ for idx, row in df_clean.iterrows():
         row["Retard moyen des trains en retard au départ"] != 0
         or row["Retard moyen de tous les trains au départ"] != 0
     ):
+        indices_a_supprimer.append(idx)
+        continue
+
+    # E. Exclusion Covid (mars 2020 à mai 2021)
+    if row["Date"] >= "2020-03" and row["Date"] <= "2021-05":
         indices_a_supprimer.append(idx)
         continue
 
