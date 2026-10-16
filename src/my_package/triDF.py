@@ -1,8 +1,9 @@
-import pandas as pd
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
 
-file_path = '../../data/regularite-mensuelle-tgv-aqst.csv'
-
+file_path = Path(__file__).resolve().parents[2] / "data" / "regularite-mensuelle-tgv-aqst.csv"
 # ==============================================================================
 # 1. CHARGEMENT ET PRÉPARATIF
 # ==============================================================================
