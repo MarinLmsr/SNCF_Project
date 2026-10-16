@@ -150,12 +150,8 @@ IV. TRAITEMENT DES DONNEES
    saisonnalite. Pour les comparaisons a perimetre egal, on peut comparer les
    memes mois d'une annee a l'autre.
 
-2) PERIMETRE [A VALIDER]
-   Filtrer sur Service = National, car les gares etrangeres (Stuttgart,
-   Francfort...) ne sont pas des candidates a une boutique en France. Imposer
-   un nombre minimum de circulations par gare.
 
-3) NOMBRE DE VOYAGEURS PAR TRAIN (PAX)
+2) NOMBRE DE VOYAGEURS PAR TRAIN (PAX)
    PAX est determine gare par gare et annee par annee, avec une regle a deux
    niveaux :
 
@@ -180,12 +176,12 @@ IV. TRAITEMENT DES DONNEES
    le nombre de voyageurs programmes (denominateur) d'une meme gare, l'ICP
    relatif ne depend pas de PAX. Seul l'ICP absolu est affecte par ce choix.
 
-4) CAUSES DE RETARD
+3) CAUSES DE RETARD
    Chaque cause a un coefficient propre, reglable depuis Streamlit. Les
    pourcentages du dataset sont renormalises pour sommer a 100 %, et les
    valeurs manquantes sont traitees explicitement.
 
-5) QUALITE DES DONNEES
+4) QUALITE DES DONNEES
    Controle des incoherences (annules > prevus, N30 > N15, causes different de
    100 %, doublons), avec journalisation de chaque anomalie.
 
