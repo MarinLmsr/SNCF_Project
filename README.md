@@ -19,9 +19,12 @@ SNCF_project/
 │       ├── classDF.py          # Module classe
 │       └── triDF.py            # Module de pour traitement et nettoyage des données
 │   ├── app.py                  # Script principal de lancement de l'application
+│   ├── core.py                 # Calculs indépendants du tableau de bord
 │   └── main.py                 # Cœur des calculs mathématiques, régressions et corrélations
 ├── tests/                      # Dossier de tests unitaires
 │   ├── __init__.py             # Indique que le dossier de tests est un package
+│   ├── test_app.py             # Tests du tableau de bord
+│   ├── test_core.py            # Tests des calculs et filtres du tableau de bord
 │   ├── test_main.py            # Tests unitaires pour valider les fonctions de calcul
 │   ├── test_graph_analyzer.py  # Tests unitaires pour valider les fonctions de calcul
 │   └── test_fiabilité.py       # Tests unitaires pour valider les fonctions de calcul
@@ -37,6 +40,49 @@ SNCF_project/
 
 Effectuer un git clone sur ce repo, puis créer un environnement virtuel à la racine : `uv venv -p 3.14`. Enfin, activer l'environnement virtuel `source .venv/bin/activate`.
 
+## Lancer le tableau de bord
+
+Depuis la racine du projet, dans l'environnement Python du projet :
+
+```bash
+python -m streamlit run src/app.py
+```
+
+L'application en français lit directement `data/regularite-mensuelle-tgv-aqst.csv`.
+Elle propose des filtres par service (National par défaut), période mensuelle et
+gare de départ. Les années 2020 et 2021 sont exclues par défaut et peuvent être
+réintégrées. Le seuil de trains prévus par gare s'applique uniquement au classement,
+sur toute la période choisie ; il ne change pas les indicateurs globaux.
+
+Les indicateurs sont le volume prévu, le taux d'annulation, le taux de retard au
+départ et le taux de perturbation. Le graphique horizontal permet de classer les
+gares selon les trois taux, dans les deux sens, avec les effectifs en survol.
+Les calculs se trouvent dans `src/core.py`, indépendamment de Streamlit.
+
+### Méthode et qualité
+
+Les taux sont calculés après sommation des effectifs, avec les trains prévus comme
+dénominateur commun. Le taux de perturbation suppose les annulations et les retards
+au départ disjoints. Les observations où leur somme dépasse les prévisions, les
+effectifs invalides, les prévisions nulles et les clés invalides ou dupliquées sont
+signalés et exclus des trois taux comme de leurs dénominateurs. Les détails sont
+consultables dans l'application. Les autres champs (durée, arrivée, causes) ne
+provoquent pas une suppression des départs utilisables. Aucun CSV n'est réécrit.
+Les mois d'une année incomplète restent accessibles : il s'agit d'un classement
+sur la période choisie, pas d'une comparaison d'années complètes ni d'un ICP.
+
+Les événements sont enregistrés dans `logs/debug.log` et les erreurs dans
+`logs/errors.log`. Ces fichiers sont ignorés par Git.
+
+### Vérifier cette première version
+
+```bash
+python -m pytest tests/test_core.py tests/test_app.py
+```
+
+Ces tests couvrent les pondérations, les exclusions, les bornes temporelles et les
+interactions de l'application. `tests/test_fiabilite.py` reste un script exploratoire
+distinct qui affiche des graphiques.
 ## Analyse graphique des ICP
 
 Depuis la racine du projet, lancer `python src/main.py`. Le graphique est affiché
