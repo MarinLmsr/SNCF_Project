@@ -66,3 +66,5 @@ print("Analyse temporelle de la tendance :")
 print("=" * 50 + "\n")
 
 print("TODO")
+
+print("hello")
