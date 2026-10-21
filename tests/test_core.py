@@ -12,6 +12,7 @@ from src.core import (
     DataLoader,
     filter_data,
     rank_stations,
+    station_monthly,
     summarize,
 )
 
@@ -172,3 +173,118 @@ def test_empty_selection_has_no_invented_rate(data: pd.DataFrame) -> None:
     assert summarize(empty)["observations"] == 0
     assert np.isnan(summarize(empty)["disruption_rate"])
     assert rank_stations(empty).empty
+
+
+def test_monthly_rates_are_weighted_within_each_month(tmp_path: Path) -> None:
+    """Deux liaisons de volumes différents doivent être sommées avant division."""
+    loaded = load_rows(
+        tmp_path,
+        [
+            observation(),
+            observation(destination="Y", scheduled=90, cancelled=0, delayed=9),
+            observation(station="B", scheduled=500, cancelled=100, delayed=100),
+        ],
+    )
+    before = loaded.copy(deep=True)
+    monthly = station_monthly(
+        loaded, "A", pd.Timestamp("2019-01"), pd.Timestamp("2019-01")
+    )
+    row = monthly.iloc[0]
+    assert row.scheduled == 100
+    assert row.cancelled == 1
+    assert row.delayed == 13
+    assert row.disruption_rate == pytest.approx(0.14)
+    assert row.cancellation_rate == pytest.approx(0.01)
+    assert row.departure_delay_rate == pytest.approx(0.13)
+    assert row.destinations == 2
+    assert row.observations == 2
+    pd.testing.assert_frame_equal(loaded, before)
+
+
+def test_monthly_gaps_and_invalid_months_do_not_become_zero(tmp_path: Path) -> None:
+    """Lacunes et mois invalides restent indéfinis et séparent les courbes."""
+    loaded = load_rows(
+        tmp_path,
+        [
+            observation(),
+            observation(month="2019-03", scheduled=40, cancelled=0, delayed=0),
+            observation(month="2019-04", scheduled=10, cancelled=9, delayed=2),
+            observation(month="2019-05"),
+        ],
+    )
+    monthly = station_monthly(
+        loaded, "A", pd.Timestamp("2019-01"), pd.Timestamp("2019-06")
+    )
+    assert monthly.month.dt.strftime("%Y-%m").tolist() == [
+        "2019-01",
+        "2019-02",
+        "2019-03",
+        "2019-04",
+        "2019-05",
+        "2019-06",
+    ]
+    assert monthly.observed.tolist() == [True, False, True, False, True, False]
+    assert monthly.loc[[1, 3, 5], ["scheduled", "disruption_rate"]].isna().all().all()
+    assert monthly.iloc[1].status == "Sans observation"
+    assert monthly.iloc[3].status == "Aucune observation valide"
+    assert monthly.iloc[3].excluded_observations == 1
+    assert monthly.iloc[2].disruption_rate == 0  # Un vrai zéro reste bien un zéro.
+    assert monthly.loc[monthly.observed, "segment"].nunique() == 3
+
+
+def test_partial_month_reports_exclusions_and_valid_denominator(tmp_path: Path) -> None:
+    """Une ligne invalide ne modifie ni le numérateur ni le dénominateur."""
+    loaded = load_rows(
+        tmp_path,
+        [
+            observation(),
+            observation(destination="Y", scheduled=10, cancelled=9, delayed=2),
+        ],
+    )
+    row = station_monthly(
+        loaded, "A", pd.Timestamp("2019-01"), pd.Timestamp("2019-01")
+    ).iloc[0]
+    assert row.scheduled == 10
+    assert row.disruption_rate == pytest.approx(0.5)
+    assert row.observations == 1
+    assert row.excluded_observations == 1
+    assert row.status == "Données partielles (lignes écartées)"
+
+
+def test_covid_months_remain_explicit_calendar_breaks(tmp_path: Path) -> None:
+    """Les années hors périmètre sont distinguées des mois sans observation."""
+    loaded = load_rows(
+        tmp_path,
+        [
+            observation(month="2019-12"),
+            observation(month="2020-01"),
+            observation(month="2022-01"),
+        ],
+    )
+    start, end = pd.Timestamp("2019-12"), pd.Timestamp("2022-01")
+    monthly = station_monthly(loaded, "A", start, end)
+    assert monthly.in_scope.sum() == 2
+    assert monthly.observed.sum() == 2
+    assert monthly.loc[~monthly.in_scope, "disruption_rate"].isna().all()
+    assert (
+        monthly.loc[~monthly.in_scope, "status"].eq("Hors périmètre (2020–2021)").all()
+    )
+    assert monthly.iloc[0].segment != monthly.iloc[-1].segment
+    included = station_monthly(loaded, "A", start, end, include_covid=True)
+    assert included.in_scope.all()
+    assert included.observed.sum() == 3
+
+
+def test_monthly_bounds_empty_station_and_totals(data: pd.DataFrame) -> None:
+    """Les bornes et totaux mensuels concordent avec le résumé de la même gare."""
+    start, end = pd.Timestamp("2019-01"), pd.Timestamp("2019-03")
+    monthly = station_monthly(data, "A", start, end)
+    selected = filter_data(data, start, end, stations=("A",))
+    for count in ["scheduled", "cancelled", "delayed"]:
+        assert monthly[count].sum() == summarize(selected)[count]
+    unknown = station_monthly(data, "UNKNOWN", start, end)
+    assert len(unknown) == 3
+    assert not unknown.observed.any()
+    assert unknown.disruption_rate.isna().all()
+    with pytest.raises(ValueError, match="début"):
+        station_monthly(data, "A", end, start)

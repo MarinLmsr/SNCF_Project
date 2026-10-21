@@ -180,3 +180,70 @@ def rank_stations(
     return ranked.sort_values(
         [metric, "scheduled", "station"], ascending=[ascending, False, True]
     ).reset_index(drop=True)
+
+
+def station_monthly(
+    data: pd.DataFrame,
+    station: str,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    include_covid: bool = False,
+) -> pd.DataFrame:
+    """Agréger une gare par mois, en conservant les lacunes du calendrier.
+
+    Args:
+        data: Observations déjà restreintes au service et aux gares sélectionnés.
+        station: Gare de départ à explorer.
+        start: Premier mois inclus dans le calendrier.
+        end: Dernier mois inclus dans le calendrier.
+        include_covid: Inclure 2020 et 2021 dans le périmètre d'étude.
+
+    Returns:
+        Une ligne par mois calendaire. Les effectifs et taux sans observation
+        valide restent NaN. Les compteurs d'observations distinguent les données
+        absentes des données écartées. ``segment`` sépare les portions de courbe
+        de part et d'autre d'une lacune, y compris les années hors périmètre.
+
+    Raises:
+        ValueError: Si les bornes temporelles sont inversées.
+    """
+    start = pd.Timestamp(start).to_period("M").to_timestamp()
+    end = pd.Timestamp(end).to_period("M").to_timestamp()
+    selected = filter_data(
+        data, start, end, stations=(station,), include_covid=include_covid
+    )
+    calendar = pd.date_range(start, end, freq="MS", name="month")
+    valid = selected.loc[selected["eligible"]]
+    monthly = (
+        valid.groupby("month")
+        .agg(
+            scheduled=("scheduled", "sum"),
+            cancelled=("cancelled", "sum"),
+            delayed=("delayed", "sum"),
+            destinations=("destination", "nunique"),
+            observations=("station", "size"),
+        )
+        .reindex(calendar)
+    )
+    monthly["observations"] = monthly["observations"].fillna(0).astype(int)
+    monthly["excluded_observations"] = (
+        selected.loc[~selected["eligible"]]
+        .groupby("month")
+        .size()
+        .reindex(calendar, fill_value=0)
+        .astype(int)
+    )
+    monthly = _add_rates(monthly)
+    monthly["observed"] = monthly["observations"].gt(0)
+    monthly["status"] = "Sans observation"
+    monthly.loc[monthly["excluded_observations"].gt(0), "status"] = (
+        "Aucune observation valide"
+    )
+    monthly.loc[monthly["observed"], "status"] = "Données disponibles"
+    monthly.loc[
+        monthly["observed"] & monthly["excluded_observations"].gt(0), "status"
+    ] = "Données partielles (lignes écartées)"
+    monthly["in_scope"] = include_covid | ~monthly.index.year.isin([2020, 2021])
+    monthly.loc[~monthly["in_scope"], "status"] = "Hors périmètre (2020–2021)"
+    monthly["segment"] = (~monthly["observed"]).cumsum()
+    return monthly.reset_index()

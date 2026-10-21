@@ -1,4 +1,4 @@
-"""Explorer la fiabilité des départs TGV avec des filtres et un classement."""
+"""Explorer les départs TGV : classement des gares et tendances mensuelles."""
 
 import logging
 
@@ -13,6 +13,7 @@ from core import (
     DataLoader,
     filter_data,
     rank_stations,
+    station_monthly,
     summarize,
 )
 
@@ -42,7 +43,7 @@ def load_data(modified_at: int) -> pd.DataFrame:
 
 
 def main() -> None:
-    """Afficher les filtres, les indicateurs pondérés et un seul classement."""
+    """Afficher les filtres, le classement et le détail mensuel d'une gare."""
     st.set_page_config(
         page_title="RailInsight · Fiabilité TGV", page_icon="🚄", layout="wide"
     )
@@ -210,7 +211,217 @@ def main() -> None:
                     for name in RATE_LABELS.values()
                 },
             )
+    show_station_detail(
+        filtered,
+        pd.Timestamp(start),
+        pd.Timestamp(end),
+        include_covid,
+        preferred_station=None if ranking.empty else ranking.iloc[0]["station"],
+    )
     show_method(data, filtered)
+
+
+def show_station_detail(
+    data: pd.DataFrame,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    include_covid: bool,
+    preferred_station: str | None = None,
+) -> None:
+    """Présenter une gare du périmètre courant et ses mois exploitables."""
+    st.divider()
+    st.subheader("Explorer une gare")
+    st.caption(
+        "Les filtres de période, de service et de gares restent actifs. "
+        "Le minimum de trains du classement ne limite pas cette exploration."
+    )
+    stations = sorted(data["station"].dropna().loc[lambda s: s.ne("")].unique())
+    if not stations:
+        st.info("Aucune gare à explorer dans cette sélection.")
+        return
+    if st.session_state.get("detail_station") not in stations:
+        st.session_state["detail_station"] = (
+            preferred_station if preferred_station in stations else stations[0]
+        )
+    station = st.selectbox("Gare à explorer", stations, key="detail_station")
+    selected = data.loc[data["station"].eq(station)]
+    summary = summarize(selected)
+    monthly = station_monthly(data, station, start, end, include_covid)
+    observed = int(monthly["observed"].sum())
+    expected = int(monthly["in_scope"].sum())
+    valid = selected.loc[selected["eligible"]]
+    LOGGER.info(
+        "Détail gare : %s, %s/%s mois exploitables", station, observed, expected
+    )
+
+    columns = st.columns(4)
+    columns[0].metric(
+        "Trains prévus · gare", f"{summary['scheduled']:,.0f}".replace(",", " ")
+    )
+    columns[1].metric("Destinations desservies", int(valid["destination"].nunique()))
+    columns[2].metric("Mois exploitables", f"{observed} / {expected}")
+    columns[3].metric("Observations écartées · gare", int(summary["excluded"]))
+    if summary["observations"]:
+        for column, metric in zip(st.columns(3), RATE_LABELS):
+            column.metric(f"{RATE_LABELS[metric]} · gare", f"{summary[metric]:.1%}")
+        st.caption(
+            "Taux sur la période entière : calculés à partir des effectifs cumulés, "
+            "sans moyenne des taux mensuels."
+        )
+    else:
+        st.info("Aucune observation valide pour cette gare sur la période choisie.")
+
+    missing = int((monthly["in_scope"] & ~monthly["observed"]).sum())
+    excluded = int(summary["excluded"])
+    if missing or excluded:
+        st.warning(
+            f"{missing} mois du périmètre sans données exploitables ; "
+            f"{excluded} observation(s) écartée(s) pour cette gare. "
+            "Les taux mensuels reposent uniquement sur les observations valides. "
+            "Le tableau mensuel précise la couverture."
+        )
+    out_of_scope = int((~monthly["in_scope"]).sum())
+    if out_of_scope:
+        st.caption(f"{out_of_scope} mois de 2020–2021 hors du périmètre choisi.")
+    st.markdown(f"**Évolution mensuelle · {station}**")
+    if observed:
+        show_monthly_trend(monthly)
+    st.caption(
+        "Les trois taux utilisent les trains prévus du mois comme dénominateur. "
+        "Les mois absents, sans données valides ou hors périmètre interrompent "
+        "les courbes ; ils ne sont pas remplacés par 0 %. "
+        "Les destinations et volumes couverts peuvent varier d'un mois à l'autre."
+    )
+    with st.expander("Chiffres mensuels et couverture"):
+        table = monthly[
+            [
+                "month",
+                "scheduled",
+                "cancelled",
+                "delayed",
+                "destinations",
+                *RATE_LABELS,
+                "observations",
+                "excluded_observations",
+                "status",
+            ]
+        ].copy()
+        table["month"] = table["month"].dt.strftime("%Y-%m")
+        for metric in RATE_LABELS:
+            table[metric] *= 100
+        table = table.rename(
+            columns={
+                "month": "Mois",
+                "scheduled": "Trains prévus",
+                "cancelled": "Annulés",
+                "delayed": "Retards au départ",
+                "destinations": "Destinations",
+                "observations": "Observations valides",
+                "excluded_observations": "Observations écartées",
+                "status": "Couverture",
+                **RATE_LABELS,
+            }
+        )
+        st.dataframe(
+            table,
+            hide_index=True,
+            column_config={
+                label: st.column_config.NumberColumn(format="%.2f %%")
+                for label in RATE_LABELS.values()
+            },
+        )
+
+
+def show_monthly_trend(monthly: pd.DataFrame) -> None:
+    """Tracer les trois taux en séparant explicitement les segments observés."""
+    chart_data = monthly.loc[monthly["observed"]].melt(
+        id_vars=[
+            "month",
+            "scheduled",
+            "cancelled",
+            "delayed",
+            "destinations",
+            "observations",
+            "excluded_observations",
+            "status",
+            "segment",
+        ],
+        value_vars=list(RATE_LABELS),
+        var_name="metric",
+        value_name="rate",
+    )
+    chart_data["metric"] = chart_data["metric"].map(RATE_LABELS)
+    start, end = monthly["month"].iloc[[0, -1]]
+    if start == end:
+        end += pd.offsets.MonthEnd(1)
+    st.vega_lite_chart(
+        chart_data,
+        {
+            "height": 330,
+            "mark": {"type": "line", "point": {"filled": True, "size": 35}},
+            "encoding": {
+                "x": {
+                    "field": "month",
+                    "type": "temporal",
+                    "title": "Mois",
+                    "axis": {"format": "%Y-%m", "labelAngle": -35},
+                    "scale": {"domain": [start.isoformat(), end.isoformat()]},
+                },
+                "y": {
+                    "field": "rate",
+                    "type": "quantitative",
+                    "title": "Part des trains prévus",
+                    "axis": {"format": ".0%"},
+                    "scale": {"zero": True},
+                },
+                "color": {
+                    "field": "metric",
+                    "type": "nominal",
+                    "title": None,
+                    "scale": {
+                        "domain": list(RATE_LABELS.values()),
+                        "range": ["#176B87", "#D78932", "#6B5B95"],
+                    },
+                    "legend": {"orient": "bottom", "labelLimit": 300},
+                },
+                "detail": {"field": "segment", "type": "nominal"},
+                "order": {"field": "month", "type": "temporal"},
+                "tooltip": [
+                    {
+                        "field": "month",
+                        "type": "temporal",
+                        "title": "Mois",
+                        "format": "%Y-%m",
+                    },
+                    {"field": "metric", "type": "nominal", "title": "Indicateur"},
+                    {
+                        "field": "rate",
+                        "type": "quantitative",
+                        "title": "Taux",
+                        "format": ".2%",
+                    },
+                    *[
+                        {
+                            "field": field,
+                            "type": "quantitative",
+                            "title": title,
+                            "format": ",.0f",
+                        }
+                        for field, title in [
+                            ("scheduled", "Trains prévus"),
+                            ("cancelled", "Annulés"),
+                            ("delayed", "Retards au départ"),
+                            ("destinations", "Destinations"),
+                            ("observations", "Observations valides"),
+                            ("excluded_observations", "Observations écartées"),
+                        ]
+                    ],
+                    {"field": "status", "type": "nominal", "title": "Couverture"},
+                ],
+            },
+        },
+        width="stretch",
+    )
 
 
 def show_ranking(ranking: pd.DataFrame, metric: str) -> None:

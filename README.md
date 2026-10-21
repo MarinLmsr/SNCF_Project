@@ -59,6 +59,28 @@ départ et le taux de perturbation. Le graphique horizontal permet de classer le
 gares selon les trois taux, dans les deux sens, avec les effectifs en survol.
 Les calculs se trouvent dans `src/core.py`, indépendamment de Streamlit.
 
+### Détail d'une gare et évolution mensuelle
+
+Sous le classement, choisir une **Gare à explorer**. Le détail reprend les filtres
+de service, de période et de gares, et reste accessible même si aucune gare ne
+dépasse le seuil du classement. Il présente le volume prévu, les destinations
+desservies, les mois exploitables, les observations écartées et les trois taux
+sur toute la période. Ces taux sont calculés sur les effectifs cumulés.
+
+Le graphique mensuel affiche les taux de perturbation, d'annulation et de retard
+au départ. Le survol indique les effectifs et la couverture du mois. Les données
+sont agrégées par gare et mois avec la même validation que le classement.
+Un mois sans observation ou sans observation valide conserve des effectifs et
+taux indéfinis : il n'est jamais remplacé par un zéro. Les courbes sont séparées
+de part et d'autre de ces lacunes et des années 2020–2021 lorsqu'elles sont
+exclues. Les vrais taux nuls restent visibles.
+
+Le tableau **Chiffres mensuels et couverture** distingue les mois disponibles,
+partiellement exploitables, absents, invalides et hors périmètre. Le compteur de
+mois exploitables utilise uniquement les mois du périmètre comme dénominateur.
+La couverture des destinations peut varier d'un mois à l'autre ; la présence
+d'observations ne garantit pas que toutes les liaisons attendues sont renseignées.
+
 ### Méthode et qualité
 
 Les taux sont calculés après sommation des effectifs, avec les trains prévus comme
@@ -81,7 +103,8 @@ python -m pytest tests/test_core.py tests/test_app.py
 ```
 
 Ces tests couvrent les pondérations, les exclusions, les bornes temporelles et les
-interactions de l'application. `tests/test_fiabilite.py` reste un script exploratoire
+interactions de l'application, ainsi que les agrégats mensuels, les lacunes et les
+changements de gare. `tests/test_fiabilite.py` reste un script exploratoire
 distinct qui affiche des graphiques.
 ## Analyse graphique des ICP
 
