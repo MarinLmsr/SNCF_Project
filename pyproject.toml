@@ -1,0 +1,23 @@
+[project]
+name = "project_name"
+version = "0.1.0"
+description = "project_description"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "seaborn",
+    "streamlit>=1.65.0",
+    "plotly>=7.1.0",
+    "scikit-learn",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.10",
+    "sphinx>=9.1.0",
+]
