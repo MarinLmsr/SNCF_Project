@@ -1,0 +1,264 @@
+================================================================================
+PROJET RAILINSIGHT : OU OUVRIR UNE BOUTIQUE RELAY DANS UNE GARE TGV ?
+================================================================================
+
+Legende : [A VALIDER] = point a trancher en groupe.
+
+
+--------------------------------------------------------------------------------
+0. CONCEPT
+--------------------------------------------------------------------------------
+
+Nous jouons des consultants RailInsight qui preparent une etude pour un
+quotidien : dans quelle gare de depart TGV une boutique Relay serait-elle la
+plus rentable ?
+
+POSTULAT
+Un voyageur qui attend, parce que son train est en retard ou annule, consomme
+davantage, et plus l'attente est longue, plus la probabilite de consommer
+augmente. Ce postulat n'est pas verifiable avec nos donnees (pas de ventes) :
+nous le traitons comme une hypothese, entierement parametrable et testee par
+des analyses de robustesse.
+
+
+--------------------------------------------------------------------------------
+I. CONSTRUCTION DE L'INDICATEUR
+--------------------------------------------------------------------------------
+
+Nous construisons l'Indice de Consommation Potentielle (ICP) par gare de
+depart, c'est-a-dire le nombre de consommations attendues du fait des
+perturbations. Il combine :
+
+  - le volume de trains au depart de la gare,
+  - la duree des retards au depart (via une courbe de consommation croissante),
+  - les annulations,
+  - une ponderation selon la cause du retard (parmi les causes du dataset :
+    externes, infrastructure, gestion du trafic, materiel roulant, gestion en
+    gare, prise en compte des voyageurs).
+
+
+--------------------------------------------------------------------------------
+II. ETUDE : DEUX QUESTIONS, TROIS CLASSEMENTS
+--------------------------------------------------------------------------------
+
+Insight central : les gares les moins fiables ne sont pas les plus rentables.
+Une petite gare avec enormement de retards mais peu de passage n'est pas une
+bonne affaire.
+
+Nous comparons trois classements :
+
+1) FIABILITE
+   Mesure : taux de perturbation = (annules + retards au depart) / circulations
+   prevues.
+   Ce qu'il montre : les gares les moins fiables.
+
+2) ICP ABSOLU
+   Mesure : somme des consommations attendues.
+   Ce qu'il montre : la taille de l'opportunite (favorise Paris, Lyon,
+   Marseille).
+
+3) ICP RELATIF
+   Mesure : ICP absolu / (circulations x PAX).
+   Ce qu'il montre : l'intensite du phenomene, les gares petites mais "riches
+   en attente".
+
+Le contraste entre le classement de fiabilite et les deux classements ICP
+constitue le message de l'article.
+
+
+--------------------------------------------------------------------------------
+III. APPLICATION STREAMLIT
+--------------------------------------------------------------------------------
+
+STRUCTURE DE L'APP
+
+  1. Classement : barres Plotly, avec choix du critere (fiabilite, ICP absolu,
+     ICP relatif) et filtre National / International (par defaut : National).
+  2. Carte : gares colorees par score, taille proportionnelle au volume
+     (pydeck ou Folium).
+  3. Zoom sur une gare : evolution mensuelle, saisonnalite, repartition des
+     causes.
+  4. Simulateur : les sliders recalculent le classement en direct.
+  5. Conclusion du journaliste : top 3 des gares et limites de l'etude.
+
+PARAMETRES REGLABLES DANS LE SIMULATEUR
+
+  - panier moyen (euros)
+  - taux de consommation en cas d'annulation
+  - coefficient de chaque cause de retard
+  - points de la courbe de consommation (seuils de retard et taux associes)
+  - seuil minimum de circulations pour figurer au classement
+
+
+TROIS AXES D'ANALYSE
+--------------------
+
+A) L'OPPORTUNITE EST-ELLE DURABLE ?
+
+  - Tracer l'ICP relatif de chaque gare par annee, puis tester la tendance :
+    regression lineaire sur l'annee reelle (2019, 2022, 2023...) et sur la
+    pente relative (pente / moyenne de l'ICP, en % par an).
+  - Valider la regression : R2, p-value corrigee (Benjamini-Hochberg), nombre
+    de points. Fixer un seuil minimum de R2 et classer ensuite les pentes
+    relatives les plus fortes.
+  - Mesurer la persistance du classement : Spearman entre le classement des
+    gares de l'annee N et celui de l'annee N+1, et recouvrement du top 10.
+
+B) RETARDS STRUCTURELS OU ACCIDENTELS ?
+
+  Quadrant :
+  - Axe X : volatilite (coefficient de variation de l'ICP relatif mensuel),
+    axe inverse pour que "stable" soit a droite.
+  - Axe Y : ICP relatif moyen.
+  - Couleur : part de causes structurelles (infrastructure, materiel roulant,
+    gestion en gare), ponderee par les minutes de retard.
+  - Taille : volume de trains.
+
+  Hypothese : les gares dominees par des causes structurelles ont un ICP plus
+  stable (points chauds en haut a droite, points froids en haut a gauche). Si
+  les couleurs sont melangees, c'est aussi un resultat : la nature des causes
+  ne predit pas la stabilite.
+
+  Precaution : pour eviter la circularite (l'ICP est pondere par les memes
+  causes que la couleur), calculer la volatilite avec des poids neutres ou sur
+  un indicateur non pondere. [A VALIDER]
+
+C) QUELLES CARACTERISTIQUES DE LA GARE EXPLIQUENT L'INTENSITE DES RETARDS ?
+
+  Variables explicatives :
+  - volume de circulations
+  - nombre de destinations desservies
+  - duree moyenne des trajets au depart
+
+  Variable expliquee : le taux de retard (ou la composante retards de l'ICP
+  relatif). Le taux d'annulation est exclu des variables explicatives, car il
+  entre directement dans l'ICP (correlation mecanique). Il peut etre etudie a
+  part. Les variables explicatives etant probablement correlees entre elles
+  (volume et destinations), les interpreter avec prudence.
+
+  Correlations calculees avec Spearman, au niveau gare.
+
+
+--------------------------------------------------------------------------------
+IV. TRAITEMENT DES DONNEES
+--------------------------------------------------------------------------------
+
+1) PERIODE
+   Exclure 2020 et 2021 (circulations perturbees par le COVID, qui faussent
+   les regressions). Exclure aussi 2026 des analyses annuelles, car l'annee
+   est incomplete : les moyennes annuelles seraient biaisees par la
+   saisonnalite. Pour les comparaisons a perimetre egal, on peut comparer les
+   memes mois d'une annee a l'autre.
+
+
+2) NOMBRE DE VOYAGEURS PAR TRAIN (PAX)
+   PAX est determine gare par gare et annee par annee, avec une regle a deux
+   niveaux :
+
+   a) Donnees SNCF suffisantes : si la gare est presente dans le dataset open
+      data SNCF de frequentation des gares, avec une frequentation renseignee
+      et non nulle pour l'annee consideree (et un rapprochement de nom de gare
+      fiable), PAX est estime a partir de cette frequentation. [A VALIDER :
+      formule de conversion, voir ci-dessous]
+
+   b) Donnees insuffisantes : PAX est impute, soit par une valeur fixe de 550
+      voyageurs par train (hypothese arbitraire, valeur par defaut), soit par
+      une methode KNN : moyenne du PAX des k gares les plus proches parmi
+      celles du cas a), sur des variables connues pour toutes les gares
+      (nombre de circulations, nombre de destinations, duree moyenne des
+      trajets). Le choix entre 550 et KNN, et la valeur de k, sont valides
+      par validation croisee leave-one-out sur les gares du cas a). [A VALIDER]
+
+   Chaque valeur de PAX est etiquetee avec sa source (sncf / knn / defaut),
+   visible dans l'application, et les gares a PAX impute sont signalees.
+
+   Consequence : comme PAX multiplie a la fois la consommation (numerateur) et
+   le nombre de voyageurs programmes (denominateur) d'une meme gare, l'ICP
+   relatif ne depend pas de PAX. Seul l'ICP absolu est affecte par ce choix.
+
+3) CAUSES DE RETARD
+   Chaque cause a un coefficient propre, reglable depuis Streamlit. Les
+   pourcentages du dataset sont renormalises pour sommer a 100 %, et les
+   valeurs manquantes sont traitees explicitement.
+
+4) QUALITE DES DONNEES
+   Controle des incoherences (annules > prevus, N30 > N15, causes different de
+   100 %, doublons), avec journalisation de chaque anomalie.
+
+
+--------------------------------------------------------------------------------
+V. ORGANISATION DU CODE
+--------------------------------------------------------------------------------
+
+Approche orientee objet :
+
+  - DataLoader : chargement, nettoyage, validation
+  - ScoreConfig : dataclass des hypotheses (courbe, poids, taux), validee a la
+    creation
+  - ICPCalculator : calcul de l'ICP par ligne puis par gare
+  - TrendAnalyzer, PersistenceAnalyzer, QuadrantClassifier,
+    CorrelationAnalyzer : une classe par analyse
+  - exceptions personnalisees : StationNotFoundError, InvalidPeriodError,
+    InsufficientDataError, ConfigError
+
+Chaque classe se teste avec de petits DataFrames fabriques a la main, ce qui
+aide pour les 90 % de couverture.
+
+
+--------------------------------------------------------------------------------
+VI. FORMULE DE L'ICP
+--------------------------------------------------------------------------------
+
+PONDERATION DES CAUSES (par ligne, pourcentages renormalises)
+
+    w_cause = somme sur les causes c de (p_c x w_c)
+
+COURBE DE CONSOMMATION (part des voyageurs qui consomment selon le retard
+moyen)
+
+    def taux_conso(retard_min: float) -> float:
+        # 0 min : 0 % | 1 a 15 min : 1 % | 30 min : 10 % | 60 min : 25 %
+        # plafonne au-dela
+        return float(np.interp(retard_min,
+                               [0, 1, 15, 30, 60],
+                               [0.0, 0.01, 0.01, 0.10, 0.25]))
+
+PAR LIGNE (liaison x mois)
+
+    conso_retards = nb_retard_depart x PAX x taux_conso(retard_moyen_depart)
+                    x w_cause
+    conso_annul   = nb_annules x PAX x taux_annul
+    conso_totale  = conso_retards + conso_annul
+
+ICP ABSOLU (par gare, en moyenne mensuelle pour comparer des periodes
+differentes)
+
+    ICP_abs = somme de conso_totale sur toutes les liaisons au depart de la
+              gare
+
+ICP RELATIF
+
+    ICP_rel = somme de conso_totale
+              / (somme de nb_circulations_prevues x PAX)
+
+REGLE ESSENTIELLE
+Sommer d'abord, diviser ensuite. Faire la moyenne des ratios par liaison
+donnerait autant de poids a une liaison de 5 trains qu'a une de 500 (paradoxe
+de Simpson).
+
+EN EUROS
+    ICP x panier moyen (reglable, par exemple 6 euros).
+
+
+--------------------------------------------------------------------------------
+VII. VALIDATION DU MODELE
+--------------------------------------------------------------------------------
+
+  - Tests unitaires sur des valeurs calculees a la main et des invariants (par
+    exemple, ICP_rel independant de PAX).
+  - Tests de la regression sur des series synthetiques (pente retrouvee, taux
+    de faux positifs, puissance).
+  - Test placebo sur les vraies donnees (annees melangees au sein de chaque
+    gare).
+  - Robustesse du classement : variante sur les retards a l'arrivee, variation
+    des poids et de la courbe, correlation de rang entre les classements.

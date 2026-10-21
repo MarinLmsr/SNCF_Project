@@ -9,6 +9,7 @@ Ce projet de science des données analyse la régularité et les retards des tra
 ```text
 SNCF_project/
 │
+<<<<<<< HEAD
 ├── .venv/                      # Environnement virtuel Python (isole les dépendances)
 ├── data/                       # Fichiers de données brutes (ex: régularité TGV CSV)
 ├── outputs/                    # Dossier de destination pour les graphiques et exports
@@ -31,10 +32,33 @@ SNCF_project/
 ├── pyproject.toml              # Configuration du projet et gestion des dépendances (uv)
 ├── uv.lock                     # Fichier de verrouillage des versions des dépendances
 └── README.md                   # Documentation du projet
+=======
+├── .venv/                # Environnement virtuel Python (isole les dépendances)
+├── data/                 # Fichiers de données brutes (ex: régularité TGV CSV)
+├── outputs/              # Dossier de destination pour les graphiques et exports
+├── src/                  # Code source principal du projet
+│   └── my_package/       # Paquet Python personnalisé contenant la logique métier
+│       ├── __init__.py   # Indique que le dossier est un package importable
+│       ├── module1.py    # Module 1
+│       ├── module2.py    # Module 2
+│       └── traiement.py  # Module de pour traitement et nettoyage des données
+│   ├── app.py            # Script principal de lancement de l'application
+│   └── core.py           # Cœur des calculs mathématiques, régressions et corrélations
+├── tests/                # Dossier de tests unitaires
+│   ├── __init__.py       # Indique que le dossier de tests est un package
+│   └── test_core.py      # Tests unitaires pour valider les fonctions de calcul
+├── .gitignore            # Fichiers et dossiers à ignorer par Git
+├── docker-compose.yml    # Configuration pour le déploiement conteneurisé (Docker)
+├── Dockerfile            # Instructions de construction de l'image Docker du projet
+├── pyproject.toml        # Configuration du projet et gestion des dépendances (uv)
+├── uv.lock               # Fichier de verrouillage des versions des dépendances
+└── README.md             # Documentation du projet
+>>>>>>> main
 ```
 
 ## Mise en place et clonage
 
+<<<<<<< HEAD
 Effectuer un git clone sur ce repo, puis créer un environnement virtuel à la racine : `uv venv -p 3.14`. Enfin, activer l'environnement virtuel `source .venv/bin/activate`.
 
 ## Analyse graphique des ICP
@@ -60,3 +84,6 @@ La méthode `GraphAnalyzer.tracer_icp_top10(df_gares)` du module
 L'entrée attend une ligne par gare et par année, avec les colonnes `gare_depart`,
 `annee`, `ICP_abs`, `ICP_rel` et `ICP_abs_euros`, comme le résultat de
 `ICPCalculator.calculer_par_gare`.
+=======
+Effectuer un git clone sur ce repo, puis créer un environnement virtuel à la racine : `uv venv -p 3.14`. Enfin, activer l'environnement virtuel `source .venv/bin/activate`.
+>>>>>>> main
