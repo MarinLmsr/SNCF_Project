@@ -69,11 +69,6 @@ geogares = {
 
 
 try:
-    gdf = pd.read_csv(geofile_path, sep=";")
-except FileNotFoundError:
-    st.error(f"Le fichier {geofile_path} est introuvable.")
-
-try:
     df = pd.read_csv(file_path, sep=";")
 except FileNotFoundError:
     st.error(f"Le fichier {file_path} est introuvable.")
