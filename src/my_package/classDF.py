@@ -48,6 +48,14 @@ class ConfigError(Exception):
     """Exception levée lorsque la configuration du modèle est incorrecte."""
     pass
 
+class StationNotFoundError(Exception):
+    """Exception levée lorsqu'une gare demandée est absente des données."""
+    pass
+
+class InvalidPeriodError(Exception):
+    """Exception levée lorsque la période demandée est vide ou incohérente."""
+    pass
+
 # -----------------------------------------------------------------------------
 # 1. CONFIGURATION DU MODÈLE (ScoreConfig)
 # -----------------------------------------------------------------------------
@@ -225,14 +233,20 @@ class ICPCalculator:
         return df
 
 
-    def calculer_par_gare(self, df_lignes: pd.DataFrame) -> pd.DataFrame:
+    def calculer_par_gare(self, df_lignes: pd.DataFrame, par_mois: bool = False) -> pd.DataFrame:
         """Calcule l'ICP Absolu et Relatif par gare d'ARRIVÉE (Sommer d'abord, diviser ensuite)."""
         df_lignes = df_lignes.copy()
 
-        # Détermination des clés de regroupement (par gare d'arrivée, et par année si la colonne existe)
+        # Détermination des clés de regroupement : par gare d'arrivée, par
+        # année si la colonne existe, et par mois si demandé (ICP mensuel pour
+        # le quadrant volatilité / axe B)
         group_keys = ["gare_arrivee"]
         if "annee" in df_lignes.columns:
             group_keys.append("annee")
+        if par_mois:
+            if "mois" not in df_lignes.columns:
+                raise InvalidPeriodError("Colonne 'mois' absente : impossible de calculer un ICP mensuel.")
+            group_keys.append("mois")
 
         # Filtrage optionnel selon le seuil minimum de circulations (global ou annuel, selon votre choix)
         if "nb_circulations_prevues" in df_lignes.columns:
@@ -268,6 +282,57 @@ class ICPCalculator:
 
         # Tri par pertinence (par année puis par ICP absolu décroissant, ou juste par ICP)
         sort_cols = ["annee", "ICP_abs"] if "annee" in grouped.columns else ["ICP_abs"]
+        return grouped.sort_values(by=sort_cols, ascending=[True, False] if len(sort_cols) > 1 else False)
+
+
+# -----------------------------------------------------------------------------
+# 4. CALCUL DE LA FIABILITÉ (FiabiliteCalculator)
+# -----------------------------------------------------------------------------
+
+""" Classement de fiabilité des gares d'arrivée (classement 1 du cadre) """
+
+class FiabiliteCalculator:
+    """Taux de perturbation = (annulés + retards à l'arrivée) / circulations prévues.
+
+    Contrairement à l'ICP, les annulations sont bien intégrées ici : la
+    fiabilité mesure la qualité de service, pas le report vers un taxi.
+    """
+
+    def __init__(self, config: ScoreConfig):
+        self.config = config
+
+    def calculer_par_gare(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Classe les gares d'arrivée de la moins fiable à la plus fiable."""
+        requises = {"gare_arrivee", "nb_circulations_prevues", "nb_annules", "nb_retard_arrivee"}
+        manquantes = requises - set(df.columns)
+        if manquantes:
+            raise InsufficientDataError(f"Colonnes manquantes : {', '.join(sorted(manquantes))}")
+        if df.empty:
+            raise InvalidPeriodError("Aucune donnée sur la période demandée.")
+
+        # Sommer d'abord, diviser ensuite (même règle que pour l'ICP)
+        group_keys = ["gare_arrivee"]
+        if "annee" in df.columns:
+            group_keys.append("annee")
+        grouped = df.groupby(group_keys).agg(
+            nb_circulations_prevues=("nb_circulations_prevues", "sum"),
+            nb_annules=("nb_annules", "sum"),
+            nb_retard_arrivee=("nb_retard_arrivee", "sum"),
+        ).reset_index()
+
+        # Seuil minimum de circulations (cumul par gare, toutes années confondues)
+        circ_totales = grouped.groupby("gare_arrivee")["nb_circulations_prevues"].sum()
+        gares_valides = circ_totales[circ_totales >= self.config.seuil_min_circulations].index
+        grouped = grouped[grouped["gare_arrivee"].isin(gares_valides)]
+        if grouped.empty:
+            raise InsufficientDataError("Aucune gare ne dépasse le seuil minimum de circulations.")
+
+        denominateur = grouped["nb_circulations_prevues"].replace(0, np.nan)
+        grouped["taux_annulation"] = grouped["nb_annules"] / denominateur
+        grouped["taux_retard_arrivee"] = grouped["nb_retard_arrivee"] / denominateur
+        grouped["taux_perturbation"] = (grouped["nb_annules"] + grouped["nb_retard_arrivee"]) / denominateur
+
+        sort_cols = ["annee", "taux_perturbation"] if "annee" in grouped.columns else ["taux_perturbation"]
         return grouped.sort_values(by=sort_cols, ascending=[True, False] if len(sort_cols) > 1 else False)
 
 
@@ -337,7 +402,9 @@ class QuadrantClassifier:
 class CorrelationAnalyzer:
     @staticmethod
     def analyser_correlations(df_gares: pd.DataFrame) -> dict[str, float]:
-        vars_explicatives = ["volume_circulations", "nombre_destinations", "duree_moyenne_trajets"]
+        # Variables par gare d'ARRIVÉE : volume, nombre de gares d'origine
+        # desservies (provenances) et durée moyenne des trajets à destination
+        vars_explicatives = ["volume_circulations", "nombre_provenances", "duree_moyenne_trajets"]
         corrs = {}
         for var in vars_explicatives:
             if var in df_gares.columns and "taux_retard" in df_gares.columns:
