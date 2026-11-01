@@ -22,7 +22,7 @@ df_raw, df_final, cols_vides, indices_a_supprimer = triDF()
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 loader = DataLoader(DATA_DIR / "regularite_tgv_clean.csv")
 df_brut = loader.load_and_clean()
-config = ScoreConfig(panier_moyen=6.0)
+config = ScoreConfig(panier_moyen=25.0)
 calculator = ICPCalculator(config)
 df_lignes = calculator.calculer_ligne(df_brut)
 df_gares = calculator.calculer_par_gare(df_lignes)
