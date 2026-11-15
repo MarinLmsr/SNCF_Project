@@ -73,6 +73,13 @@ class DataLoader:
             data[column] = data[column].astype("string").str.strip()
         for column in COUNTS:
             data[column] = pd.to_numeric(data[column], errors="coerce")
+        # Ce champ supplémentaire ne conditionne que le simulateur ICP.
+        mean_delay = "Retard moyen des trains en retard au départ"
+        data["mean_departure_delay"] = (
+            pd.to_numeric(raw[mean_delay], errors="coerce")
+            if mean_delay in raw.columns
+            else np.nan
+        )
 
         numeric = data[COUNTS]
         invalid_counts = ~(
