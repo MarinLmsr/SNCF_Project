@@ -1,56 +1,56 @@
-"""Charger les observations SNCF et calculer la fiabilité au départ."""
+"""Lecture du CSV nettoyé et analyses temporelles des gares d'arrivée."""
 
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.stats import linregress, spearmanr
 
-LOGGER = logging.getLogger("railinsight.core")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DATA_PATH = PROJECT_ROOT / "data" / "regularite-mensuelle-tgv-aqst.csv"
-COLUMNS = {
-    "Date": "month",
-    "Service": "service",
-    "Gare de départ": "station",
-    "Gare d'arrivée": "destination",
-    "Nombre de circulations prévues": "scheduled",
-    "Nombre de trains annulés": "cancelled",
-    "Nombre de trains en retard au départ": "delayed",
+DEFAULT_DATA_PATH = PROJECT_ROOT / "data" / "regularite_tgv_clean.csv"
+EXCLUDED_YEARS = {2020, 2021}
+FOREIGN_STATIONS = {
+    "BARCELONA",
+    "FRANCFORT",
+    "GENEVE",
+    "ITALIE",
+    "LAUSANNE",
+    "MADRID",
+    "STUTTGART",
+    "ZURICH",
 }
-COUNTS = ["scheduled", "cancelled", "delayed"]
-RATE_LABELS = {
-    "disruption_rate": "Taux de perturbation",
-    "cancellation_rate": "Taux d'annulation",
-    "departure_delay_rate": "Taux de retard au départ",
+METRICS = {"ICP_abs": "ICP absolu", "ICP_rel": "ICP relatif"}
+COLUMNS = {
+    "Date": "date",
+    "Service": "service",
+    "Gare de départ": "gare_depart",
+    "Gare d'arrivée": "gare_arrivee",
+    "Nombre de circulations prévues": "nb_circulations_prevues",
+    "Nombre de trains annulés": "nb_annules",
+    "Nombre de trains en retard à l'arrivée": "nb_retard_arrivee",
+    "Retard moyen des trains en retard à l'arrivée": "retard_moyen_arrivee",
+    "Prct retard pour causes externes": "p_externes",
+    "Prct retard pour cause infrastructure": "p_infrastructure",
+    "Prct retard pour cause gestion trafic": "p_gestion_trafic",
+    "Prct retard pour cause matériel roulant": "p_materiel_roulant",
+    "Prct retard pour cause gestion en gare et réutilisation de matériel": "p_gestion_gare",
+    "Prct retard pour cause prise en compte voyageurs (affluence, gestions PSH, correspondances)": "p_prise_en_compte_voyageurs",
 }
 
 
 class DataError(ValueError):
-    """Signaler un fichier absent, illisible ou incompatible avec le tableau de bord."""
+    """Signaler une source absente ou un schéma incompatible."""
 
 
 @dataclass(frozen=True)
 class DataLoader:
-    """Lire le CSV brut sans le modifier et marquer ses problèmes de qualité.
-
-    Attributes:
-        path: Chemin du CSV SNCF, séparé par des points-virgules.
-    """
+    """Lire le fichier nettoyé sans appeler le script de nettoyage ni l'écraser."""
 
     path: Path = DEFAULT_DATA_PATH
 
     def load(self) -> pd.DataFrame:
-        """Retourner les champs utiles et les motifs d'exclusion par observation.
-
-        Les annulations et retards au départ sont supposés disjoints. Les
-        effectifs doivent être cohérents et le dénominateur positif. Les anomalies
-        de durée, d'arrivée ou de causes n'excluent pas une ligne de cette analyse.
-
-        Raises:
-            DataError: Si la lecture échoue ou si une colonne requise manque.
-        """
+        """Retourner les observations et leurs éventuels motifs d'exclusion."""
         try:
             raw = pd.read_csv(self.path, sep=";", encoding="utf-8-sig")
         except (
@@ -59,46 +59,38 @@ class DataLoader:
             pd.errors.ParserError,
             pd.errors.EmptyDataError,
         ) as exc:
-            raise DataError("Impossible de lire le fichier de données SNCF.") from exc
-        missing = set(COLUMNS).difference(raw.columns)
+            raise DataError("Impossible de lire regularite_tgv_clean.csv.") from exc
+        required = set(list(COLUMNS)[:8])
+        missing = required - set(raw.columns)
         if missing:
-            raise DataError(
-                "Colonnes requises absentes : " + ", ".join(sorted(missing))
-            )
-
-        data = raw[list(COLUMNS)].rename(columns=COLUMNS).copy()
-        data["month"] = pd.to_datetime(data["month"], format="%Y-%m", errors="coerce")
-        identities = ["service", "station", "destination"]
-        for column in identities:
-            data[column] = data[column].astype("string").str.strip()
-        for column in COUNTS:
-            data[column] = pd.to_numeric(data[column], errors="coerce")
-        # Ce champ supplémentaire ne conditionne que le simulateur ICP.
-        mean_delay = "Retard moyen des trains en retard au départ"
-        data["mean_departure_delay"] = (
-            pd.to_numeric(raw[mean_delay], errors="coerce")
-            if mean_delay in raw.columns
-            else np.nan
-        )
-
-        numeric = data[COUNTS]
-        invalid_counts = ~(
-            np.isfinite(numeric).all(axis=1)
-            & numeric.ge(0).all(axis=1)
-            & numeric.mod(1).eq(0).all(axis=1)
+            raise DataError("Colonnes manquantes : " + ", ".join(sorted(missing)))
+        data = raw.rename(columns=COLUMNS).copy()
+        data["date"] = pd.to_datetime(data["date"], format="%Y-%m", errors="coerce")
+        data["annee"] = data["date"].dt.year
+        for key in ["service", "gare_depart", "gare_arrivee"]:
+            data[key] = data[key].astype("string").str.strip()
+        counts = ["nb_circulations_prevues", "nb_annules", "nb_retard_arrivee"]
+        for key in [*counts, "retard_moyen_arrivee"]:
+            data[key] = pd.to_numeric(data[key], errors="coerce")
+        numeric = data[counts]
+        mean = data["retard_moyen_arrivee"]
+        invalid = (
+            ~np.isfinite(numeric).all(axis=1)
+            | numeric.lt(0).any(axis=1)
+            | numeric.mod(1).ne(0).any(axis=1)
         )
         rules = {
-            "Mois invalide": data["month"].isna(),
-            "Service ou gare manquant": (
-                data[identities].isna() | data[identities].eq("")
-            ).any(axis=1),
-            "Effectif manquant, négatif ou non entier": invalid_counts,
-            "Aucune circulation prévue": data["scheduled"].eq(0),
-            "Annulations + retards supérieurs aux prévisions": (
-                data["cancelled"] + data["delayed"] > data["scheduled"]
-            ),
-            "Clé mois/service/liaison dupliquée": data.duplicated(
-                ["month", *identities], keep=False
+            "Mois ou gare manquant": data["date"].isna()
+            | data[["service", "gare_depart", "gare_arrivee"]].isna().any(axis=1)
+            | data[["service", "gare_depart", "gare_arrivee"]].eq("").any(axis=1),
+            "Effectifs invalides": invalid | data["nb_circulations_prevues"].le(0),
+            "Retards + annulations supérieurs aux prévisions": data["nb_annules"]
+            .add(data["nb_retard_arrivee"])
+            .gt(data["nb_circulations_prevues"]),
+            "Retard moyen invalide": data["nb_retard_arrivee"].gt(0)
+            & (~np.isfinite(mean) | mean.lt(0)),
+            "Observation dupliquée": data.duplicated(
+                ["date", "service", "gare_depart", "gare_arrivee"], keep=False
             ),
         }
         data["quality_issues"] = ""
@@ -106,151 +98,100 @@ class DataLoader:
             data.loc[mask, "quality_issues"] += reason + "; "
         data["quality_issues"] = data["quality_issues"].str.rstrip("; ")
         data["eligible"] = data["quality_issues"].eq("")
-        LOGGER.info(
-            "Chargement : %s lignes, %s exclues", len(data), (~data.eligible).sum()
-        )
+        data.loc[data["nb_retard_arrivee"].eq(0), "retard_moyen_arrivee"] = 0
         return data
 
 
 def filter_data(
-    data: pd.DataFrame,
-    start: pd.Timestamp,
-    end: pd.Timestamp,
-    service: str | None = None,
-    stations: tuple[str, ...] = (),
-    include_covid: bool = False,
+    data: pd.DataFrame, start: int, end: int, service: str = "Tous"
 ) -> pd.DataFrame:
-    """Filtrer les mois inclusifs, le service et les gares, sans modifier la source.
-
-    Une sélection de gares vide signifie toutes les gares. Les années 2020 et
-    2021 sont exclues par défaut, comme choix d'étude et non comme nettoyage.
-    """
+    """Sélectionner la période historique, les gares françaises et le service."""
     if start > end:
-        raise ValueError("Le mois de début doit précéder le mois de fin.")
-    mask = data["month"].between(start, end)
-    if service is not None:
+        raise ValueError("Période inversée.")
+    mask = data["annee"].between(start, end) & ~data["annee"].isin(EXCLUDED_YEARS)
+    mask &= ~data["gare_arrivee"].isin(FOREIGN_STATIONS)
+    if service != "Tous":
         mask &= data["service"].eq(service)
-    if stations:
-        mask &= data["station"].isin(stations)
-    if not include_covid:
-        mask &= ~data["month"].dt.year.isin([2020, 2021])
     return data.loc[mask].copy()
 
 
-def _add_rates(data: pd.DataFrame) -> pd.DataFrame:
-    """Calculer les trois taux après sommation, avec le même dénominateur."""
-    denominator = data["scheduled"].where(data["scheduled"].gt(0))
-    data["cancellation_rate"] = data["cancelled"] / denominator
-    data["departure_delay_rate"] = data["delayed"] / denominator
-    data["disruption_rate"] = (data["cancelled"] + data["delayed"]) / denominator
-    return data
+def fit_trend(years: np.ndarray, values: np.ndarray, metric: str) -> dict[str, float]:
+    """Ajuster l'ICP sur les années réelles et extrapoler sans utiliser 2026.
 
-
-def summarize(data: pd.DataFrame) -> dict[str, int | float]:
-    """Résumer les lignes valides ; les taux sans trains valent NaN."""
-    valid = data.loc[data["eligible"]]
-    totals = valid[COUNTS].sum().to_frame().T
-    result = _add_rates(totals).iloc[0].to_dict()
-    result.update(
-        stations=int(valid["station"].nunique()),
-        observations=len(valid),
-        excluded=int((~data["eligible"]).sum()),
+    Trois années complètes sont nécessaires. Une extrapolation hors du domaine
+    physique reste indéfinie, sans écrêtage silencieux. R² et Spearman sont
+    indéfinis pour une série constante.
+    """
+    if metric not in METRICS:
+        raise ValueError("Indicateur inconnu.")
+    years, values = np.asarray(years, dtype=float), np.asarray(values, dtype=float)
+    valid = np.isfinite(years) & np.isfinite(values) & (years < 2026)
+    x, y = years[valid], values[valid]
+    result = dict(
+        beta1=np.nan,
+        intercept=np.nan,
+        r2=np.nan,
+        spearman=np.nan,
+        cv=np.nan,
+        prediction_2026=np.nan,
+        prediction_2027=np.nan,
+        n_years=len(x),
     )
+    if len(np.unique(x)) < 3:
+        return result
+    result["cv"] = float(np.std(y, ddof=1) / np.mean(y)) if np.mean(y) > 0 else np.nan
+    if np.ptp(y) == 0:
+        slope, intercept = 0.0, float(y[0])
+    else:
+        fit = linregress(x, y)
+        slope, intercept = float(fit.slope), float(fit.intercept)
+        result.update(
+            r2=float(fit.rvalue**2), spearman=float(spearmanr(x, y).statistic)
+        )
+    result.update(beta1=slope, intercept=intercept)
+    for year in [2026, 2027]:
+        value = slope * year + intercept
+        if value >= 0 and (metric != "ICP_rel" or value <= 1):
+            result[f"prediction_{year}"] = float(value)
     return result
 
 
-def rank_stations(
-    data: pd.DataFrame,
-    minimum_trains: int = 1_000,
-    metric: str = "disruption_rate",
-    ascending: bool = False,
+def ranking_table(
+    annual: pd.DataFrame, metric: str, sort_by: str = "ICP", minimum: int = 0
 ) -> pd.DataFrame:
-    """Classer les gares sur les sommes valides, après un seuil de trains prévus.
-
-    Le seuil s'applique au volume total de la période sélectionnée, par gare.
-    Les égalités sont départagées par volume décroissant puis nom de gare.
-    """
-    if metric not in RATE_LABELS:
-        raise ValueError("Critère de classement inconnu.")
-    if minimum_trains < 0:
-        raise ValueError("Le seuil de circulations doit être positif ou nul.")
-    valid = data.loc[data["eligible"]]
-    grouped = valid.groupby("station", as_index=False).agg(
-        scheduled=("scheduled", "sum"),
-        cancelled=("cancelled", "sum"),
-        delayed=("delayed", "sum"),
-        months=("month", "nunique"),
-        destinations=("destination", "nunique"),
-    )
-    ranked = _add_rates(grouped)
-    ranked = ranked.loc[ranked["scheduled"].ge(minimum_trains)]
-    return ranked.sort_values(
-        [metric, "scheduled", "station"], ascending=[ascending, False, True]
-    ).reset_index(drop=True)
-
-
-def station_monthly(
-    data: pd.DataFrame,
-    station: str,
-    start: pd.Timestamp,
-    end: pd.Timestamp,
-    include_covid: bool = False,
-) -> pd.DataFrame:
-    """Agréger une gare par mois, en conservant les lacunes du calendrier.
-
-    Args:
-        data: Observations déjà restreintes au service et aux gares sélectionnés.
-        station: Gare de départ à explorer.
-        start: Premier mois inclus dans le calendrier.
-        end: Dernier mois inclus dans le calendrier.
-        include_covid: Inclure 2020 et 2021 dans le périmètre d'étude.
-
-    Returns:
-        Une ligne par mois calendaire. Les effectifs et taux sans observation
-        valide restent NaN. Les compteurs d'observations distinguent les données
-        absentes des données écartées. ``segment`` sépare les portions de courbe
-        de part et d'autre d'une lacune, y compris les années hors périmètre.
-
-    Raises:
-        ValueError: Si les bornes temporelles sont inversées.
-    """
-    start = pd.Timestamp(start).to_period("M").to_timestamp()
-    end = pd.Timestamp(end).to_period("M").to_timestamp()
-    selected = filter_data(
-        data, start, end, stations=(station,), include_covid=include_covid
-    )
-    calendar = pd.date_range(start, end, freq="MS", name="month")
-    valid = selected.loc[selected["eligible"]]
-    monthly = (
-        valid.groupby("month")
-        .agg(
-            scheduled=("scheduled", "sum"),
-            cancelled=("cancelled", "sum"),
-            delayed=("delayed", "sum"),
-            destinations=("destination", "nunique"),
-            observations=("station", "size"),
+    """Combiner les ICP observés et les régressions sur le même périmètre annuel."""
+    if metric not in METRICS or sort_by not in {"ICP", "Beta 1", "R²"}:
+        raise ValueError("Tri ou indicateur inconnu.")
+    rows = []
+    for station, group in annual.groupby("gare_arrivee"):
+        if group["nb_circulations_prevues"].sum() < minimum:
+            continue
+        row = {
+            "gare_arrivee": station,
+            "ICP_abs": group["conso_totale_sum"].sum() / group["nb_mois"].sum(),
+            "ICP_rel": group["conso_totale_sum"].sum() / group["circ_pax_sum"].sum(),
+        }
+        row.update(
+            fit_trend(group["annee"].to_numpy(), group[metric].to_numpy(), metric)
         )
-        .reindex(calendar)
-    )
-    monthly["observations"] = monthly["observations"].fillna(0).astype(int)
-    monthly["excluded_observations"] = (
-        selected.loc[~selected["eligible"]]
-        .groupby("month")
-        .size()
-        .reindex(calendar, fill_value=0)
-        .astype(int)
-    )
-    monthly = _add_rates(monthly)
-    monthly["observed"] = monthly["observations"].gt(0)
-    monthly["status"] = "Sans observation"
-    monthly.loc[monthly["excluded_observations"].gt(0), "status"] = (
-        "Aucune observation valide"
-    )
-    monthly.loc[monthly["observed"], "status"] = "Données disponibles"
-    monthly.loc[
-        monthly["observed"] & monthly["excluded_observations"].gt(0), "status"
-    ] = "Données partielles (lignes écartées)"
-    monthly["in_scope"] = include_covid | ~monthly.index.year.isin([2020, 2021])
-    monthly.loc[~monthly["in_scope"], "status"] = "Hors périmètre (2020–2021)"
-    monthly["segment"] = (~monthly["observed"]).cumsum()
-    return monthly.reset_index()
+        rows.append(row)
+    columns = [
+        "gare_arrivee",
+        "ICP_abs",
+        "ICP_rel",
+        "beta1",
+        "intercept",
+        "r2",
+        "spearman",
+        "cv",
+        "prediction_2026",
+        "prediction_2027",
+        "n_years",
+    ]
+    table = pd.DataFrame(rows, columns=columns)
+    column = {"ICP": metric, "Beta 1": "beta1", "R²": "r2"}[sort_by]
+    table = table.sort_values(
+        [column, "gare_arrivee"], ascending=[False, True], na_position="last"
+    ).reset_index(drop=True)
+    table.insert(0, "rank", np.arange(1, len(table) + 1))
+    return table

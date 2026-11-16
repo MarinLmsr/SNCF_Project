@@ -1,0 +1,621 @@
+{
+  "source": "https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs/",
+  "retrieved_on": "2026-11-16",
+  "note": "SNCF Gares de voyageurs. Some AQST labels are grouped or historical: coordinates are indicative, not a forecast of individual taxi pickups.",
+  "stations": [
+    {
+      "gare_arrivee": "AIX EN PROVENCE TGV",
+      "latitude": 43.455237,
+      "longitude": 5.317534,
+      "source_names": [
+        "Aix-en-Provence TGV"
+      ],
+      "source_ids": [
+        "4ab19d76-8365-40a3-95d3-29357c4990ef"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "ANGERS SAINT LAUD",
+      "latitude": 47.464647,
+      "longitude": -0.55682,
+      "source_names": [
+        "Angers Saint-Laud"
+      ],
+      "source_ids": [
+        "3730810c-71aa-49d4-b620-88750e4189dc"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "ANGOULEME",
+      "latitude": 45.653572,
+      "longitude": 0.164608,
+      "source_names": [
+        "Angoulême"
+      ],
+      "source_ids": [
+        "0d1f6d5b-15a8-4d08-9474-2ca0bc17bd2e"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "ANNECY",
+      "latitude": 45.901965,
+      "longitude": 6.121835,
+      "source_names": [
+        "Annecy"
+      ],
+      "source_ids": [
+        "60906013-799a-4fc3-b586-6675ad30cd57"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "ARRAS",
+      "latitude": 50.286673,
+      "longitude": 2.781942,
+      "source_names": [
+        "Arras"
+      ],
+      "source_ids": [
+        "8c1b4934-c835-49f5-bfaa-1ec55cbdbd7c"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "AVIGNON TGV",
+      "latitude": 43.921586,
+      "longitude": 4.786079,
+      "source_names": [
+        "Avignon TGV"
+      ],
+      "source_ids": [
+        "6d950f75-8a47-4c30-b0ca-66f074ad3496"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "BELLEGARDE (AIN)",
+      "latitude": 46.109425,
+      "longitude": 5.823483,
+      "source_names": [
+        "Bellegarde-sur-Valserine"
+      ],
+      "source_ids": [
+        "88ab44f6-65e0-4524-98d3-7d18d06b8b69"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "BESANCON FRANCHE COMTE TGV",
+      "latitude": 47.307361058531725,
+      "longitude": 5.953195095062256,
+      "source_names": [
+        "Besançon Franche-Comté TGV"
+      ],
+      "source_ids": [
+        "265248a2-9a80-496c-8286-9085189a9a30"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "BORDEAUX ST JEAN",
+      "latitude": 44.825873,
+      "longitude": -0.556697,
+      "source_names": [
+        "Bordeaux Saint-Jean"
+      ],
+      "source_ids": [
+        "72a31fc3-3b7f-4e0d-823f-ce3a878505de"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "BREST",
+      "latitude": 48.38811,
+      "longitude": -4.478903,
+      "source_names": [
+        "Brest"
+      ],
+      "source_ids": [
+        "a4abf140-979d-426c-9f13-8fe0e5392220"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "CHAMBERY CHALLES LES EAUX",
+      "latitude": 45.571302,
+      "longitude": 5.919547,
+      "source_names": [
+        "Chambéry - Challes-les-Eaux"
+      ],
+      "source_ids": [
+        "9a48b3c4-0910-473a-8fcc-b445dddf27a3"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "DIJON VILLE",
+      "latitude": 47.32337,
+      "longitude": 5.027208,
+      "source_names": [
+        "Dijon"
+      ],
+      "source_ids": [
+        "7be8e806-878f-4cd0-8a4b-0a068b85c474"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "DOUAI",
+      "latitude": 50.371677,
+      "longitude": 3.089986,
+      "source_names": [
+        "Douai"
+      ],
+      "source_ids": [
+        "cee9c428-7a56-404b-a507-687c6664bab4"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "DUNKERQUE",
+      "latitude": 51.03047,
+      "longitude": 2.368961,
+      "source_names": [
+        "Dunkerque"
+      ],
+      "source_ids": [
+        "e1819a86-2c92-45ab-8c0a-0ea6066ba80a"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "GRENOBLE",
+      "latitude": 45.191493,
+      "longitude": 5.714584,
+      "source_names": [
+        "Grenoble"
+      ],
+      "source_ids": [
+        "803b5973-6581-4d53-8ce6-8a7c74b9bf67"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "LA ROCHELLE VILLE",
+      "latitude": 46.15269,
+      "longitude": -1.145305,
+      "source_names": [
+        "La Rochelle"
+      ],
+      "source_ids": [
+        "9dcbee64-3fb8-4261-bc9f-2bebca41ee01"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "LAVAL",
+      "latitude": 48.076206,
+      "longitude": -0.760907,
+      "source_names": [
+        "Laval"
+      ],
+      "source_ids": [
+        "d44b520f-6356-4da6-89c1-2f0c0189e361"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "LE CREUSOT MONTCEAU MONTCHANIN",
+      "latitude": 46.765343,
+      "longitude": 4.499513,
+      "source_names": [
+        "Le Creusot - Montceau-les-Mines - Montchanin TGV"
+      ],
+      "source_ids": [
+        "e66d6ea7-b072-4220-999c-66c65a82b22c"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "LE MANS",
+      "latitude": 47.995689,
+      "longitude": 0.192578,
+      "source_names": [
+        "Le Mans"
+      ],
+      "source_ids": [
+        "64efcf12-e3d6-4b82-813b-aa62cdb7810b"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "LILLE",
+      "latitude": 50.6379005,
+      "longitude": 3.072833,
+      "source_names": [
+        "Lille Flandres",
+        "Lille Europe"
+      ],
+      "source_ids": [
+        "2df9f83c-36e9-48f3-b6a5-4bd45aeb91fe",
+        "abb69b50-0b86-49ef-8fc5-c1116b5514a2"
+      ],
+      "indicative": true
+    },
+    {
+      "gare_arrivee": "LYON PART DIEU",
+      "latitude": 45.760559,
+      "longitude": 4.859355,
+      "source_names": [
+        "Lyon Part Dieu"
+      ],
+      "source_ids": [
+        "f8df288c-2b8b-4e2b-9cef-5cfcd7028bf4"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "MACON LOCHE",
+      "latitude": 46.282884,
+      "longitude": 4.778876,
+      "source_names": [
+        "Mâcon Loché TGV"
+      ],
+      "source_ids": [
+        "a330b4b5-9f5d-4105-9067-15206f609d79"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "MARNE LA VALLEE",
+      "latitude": 48.869856,
+      "longitude": 2.78272,
+      "source_names": [
+        "Marne-la-Vallée Chessy"
+      ],
+      "source_ids": [
+        "ce2b2a5a-aa75-4d42-bf45-4a4ab0a8929d"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "MARSEILLE ST CHARLES",
+      "latitude": 43.302666,
+      "longitude": 5.380407,
+      "source_names": [
+        "Marseille Saint-Charles"
+      ],
+      "source_ids": [
+        "b0ce193b-0926-4b87-8bf9-f37a1332e9a1"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "METZ",
+      "latitude": 49.109545,
+      "longitude": 6.176593,
+      "source_names": [
+        "Metz"
+      ],
+      "source_ids": [
+        "c2f3e2e0-44f8-412f-aa46-9a8c60ff1622"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "MONTPELLIER",
+      "latitude": 43.604738,
+      "longitude": 3.880674,
+      "source_names": [
+        "Montpellier Saint-Roch"
+      ],
+      "source_ids": [
+        "3a8d2e95-4378-4d72-ba9b-0e082dfb8916"
+      ],
+      "indicative": true
+    },
+    {
+      "gare_arrivee": "MULHOUSE VILLE",
+      "latitude": 47.742224,
+      "longitude": 7.342396,
+      "source_names": [
+        "Mulhouse"
+      ],
+      "source_ids": [
+        "a67ea41d-e5f5-496c-8b90-7aa0e774fb9f"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "NANCY",
+      "latitude": 48.689861,
+      "longitude": 6.174583,
+      "source_names": [
+        "Nancy"
+      ],
+      "source_ids": [
+        "bd3a55c7-b622-414f-907b-ce379d351038"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "NANTES",
+      "latitude": 47.216148,
+      "longitude": -1.542356,
+      "source_names": [
+        "Nantes"
+      ],
+      "source_ids": [
+        "77474ee2-1c30-4740-a579-b52c2bc74d89"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "NICE VILLE",
+      "latitude": 43.704556,
+      "longitude": 7.261904,
+      "source_names": [
+        "Nice"
+      ],
+      "source_ids": [
+        "a121239c-108a-4bfa-8254-069b73dbe619"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "NIMES",
+      "latitude": 43.832291,
+      "longitude": 4.365845,
+      "source_names": [
+        "Nîmes"
+      ],
+      "source_ids": [
+        "c209a3e2-d322-4281-8c2e-1ea5c6046c50"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "PARIS EST",
+      "latitude": 48.876742,
+      "longitude": 2.358424,
+      "source_names": [
+        "Paris Est"
+      ],
+      "source_ids": [
+        "5dd4fb9f-a6f3-4107-a7cf-e198e3d3b169"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "PARIS LYON",
+      "latitude": 48.844888,
+      "longitude": 2.37352,
+      "source_names": [
+        "Paris Gare de Lyon"
+      ],
+      "source_ids": [
+        "a6433423-9738-42fd-a125-321b28d78e8a"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "PARIS MONTPARNASSE",
+      "latitude": 48.841172,
+      "longitude": 2.320514,
+      "source_names": [
+        "Paris Montparnasse"
+      ],
+      "source_ids": [
+        "db3c1d28-2b95-43df-ae9f-5418a778abe0"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "PARIS NORD",
+      "latitude": 48.880185,
+      "longitude": 2.355151,
+      "source_names": [
+        "Paris Gare du Nord"
+      ],
+      "source_ids": [
+        "70835097-e1ff-4138-86e1-4758ed173ed6"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "PARIS VAUGIRARD",
+      "latitude": 48.841172,
+      "longitude": 2.320514,
+      "source_names": [
+        "Paris Montparnasse"
+      ],
+      "source_ids": [
+        "db3c1d28-2b95-43df-ae9f-5418a778abe0"
+      ],
+      "indicative": true
+    },
+    {
+      "gare_arrivee": "PERPIGNAN",
+      "latitude": 42.696292,
+      "longitude": 2.879779,
+      "source_names": [
+        "Perpignan"
+      ],
+      "source_ids": [
+        "71e30c0e-9c3a-449a-9743-44a85d48427e"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "POITIERS",
+      "latitude": 46.582275,
+      "longitude": 0.333241,
+      "source_names": [
+        "Poitiers"
+      ],
+      "source_ids": [
+        "b4cdf5a5-42e6-4016-923d-d6356f8ff226"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "QUIMPER",
+      "latitude": 47.994455,
+      "longitude": -4.092103,
+      "source_names": [
+        "Quimper"
+      ],
+      "source_ids": [
+        "5444badc-4f4a-4e84-9352-a450f8a8d8a4"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "REIMS",
+      "latitude": 49.258978,
+      "longitude": 4.024435,
+      "source_names": [
+        "Reims"
+      ],
+      "source_ids": [
+        "dbcc38ea-df8d-49f0-9e13-25648c35a1a8"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "RENNES",
+      "latitude": 48.103517,
+      "longitude": -1.672744,
+      "source_names": [
+        "Rennes"
+      ],
+      "source_ids": [
+        "e26021bf-541a-4e9e-8e74-66f59ce9bc60"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "SAINT ETIENNE CHATEAUCREUX",
+      "latitude": 45.443366,
+      "longitude": 4.399722,
+      "source_names": [
+        "Saint-Étienne Châteaucreux"
+      ],
+      "source_ids": [
+        "cc95ee13-6bd4-429c-8d75-7e8ea2f32438"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "ST MALO",
+      "latitude": 48.646859,
+      "longitude": -2.004158,
+      "source_names": [
+        "Saint-Malo"
+      ],
+      "source_ids": [
+        "c701f020-a3df-421e-b4ed-630c1595eef4"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "ST PIERRE DES CORPS",
+      "latitude": 47.386099,
+      "longitude": 0.72355,
+      "source_names": [
+        "Saint-Pierre-des-Corps"
+      ],
+      "source_ids": [
+        "89f3477b-4263-408f-a661-1b428ce416ea"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "STRASBOURG",
+      "latitude": 48.584967,
+      "longitude": 7.734584,
+      "source_names": [
+        "Strasbourg"
+      ],
+      "source_ids": [
+        "1256d5fe-bbc3-416b-9bf5-184b0b84b2a3"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "TOULON",
+      "latitude": 43.12837,
+      "longitude": 5.929293,
+      "source_names": [
+        "Toulon"
+      ],
+      "source_ids": [
+        "5d5ece4d-8cc9-4877-b797-76707642504c"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "TOULOUSE MATABIAU",
+      "latitude": 43.611206,
+      "longitude": 1.453616,
+      "source_names": [
+        "Toulouse Matabiau"
+      ],
+      "source_ids": [
+        "876acd6d-c67b-47fd-95ee-f2b13b33508e"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "TOURCOING",
+      "latitude": 50.71683,
+      "longitude": 3.16804,
+      "source_names": [
+        "Tourcoing"
+      ],
+      "source_ids": [
+        "2d965f86-88c7-4d88-8dfb-b80ff8458947"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "TOURS",
+      "latitude": 47.389781,
+      "longitude": 0.693703,
+      "source_names": [
+        "Tours"
+      ],
+      "source_ids": [
+        "6a462914-8b4e-4a95-ba44-bf23331adb45"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "VALENCE ALIXAN TGV",
+      "latitude": 44.991545,
+      "longitude": 4.978703,
+      "source_names": [
+        "Valence TGV Rhône-Alpes Sud"
+      ],
+      "source_ids": [
+        "e01debd3-2d9b-4cff-bb34-7ac5dd96ec7d"
+      ],
+      "indicative": false
+    },
+    {
+      "gare_arrivee": "VANNES",
+      "latitude": 47.665169,
+      "longitude": -2.75245,
+      "source_names": [
+        "Vannes"
+      ],
+      "source_ids": [
+        "c8545a71-0c1e-4246-849d-c05cf02828d1"
+      ],
+      "indicative": false
+    }
+  ]
+}

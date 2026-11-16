@@ -3,7 +3,6 @@ Il identifie les anomalies et propose des actions correctives pour chaque index 
 
 # Avant le script : définir le répertoire des données
 from pathlib import Path
-
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 def triDF(file_path=DATA_DIR / "regularite-mensuelle-tgv-aqst.csv"):
@@ -13,9 +12,10 @@ def triDF(file_path=DATA_DIR / "regularite-mensuelle-tgv-aqst.csv"):
     # -----------------------------------------------------------------------------
 
     # Pandas : Pour la manipulation des DataFrames
+    import pandas as pd
+
     # Numpy : Pour les opérations numériques
     import numpy as np
-    import pandas as pd
 
     # -----------------------------------------------------------------------------
     # 1. CHARGEMENT ET PREPARATIFS

@@ -1,4 +1,4 @@
-"""Vérifier les effectifs, les pondérations et les filtres du tableau de bord."""
+"""Vérifier la source nettoyée, les périodes et les régressions annuelles."""
 
 from pathlib import Path
 
@@ -7,284 +7,86 @@ import pandas as pd
 import pytest
 
 from src.core import (
-    COLUMNS,
+    DEFAULT_DATA_PATH,
     DataError,
     DataLoader,
     filter_data,
-    rank_stations,
-    station_monthly,
-    summarize,
+    fit_trend,
+    ranking_table,
 )
 
 
-def observation(**overrides: object) -> dict[str, object]:
-    """Fabriquer une observation mensuelle dont les valeurs sont vérifiables."""
-    values = dict(
-        month="2019-01",
-        service="National",
-        station="A",
-        destination="X",
-        scheduled=10,
-        cancelled=1,
-        delayed=4,
+def test_clean_source_and_filter_are_read_only() -> None:
+    """La lecture et les filtres ne réécrivent jamais les fichiers."""
+    before = DEFAULT_DATA_PATH.read_bytes()
+    data = DataLoader().load()
+    selected = filter_data(data, 2018, 2026)
+    assert DEFAULT_DATA_PATH.name == "regularite_tgv_clean.csv"
+    assert not selected.annee.isin([2020, 2021]).any()
+    assert not selected.gare_arrivee.isin(["GENEVE", "ITALIE", "MADRID"]).any()
+    assert filter_data(data, 2018, 2025, "National").service.eq("National").all()
+    assert DEFAULT_DATA_PATH.read_bytes() == before
+    with pytest.raises(ValueError):
+        filter_data(data, 2025, 2018)
+
+
+def test_loader_errors(tmp_path: Path) -> None:
+    """Un fichier absent ou incompatible produit une erreur compréhensible."""
+    with pytest.raises(DataError):
+        DataLoader(tmp_path / "absent.csv").load()
+    bad = tmp_path / "bad.csv"
+    bad.write_text("other\n1\n", encoding="utf-8")
+    with pytest.raises(DataError):
+        DataLoader(bad).load()
+
+
+def test_regression_uses_real_years_and_excludes_2026() -> None:
+    """Retrouver une pente exacte malgré des années manquantes, sans fuite future."""
+    fit = fit_trend(
+        np.array([2018, 2019, 2022, 2026]), np.array([10, 12, 18, 999]), "ICP_abs"
     )
-    values.update(overrides)
-    return {raw: values[normalized] for raw, normalized in COLUMNS.items()}
+    assert fit["beta1"] == pytest.approx(2)
+    assert fit["r2"] == pytest.approx(1)
+    assert fit["spearman"] == pytest.approx(1)
+    assert fit["prediction_2026"] == pytest.approx(26)
+    assert fit["prediction_2027"] == pytest.approx(28)
+    assert fit["n_years"] == 3
 
 
-def load_rows(tmp_path: Path, rows: list[dict[str, object]]) -> pd.DataFrame:
-    """Charger de petites données en passant par le vrai lecteur CSV."""
-    path = tmp_path / "sample.csv"
-    pd.DataFrame(rows, columns=list(COLUMNS)).to_csv(path, sep=";", index=False)
-    return DataLoader(path).load()
-
-
-@pytest.fixture
-def data(tmp_path: Path) -> pd.DataFrame:
-    """Inclure des volumes inégaux, des périmètres distincts et une incohérence."""
-    return load_rows(
-        tmp_path,
-        [
-            observation(),
-            observation(month="2019-02", scheduled=90, cancelled=0, delayed=9),
-            observation(station="B", scheduled=30, cancelled=3, delayed=0),
-            observation(station="COVID", month="2020-01", scheduled=50, cancelled=0),
-            observation(station="I", service="International", scheduled=200),
-            observation(station="INVALID", scheduled=10, cancelled=9, delayed=2),
-        ],
+def test_short_constant_and_out_of_bounds_forecasts() -> None:
+    """Ne pas inventer de qualité d'ajustement ou de prédiction impossible."""
+    short = fit_trend(np.array([2023, 2024]), np.array([1, 2]), "ICP_abs")
+    assert np.isnan(short["prediction_2026"])
+    constant = fit_trend(np.array([2022, 2023, 2024]), np.array([1, 1, 1]), "ICP_abs")
+    assert constant["beta1"] == 0
+    assert np.isnan(constant["r2"])
+    assert np.isnan(constant["spearman"])
+    assert constant["prediction_2027"] == 1
+    declining = fit_trend(np.array([2022, 2023, 2024]), np.array([3, 2, 1]), "ICP_abs")
+    assert np.isnan(declining["prediction_2026"])
+    relative = fit_trend(
+        np.array([2022, 2023, 2024]), np.array([0.2, 0.4, 0.6]), "ICP_rel"
     )
+    assert np.isnan(relative["prediction_2027"])
 
 
-def test_ratios_use_sums_and_the_same_valid_rows(data: pd.DataFrame) -> None:
-    """Une petite liaison ne doit pas peser autant qu'une grande dans les taux."""
-    selected = filter_data(
-        data, pd.Timestamp("2019-01"), pd.Timestamp("2019-02"), "National"
+def test_ranking_aggregates_sums_and_sorts_requested_statistic() -> None:
+    """Le ratio global est pondéré par les voyageurs, pas une moyenne des ratios."""
+    annual = pd.DataFrame(
+        {
+            "gare_arrivee": ["A"] * 3 + ["B"] * 3,
+            "annee": [2022, 2023, 2024] * 2,
+            "conso_totale_sum": [120, 240, 360, 600, 600, 600],
+            "circ_pax_sum": [1000, 2000, 6000, 1000, 1000, 1000],
+            "nb_mois": [12] * 6,
+            "nb_circulations_prevues": [100] * 6,
+            "ICP_abs": [10, 20, 30, 50, 50, 50],
+            "ICP_rel": [0.12, 0.12, 0.06, 0.6, 0.6, 0.6],
+        }
     )
-    summary = summarize(selected)
-    assert summary["scheduled"] == 130
-    assert summary["cancelled"] == 4
-    assert summary["delayed"] == 13
-    assert summary["disruption_rate"] == pytest.approx(17 / 130)
-    assert summary["cancellation_rate"] == pytest.approx(4 / 130)
-    assert summary["departure_delay_rate"] == pytest.approx(13 / 130)
-    assert summary["stations"] == 2
-    assert summary["excluded"] == 1
-    ranking = rank_stations(selected, minimum_trains=0)
-    assert ranking["station"].tolist() == ["A", "B"]
-    assert ranking.iloc[0]["disruption_rate"] == pytest.approx(0.14)
-    assert ranking.iloc[0]["months"] == 2
-
-
-def test_filters_include_endpoints_and_exclude_covid_by_default(
-    data: pd.DataFrame,
-) -> None:
-    """Les bornes sont inclusives et une sélection vide signifie toutes les gares."""
-    start, end = pd.Timestamp("2019-01"), pd.Timestamp("2020-01")
-    before = data.copy(deep=True)
-    default = filter_data(data, start, end)
-    assert "COVID" not in default.station.tolist()
-    assert "I" in default.station.tolist()
-    assert "COVID" in filter_data(data, start, end, include_covid=True).station.tolist()
-    only_a = filter_data(data, start, pd.Timestamp("2019-02"), "National", ("A",))
-    assert len(only_a) == 2
-    assert filter_data(data, start, end, stations=("UNKNOWN",)).empty
-    pd.testing.assert_frame_equal(data, before)
-    with pytest.raises(ValueError, match="début"):
-        filter_data(data, end, start)
-
-
-def test_rank_threshold_metric_and_order(data: pd.DataFrame) -> None:
-    """Le seuil concerne le volume cumulé ; le critère et l'ordre sont effectifs."""
-    selected = filter_data(
-        data, pd.Timestamp("2019-01"), pd.Timestamp("2019-02"), "National"
-    )
-    assert rank_stations(selected, 100).station.tolist() == ["A"]
-    assert rank_stations(selected, 101).empty
-    assert rank_stations(selected, 0, "cancellation_rate").station.tolist() == [
-        "B",
-        "A",
-    ]
-    assert rank_stations(selected, 0, ascending=True).station.tolist() == ["B", "A"]
-    with pytest.raises(ValueError, match="Critère"):
-        rank_stations(selected, metric="unknown")
-    with pytest.raises(ValueError, match="seuil"):
-        rank_stations(selected, minimum_trains=-1)
-
-
-@pytest.mark.parametrize(
-    "changes",
-    [
-        {"scheduled": 0, "cancelled": 0, "delayed": 0},
-        {"scheduled": 10, "cancelled": 9, "delayed": 2},
-        {"delayed": -1},
-        {"delayed": 1.5},
-        {"delayed": np.nan},
-        {"delayed": np.inf},
-        {"delayed": "invalid"},
-        {"month": "invalid"},
-        {"station": " "},
-        {"destination": None},
-    ],
-)
-def test_invalid_observations_remain_flagged_without_fabrication(
-    tmp_path: Path,
-    changes: dict[str, object],
-) -> None:
-    """Chaque incohérence conserve sa ligne mais n'entre pas dans les calculs."""
-    loaded = load_rows(tmp_path, [observation(**changes)])
-    assert len(loaded) == 1
-    assert not loaded.iloc[0].eligible
-    assert loaded.iloc[0].quality_issues
-    assert summarize(loaded)["scheduled"] == 0
-    assert np.isnan(summarize(loaded)["disruption_rate"])
-    assert rank_stations(loaded, 0).empty
-
-
-def test_duplicate_keys_are_not_double_counted(tmp_path: Path) -> None:
-    """Toutes les copies d'une clé sont signalées, sans en choisir une arbitrairement."""
-    loaded = load_rows(tmp_path, [observation(), observation()])
-    assert not loaded.eligible.any()
-    assert loaded.quality_issues.str.contains("dupliquée").all()
-
-
-def test_no_blanket_exclusion_for_unrelated_fields(tmp_path: Path) -> None:
-    """Une anomalie d'arrivée ou de durée ne supprime pas des départs utilisables."""
-    row = observation()
-    row["Durée moyenne du trajet"] = 0
-    row["Retard moyen des trains en retard à l'arrivée"] = -40
-    path = tmp_path / "arrival.csv"
-    pd.DataFrame([row]).to_csv(path, sep=";", index=False)
-    assert DataLoader(path).load().eligible.all()
-
-
-def test_loader_reports_missing_file_and_columns(tmp_path: Path) -> None:
-    """Présenter des erreurs compréhensibles lorsque la source ne convient pas."""
-    with pytest.raises(DataError, match="lire"):
-        DataLoader(tmp_path / "missing.csv").load()
-    path = tmp_path / "wrong.csv"
-    path.write_text("wrong\n1\n", encoding="utf-8")
-    with pytest.raises(DataError, match="Colonnes"):
-        DataLoader(path).load()
-
-
-def test_empty_selection_has_no_invented_rate(data: pd.DataFrame) -> None:
-    """L'absence de données ne doit pas être présentée comme zéro pour cent."""
-    empty = data.iloc[:0]
-    assert summarize(empty)["observations"] == 0
-    assert np.isnan(summarize(empty)["disruption_rate"])
-    assert rank_stations(empty).empty
-
-
-def test_monthly_rates_are_weighted_within_each_month(tmp_path: Path) -> None:
-    """Deux liaisons de volumes différents doivent être sommées avant division."""
-    loaded = load_rows(
-        tmp_path,
-        [
-            observation(),
-            observation(destination="Y", scheduled=90, cancelled=0, delayed=9),
-            observation(station="B", scheduled=500, cancelled=100, delayed=100),
-        ],
-    )
-    before = loaded.copy(deep=True)
-    monthly = station_monthly(
-        loaded, "A", pd.Timestamp("2019-01"), pd.Timestamp("2019-01")
-    )
-    row = monthly.iloc[0]
-    assert row.scheduled == 100
-    assert row.cancelled == 1
-    assert row.delayed == 13
-    assert row.disruption_rate == pytest.approx(0.14)
-    assert row.cancellation_rate == pytest.approx(0.01)
-    assert row.departure_delay_rate == pytest.approx(0.13)
-    assert row.destinations == 2
-    assert row.observations == 2
-    pd.testing.assert_frame_equal(loaded, before)
-
-
-def test_monthly_gaps_and_invalid_months_do_not_become_zero(tmp_path: Path) -> None:
-    """Lacunes et mois invalides restent indéfinis et séparent les courbes."""
-    loaded = load_rows(
-        tmp_path,
-        [
-            observation(),
-            observation(month="2019-03", scheduled=40, cancelled=0, delayed=0),
-            observation(month="2019-04", scheduled=10, cancelled=9, delayed=2),
-            observation(month="2019-05"),
-        ],
-    )
-    monthly = station_monthly(
-        loaded, "A", pd.Timestamp("2019-01"), pd.Timestamp("2019-06")
-    )
-    assert monthly.month.dt.strftime("%Y-%m").tolist() == [
-        "2019-01",
-        "2019-02",
-        "2019-03",
-        "2019-04",
-        "2019-05",
-        "2019-06",
-    ]
-    assert monthly.observed.tolist() == [True, False, True, False, True, False]
-    assert monthly.loc[[1, 3, 5], ["scheduled", "disruption_rate"]].isna().all().all()
-    assert monthly.iloc[1].status == "Sans observation"
-    assert monthly.iloc[3].status == "Aucune observation valide"
-    assert monthly.iloc[3].excluded_observations == 1
-    assert monthly.iloc[2].disruption_rate == 0  # Un vrai zéro reste bien un zéro.
-    assert monthly.loc[monthly.observed, "segment"].nunique() == 3
-
-
-def test_partial_month_reports_exclusions_and_valid_denominator(tmp_path: Path) -> None:
-    """Une ligne invalide ne modifie ni le numérateur ni le dénominateur."""
-    loaded = load_rows(
-        tmp_path,
-        [
-            observation(),
-            observation(destination="Y", scheduled=10, cancelled=9, delayed=2),
-        ],
-    )
-    row = station_monthly(
-        loaded, "A", pd.Timestamp("2019-01"), pd.Timestamp("2019-01")
-    ).iloc[0]
-    assert row.scheduled == 10
-    assert row.disruption_rate == pytest.approx(0.5)
-    assert row.observations == 1
-    assert row.excluded_observations == 1
-    assert row.status == "Données partielles (lignes écartées)"
-
-
-def test_covid_months_remain_explicit_calendar_breaks(tmp_path: Path) -> None:
-    """Les années hors périmètre sont distinguées des mois sans observation."""
-    loaded = load_rows(
-        tmp_path,
-        [
-            observation(month="2019-12"),
-            observation(month="2020-01"),
-            observation(month="2022-01"),
-        ],
-    )
-    start, end = pd.Timestamp("2019-12"), pd.Timestamp("2022-01")
-    monthly = station_monthly(loaded, "A", start, end)
-    assert monthly.in_scope.sum() == 2
-    assert monthly.observed.sum() == 2
-    assert monthly.loc[~monthly.in_scope, "disruption_rate"].isna().all()
-    assert (
-        monthly.loc[~monthly.in_scope, "status"].eq("Hors périmètre (2020–2021)").all()
-    )
-    assert monthly.iloc[0].segment != monthly.iloc[-1].segment
-    included = station_monthly(loaded, "A", start, end, include_covid=True)
-    assert included.in_scope.all()
-    assert included.observed.sum() == 3
-
-
-def test_monthly_bounds_empty_station_and_totals(data: pd.DataFrame) -> None:
-    """Les bornes et totaux mensuels concordent avec le résumé de la même gare."""
-    start, end = pd.Timestamp("2019-01"), pd.Timestamp("2019-03")
-    monthly = station_monthly(data, "A", start, end)
-    selected = filter_data(data, start, end, stations=("A",))
-    for count in ["scheduled", "cancelled", "delayed"]:
-        assert monthly[count].sum() == summarize(selected)[count]
-    unknown = station_monthly(data, "UNKNOWN", start, end)
-    assert len(unknown) == 3
-    assert not unknown.observed.any()
-    assert unknown.disruption_rate.isna().all()
-    with pytest.raises(ValueError, match="début"):
-        station_monthly(data, "A", end, start)
+    ranked = ranking_table(annual, "ICP_abs")
+    assert ranked.gare_arrivee.tolist() == ["B", "A"]
+    assert ranked.iloc[1].ICP_rel == pytest.approx(720 / 9000)
+    assert ranking_table(annual, "ICP_abs", "Beta 1").iloc[0].gare_arrivee == "A"
+    assert ranking_table(annual, "ICP_abs", "R²").iloc[0].gare_arrivee == "A"
+    assert ranking_table(annual, "ICP_abs", minimum=301).empty
