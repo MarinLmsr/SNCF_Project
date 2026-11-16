@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 import pydeck as pdk
 import streamlit as st
-
 from core import (
     DEFAULT_DATA_PATH,
     EXCLUDED_YEARS,
@@ -338,10 +337,13 @@ def main() -> None:
         page_title="RailInsight · Taxis en gare", page_icon="🚉", layout="wide"
     )
     configure_logging()
-    st.title("RailInsight — Taxis et VTC en gare")
+    st.title("RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire")
     st.caption(
-        "Un projet étudiant sur les retards TGV à l'arrivée et leur potentiel de report vers un taxi."
+        "Etude du retard en gare d'arrivée en fonction de la durée du retard, des causes de retard et de la fréquentation des gares"
     )
+    st.caption(
+        "Projet mené par Jean-Baptiste Clavier, Jean-Baptiste Garel, Marin Lemesre, Xingshi Liu et Jonathan Ozden"
+        )
     try:
         data = load_data(DEFAULT_DATA_PATH.stat().st_mtime_ns)
     except (OSError, DataError) as exc:
