@@ -1,0 +1,37 @@
+Structure de l’application
+
+Onglet 0 : Accueil
+Page de présentation.
+
+Onglet 1 : Heatmap
+
+Heatmap de l’ICP par période (gares × mois ou années).
+Cases à cocher pour afficher ICP relatif ou ICP absolu
+
+Onglet 2 : La performance d’une gare dans le temps (question : l’opportunité est-elle consistante ?)
+
+Menu déroulant pour choisir la gare.
+Graphique avec le temps en abscisse et l’ICP (relatif ou absolu) en ordonnée.
+Régression linéaire entre temps et ICP, superposée à un histogramme de l’ICP.
+Affichage du coefficient de Spearman.
+Champ « panier moyen » modifiable pour calculer les gains.
+Curseurs pour les pourcentages de la courbe de consommation (les taux de 1 %, 10 %, 25 % selon le retard), 
+avec pour valeurs par défaut celles du document cadre (ou README).
+
+Onglet 3 : Classement sur l’ICP absolu
+
+Tableau des gares avec les colonnes :
+Classement
+Nom de la gare
+ICP
+Pente de la régression (β1)
+R²
+Prédiction 2026 et 2027
+Bouton pour trier selon ICP, β1 ou R².
+Panier moyen modifiable pour calculer les gains.
+
+Onglet 4 : Classement sur l’ICP relatif
+Identique à l’onglet 3, avec l’ICP relatif.
+
+Onglet 5 : Conclusion
+Texte de la conclusion de l’article.
