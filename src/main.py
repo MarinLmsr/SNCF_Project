@@ -4,14 +4,22 @@
 # 1. LIBRAIRIES
 # -----------------------------------------------------------------------------
 
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 from my_package.classDF import (
-    DataLoader, ScoreConfig, ICPCalculator, FiabiliteCalculator, GraphAnalyzer,
-    TrendAnalyzer, PersistenceAnalyzer, QuadrantClassifier, CorrelationAnalyzer,
+    CorrelationAnalyzer,
+    DataLoader,
+    FiabiliteCalculator,
+    GraphAnalyzer,
+    ICPCalculator,
+    PersistenceAnalyzer,
+    QuadrantClassifier,
+    ScoreConfig,
+    TrendAnalyzer,
 )
 from my_package.funcDF import construire_variables_gares
 from my_package.triDF import triDF
-from pathlib import Path
-import matplotlib.pyplot as plt
 
 # -----------------------------------------------------------------------------
 # 2. CREATION DU CSV NETTOYÉ - EXPORTATION DANS DATA
@@ -24,8 +32,8 @@ df_raw, df_final, cols_vides, indices_a_supprimer = triDF()
 # -----------------------------------------------------------------------------
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
-loader = DataLoader(DATA_DIR / "regularite_tgv_clean.csv")
-df_brut = loader.load_and_clean()
+loader = DataLoader(DATA_DIR / "regularite-mensuelle-tgv-aqst.csv")
+df_brut = loader.load_and_clean(df_final)
 config = ScoreConfig(panier_moyen=25.0)
 calculator = ICPCalculator(config)
 df_lignes = calculator.calculer_ligne(df_brut)

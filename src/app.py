@@ -4,7 +4,6 @@ import logging
 
 import pandas as pd
 import streamlit as st
-
 from core import (
     DEFAULT_DATA_PATH,
     PROJECT_ROOT,
@@ -405,6 +404,8 @@ def show_icp_assumptions() -> None:
             "une approximation non linéaire et non une distribution des attentes individuelles. "
             "Les coefficients de causes sont neutres (= 1), sans utiliser les pourcentages de causes."
         )
+        # ici on ajoutera des curseurs sur la page Streamlit pour que l'utilisateur puisse ajuster les
+        # pourcentages à sa guise
         st.caption(
             "Une gare sans observation valide un mois ne reçoit pas un zéro : "
             "ce mois n'entre pas dans sa moyenne. Consultez le nombre de mois couverts. "
@@ -695,7 +696,7 @@ def show_method(data: pd.DataFrame, filtered: pd.DataFrame) -> None:
             "des départs. Les exclusions ne concernent que les champs nécessaires."
         )
         st.caption(
-            "2020–2021 : exclusion optionnelle liée au périmètre d'étude. "
+            "2020–2021 (années COVID) : exclusion optionnelle liée au périmètre d'étude. "
             "Les mois d'une année incomplète restent consultables ; ce classement "
             "ne constitue pas une comparaison d'années complètes. "
             "Il mesure des perturbations, pas une rentabilité commerciale."
