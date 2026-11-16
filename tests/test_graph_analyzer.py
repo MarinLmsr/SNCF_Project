@@ -7,7 +7,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
 from src.my_package.classDF import GraphAnalyzer, InsufficientDataError
 
 
@@ -15,7 +14,7 @@ class GraphAnalyzerTests(unittest.TestCase):
     def setUp(self):
         self.df = pd.DataFrame([
             {
-                "gare_depart": f"Gare {gare:02d}",
+                "gare_arrivee": f"Gare {gare:02d}",
                 "annee": annee,
                 "ICP_abs": gare * facteur,
                 "ICP_rel": gare / 10,
@@ -31,7 +30,7 @@ class GraphAnalyzerTests(unittest.TestCase):
     def test_top10_cumule_deux_axes_et_valeurs_annuelles(self):
         # La dernière année seule classerait cette gare première.
         self.df.loc[
-            (self.df["gare_depart"] == "Gare 01") & (self.df["annee"] == 2023),
+            (self.df["gare_arrivee"] == "Gare 01") & (self.df["annee"] == 2023),
             "ICP_abs",
         ] = 130
         original = self.df.copy(deep=True)
@@ -56,9 +55,9 @@ class GraphAnalyzerTests(unittest.TestCase):
         pd.testing.assert_frame_equal(self.df, original)
 
     def test_moins_de_dix_gares_et_valeurs_manquantes(self):
-        df = self.df[self.df["gare_depart"].isin(["Gare 11", "Gare 12"])].copy()
-        df = df.drop(df[(df["gare_depart"] == "Gare 12") & (df["annee"] == 2023)].index)
-        df.loc[df["gare_depart"] == "Gare 12", "ICP_rel"] = np.nan
+        df = self.df[self.df["gare_arrivee"].isin(["Gare 11", "Gare 12"])].copy()
+        df = df.drop(df[(df["gare_arrivee"] == "Gare 12") & (df["annee"] == 2023)].index)
+        df.loc[df["gare_arrivee"] == "Gare 12", "ICP_rel"] = np.nan
         fig = GraphAnalyzer.tracer_icp_top10(df)
         gauche, droite = fig.axes[1], fig.axes[11]
         self.assertEqual(sum(cadre.get_visible() for cadre in fig.axes[:10]), 2)
