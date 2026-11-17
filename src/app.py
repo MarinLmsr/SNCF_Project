@@ -7,6 +7,9 @@ import numpy as np
 import pandas as pd
 import pydeck as pdk
 import streamlit as st
+import math
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from core import (
     DEFAULT_DATA_PATH,
     EXCLUDED_YEARS,
@@ -331,6 +334,26 @@ def show_conclusion(annual: pd.DataFrame) -> None:
     )
 
 
+def boxplot_bundle(data: pd.DataFrame, datacols: list, ncols: int) -> None:
+
+    nrows = math.ceil(len(datacols) / ncols)
+
+    fig = make_subplots(rows=nrows, cols=ncols, subplot_titles=list(datacols))
+
+    for i, col in enumerate(datacols):
+        fig.add_trace(
+            go.Box(
+                y=data[col], name=col, boxmean=True
+            ),  # boxmean : affiche aussi la moyenne
+            row=i // ncols + 1,
+            col=i % ncols + 1,
+        )
+
+    fig.update_layout(height=300 * nrows, showlegend=False)
+    fig.update_xaxes(showticklabels=False)
+    st.plotly_chart(fig)
+
+
 def main() -> None:
     """Relier les six onglets à une seule source et à des hypothèses communes."""
     st.set_page_config(
@@ -395,7 +418,7 @@ def main() -> None:
             "3 · Top ICP absolu",
             "4 · Top ICP relatif",
             "5 · Conclusion",
-            "6 · Data Cleansing",
+            "6 · Annexes",
         ]
     )
     with tabs[2]:
@@ -537,7 +560,45 @@ def main() -> None:
         st.subheader("Conclusion de notre article")
         show_conclusion(annual)
     with tabs[6]:
-        st.subheader("Data Check")
+        st.subheader("Statistiques post data cleansing")
+
+        data_num_cols = [c for c in data.select_dtypes("number").columns]
+
+        # Boxplots des retards à l'arrivée
+        st.write(
+            "Boxplots des retards à l'arrivée - Distribution typique de retards avec peu d'outliers avec des valeurs extrêmes"
+        )
+        data_num_bundle = [
+            i
+            for i in data_num_cols
+            if i.startswith("Nombre trains")
+            or "arrivee" in i
+            or "arrivée" in i
+            or "Retard moyen trains en retard > 15" in i
+        ]
+        boxplot_bundle(data, data_num_bundle, 3)
+        data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
+
+        # Boxplots des causes de retards en pourcentage
+        st.write(
+            "Boxplots des causes de retards en pourcentage - - Sur base mensuelle et par ligne, les retards ont souvent des causes diversifiées sauf rarement (outliers) où une cause peut justifier la majorité des retards"
+        )
+        data_num_bundle = [i for i in data_num_cols if i.startswith("p_")]
+        boxplot_bundle(data, data_num_bundle, 3)
+        data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
+
+        # Boxplots autres colonnes numériques
+        st.write("Boxplots autres colonnes numériques")
+        data_num_bundle = [i for i in data_num_cols if i != "annee"]
+        boxplot_bundle(data, data_num_bundle, 3)
+        data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
+
+        for i, col in enumerate(data_num_cols):
+            print(i, col)
+
+        data_notnum_cols = [c for c in data.select_dtypes(exclude="number").columns]
+        for i, col in enumerate(data_notnum_cols):
+            print(i, col)
 
 
 if __name__ == "__main__":
