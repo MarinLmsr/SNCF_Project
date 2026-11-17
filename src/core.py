@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 from scipy.stats import linregress, spearmanr
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -127,16 +128,16 @@ def fit_trend(years: np.ndarray, values: np.ndarray, metric: str) -> dict[str, f
     years, values = np.asarray(years, dtype=float), np.asarray(values, dtype=float)
     valid = np.isfinite(years) & np.isfinite(values) & (years < 2026)
     x, y = years[valid], values[valid]
-    result = dict(
-        beta1=np.nan,
-        intercept=np.nan,
-        r2=np.nan,
-        spearman=np.nan,
-        cv=np.nan,
-        prediction_2026=np.nan,
-        prediction_2027=np.nan,
-        n_years=len(x),
-    )
+    result = {
+        "beta1": np.nan,
+        "intercept": np.nan,
+        "r2": np.nan,
+        "spearman": np.nan,
+        "cv": np.nan,
+        "prediction_2026": np.nan,
+        "prediction_2027": np.nan,
+        "n_years": len(x),
+    }
     if len(np.unique(x)) < 3:
         return result
     result["cv"] = float(np.std(y, ddof=1) / np.mean(y)) if np.mean(y) > 0 else np.nan
@@ -195,3 +196,70 @@ def ranking_table(
     ).reset_index(drop=True)
     table.insert(0, "rank", np.arange(1, len(table) + 1))
     return table
+
+# Poids d'imprévisibilité : 0 = prévisible/améliorable, 1 = imprévisible
+POIDS_IMPREVISIBILITE = {
+    "p_externes": 1.0,
+    "p_gestion_trafic": 0.5,
+    "p_infrastructure": 0.0,
+    "p_materiel_roulant": 0.0,
+    "p_gestion_gare": 0.0,
+    "p_prise_en_compte_voyageurs": 0.0,
+}
+
+
+def score_volatilite(
+    df: pd.DataFrame,
+    poids: dict[str, float] = POIDS_IMPREVISIBILITE,
+    min_minutes: float = 1000.0,
+) -> pd.Series:
+    """Score de volatilité (0 à 10) par gare d'arrivée.
+
+    df : une ligne par liaison x mois, avec 'gare_arrivee', 'nb_retard_arrivee',
+         'retard_moyen_arrivee' et les colonnes p_* (en pourcentage, 0 à 100).
+    """
+    d = df.copy()
+    causes = list(poids)
+
+    # Pourcentages renormalisés pour sommer à 1, valeurs manquantes traitées comme 0
+    parts = d[causes].fillna(0)
+    total = parts.sum(axis=1).replace(0, np.nan)
+    parts = parts.div(total, axis=0)
+
+    # Imprévisibilité de chaque ligne (entre 0 et 1)
+    w = pd.Series(poids)
+    d["imprevisible"] = (parts * w).sum(axis=1)
+
+    # Poids de la ligne = minutes de retard cumulées
+    d["minutes"] = d["nb_retard_arrivee"].fillna(0) * d["retard_moyen_arrivee"].fillna(0)
+    d = d.dropna(subset=["imprevisible"])
+
+    # Somme d'abord, division ensuite (comme pour l'ICP relatif)
+    d["produit"] = d["imprevisible"] * d["minutes"]
+    g = d.groupby("gare_arrivee")[["produit", "minutes"]].sum()
+    g = g[g["minutes"] >= min_minutes]  # évite les scores bruités sur très peu de retards
+    return (10 * g["produit"] / g["minutes"]).rename("score_volatilite")
+  
+def compteur_volatilite(valeur: float, mediane: float) -> go.Figure:
+    """Compteur de vitesse de 0 à 10 : vert = prévisible, rouge = imprévisible."""
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=round(valeur, 1),
+        number={"suffix": " / 10"},
+        delta={"reference": round(mediane, 1),
+               "increasing": {"color": "#c0392b"},
+               "decreasing": {"color": "#27ae60"}},
+        title={"text": "Volatilité des causes de retard"},
+        gauge={
+            "axis": {"range": [0, 10], "tickmode": "linear", "dtick": 1},
+            "bar": {"color": "#2c3e50"},
+            "steps": [
+                {"range": [0, 3.33], "color": "#d5f5e3"},
+                {"range": [3.33, 6.67], "color": "#fdebd0"},
+                {"range": [6.67, 10], "color": "#f5b7b1"},
+            ],
+            "threshold": {"line": {"color": "black", "width": 3}, "value": mediane},
+        },
+    ))
+    fig.update_layout(height=300, margin=dict(l=20, r=20, t=60, b=10))
+    return fig

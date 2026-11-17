@@ -13,15 +13,27 @@ from core import (
     PROJECT_ROOT,
     DataError,
     DataLoader,
+    compteur_volatilite,
     filter_data,
     fit_trend,
     ranking_table,
+    score_volatilite,
 )
 from icp import SimulationConfig, annual_icp
 
 LOGGER = logging.getLogger("railinsight")
 BASKET_KEYS = ("basket_trend", "basket_absolute", "basket_relative")
 
+# 0 = cause prévisible et améliorable, 1 = cause imprévisible
+POIDS_IMPREVISIBILITE = {
+    "p_externes": 1.0,
+    "p_gestion_trafic": 0.5,
+    "p_infrastructure": 0.0,
+    "p_materiel_roulant": 0.0,
+    "p_gestion_gare": 0.0,
+    "p_prise_en_compte_voyageurs": 0.0,
+}
+MIN_MINUTES_RETARD = 1000.0
 
 def configure_logging() -> None:
     """Créer des journaux distincts sans ajouter de handler à chaque interaction."""
@@ -130,7 +142,7 @@ def show_map(scores: pd.DataFrame, metric: str) -> None:
     )
 
 
-def show_trend(annual: pd.DataFrame) -> None:
+def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
     """Afficher une gare, ses années observées et une droite de régression."""
     station = st.selectbox(
         "Gare d'arrivée", sorted(annual.gare_arrivee.unique()), key="trend_station"
@@ -211,6 +223,24 @@ def show_trend(annual: pd.DataFrame) -> None:
     st.caption(
         "Barres bleues : ICP annuel observé (moyenne mensuelle). Droite orange : ajustement linéaire. Les années COVID ne sont pas imputées."
     )
+    col_gauge, col_text = st.columns([1, 2])
+    with col_gauge:
+        if station in scores.index:
+            st.plotly_chart(
+                compteur_volatilite(scores[station], scores.median()),
+                use_container_width=True,
+            )
+        else:
+            st.info("Pas assez de minutes de retard pour calculer la volatilité de cette gare.")
+    with col_text:
+        st.markdown("**Volatilité des causes de retard**")
+        st.write(
+            "Proche de 0 : les retards viennent de causes connues et améliorables "
+            "(infrastructure, matériel, gestion en gare). Proche de 10 : ils viennent "
+            "d'événements imprévisibles, comme les intempéries ou les incidents extérieurs. "
+            "Pour un investisseur, une gare à faible score a des retards plus réguliers, "
+            "donc une opportunité plus consistante. Le trait noir indique la médiane des gares."
+        )
     columns = st.columns(4)
     columns[0].metric(
         "Spearman ρ · temps / ICP",
@@ -412,6 +442,15 @@ def main() -> None:
     annual = annual_icp(scope, SimulationConfig(taxi_rate_60=percentage / 100))
     volumes = annual.groupby("gare_arrivee").nb_circulations_prevues.sum()
     annual = annual.loc[annual.gare_arrivee.isin(volumes[volumes.ge(minimum)].index)]
+    
+    volumes = annual.groupby("gare_arrivee").nb_circulations_prevues.sum()
+    annual = annual.loc[annual.gare_arrivee.isin(volumes[volumes.ge(minimum)].index)]
+
+    # Score de volatilité sur le même périmètre que l'ICP
+    scores = score_volatilite(
+        scope.loc[scope.eligible], POIDS_IMPREVISIBILITE, MIN_MINUTES_RETARD
+    )
+    scores = scores.loc[scores.index.isin(annual.gare_arrivee.unique())]
     LOGGER.info(
         "Analyse arrivée : %s-%s, service=%s, recours=%s, seuil=%s",
         start,
@@ -510,7 +549,7 @@ def main() -> None:
             "Coordonnées : [SNCF · Gares de voyageurs](https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs/)."
         )
     with tabs[2]:
-        show_trend(annual)
+        show_trend(annual, scores)
     with tabs[3]:
         st.subheader("Classement · ICP absolu")
         show_ranking(annual, "ICP_abs", "basket_absolute")
