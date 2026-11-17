@@ -388,10 +388,10 @@ def main() -> None:
     tabs = st.tabs(
         [
             "0 · Accueil",
-            "1 · Carte de chaleur",
-            "2 · Tendances",
-            "3 · ICP absolu",
-            "4 · ICP relatif",
+            "1 · Cartographie de l'ICP",
+            "2 · Etude par gare",
+            "3 · Top ICP absolu",
+            "4 · Top ICP relatif",
             "5 · Conclusion",
         ]
     )
@@ -428,20 +428,51 @@ def main() -> None:
                 )
         return
     with tabs[0]:
-        st.subheader("Où renforcer l'offre de taxis et VTC ?")
+        st.subheader("Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?")
+        
+        st.write("**Notre postulat**")
+        
+        st.write("Un voyageur dont le train arrive en retard a plus de risques de rater sa correspondance (TER, bus, tram, métro) ou de se retrouver sans transport en commun adapté. Il se reporte alors sur un taxi ou un VTC. Plus le retard est long, plus la probabilité de prendre un taxi augmente. Ce postulat n'est pas verifiable avec nos donnees (pas de données de courses ni de réservations) : nous le traitons comme une hypothèse, entièrement paramétrable et testée par des analyses de robustesse."
+                 )
+        st.write("*POURQUOI LA GARE D'ARRIVEE ?*")
+
+        st.write("Le report vers un taxi se produit à l'arrivée du train. Les données de retard à l'arrivée sont aussi les plus complètes : nombre de trains en retard, retard moyen, tranches > 15 / 30 / 60 min, et répartition des causes. Les retards et leurs causes décrivent ainsi le même événement, ce qui rend le modèle cohérent.")
+
         st.write(
-            "Un retard à l'arrivée peut pousser un voyageur vers un taxi/VTC. Nous explorons cette hypothèse avec un ICP, un indicateur de consommation potentielle, sans données réelles de réservations."
+            "Pour explorer cette hypothèse, nous avons construit un indice de consommation potentielle (**ICP**). Cet indice, créé de toutes pièces pour l’étude, permet de repérer les gares où les retards à l’arrivée représentent la plus belle opportunité d’investissement."
         )
+        
         cols = st.columns(3)
         cols[0].metric("Gares étudiées", int(annual.gare_arrivee.nunique()))
-        cols[1].metric("Années historiques", int(annual.annee.nunique()))
+        cols[1].metric("Nombre d'années pris en compte", int(annual.annee.nunique()))
         cols[2].metric(
-            "Trains prévus",
+            "Nombre de train étudié",
             f"{annual.nb_circulations_prevues.sum():,.0f}".replace(",", " "),
         )
+        
+        st.image("https://taxi-neuville69.fr/images/ai/gare-partdieu.jpg")
+        
         st.write(
-            "**Carte** : localiser le potentiel. **Tendances** : examiner sa régularité. **Classements** : comparer les ICP, les pentes et les extrapolations. **Conclusion** : résumer les résultats et leurs limites."
+                "Les onglets suivants permettent d'analyser **l'ICP** sous différents angles. "
+                                )
+        st.write(
+            "**1. cartographie de l'ICP** : carte centrée sur la France afin de localiser les opportunités d'investissement"
         )
+        st.write(
+            "**2. étude par gare** : zoom sur une gare en ajustant les paramètres de temps, de variables de calcul de l'ICP et de panier moyen"
+                )
+        st.write(
+            "**3. top ICP absolu** : comparaison des ICP absolus, du coefficient de croissance et des extrapolations entre les gares."
+                        )
+        st.write(
+            "**4. top ICP relatif** : comparaison des ICP relatifs, du coefficient de croissance et des extrapolations entre les gares."
+                                )
+        st.write(
+            "**5. conclusion** : résumé les résultats et leurs limites.")
+        
+        st.caption("Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la 'consommation' désigne le recours supplementaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations.") 
+        st.caption("L'ICP combine : \n- le volume de trains à l'arrivee dans la gare, \n- la duree des retards a l'arrivee (via une courbe de recours au taxi croissante), \n- une ponderation selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, materiel roulant, gestion en gare, prise en compte des voyageurs dont les correspondances.")
+        st.caption("Les annulations ne sont pas integrees a l'ICP : un train annule n'arrive jamais, donc il ne genere pas de voyageurs a l'arrivee. Elles restent presentes dans le classement de fiabilite.")
         st.caption(
             "ICP absolu : courses simulées par mois observé. ICP relatif : courses simulées / voyageurs prévus. Hypothèse : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
         )
