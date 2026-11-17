@@ -337,13 +337,15 @@ def main() -> None:
         page_title="RailInsight · Taxis en gare", page_icon="🚉", layout="wide"
     )
     configure_logging()
-    st.title("RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire")
+    st.title(
+        "RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire"
+    )
     st.caption(
         "Etude du retard en gare d'arrivée en fonction de la durée du retard, des causes de retard et de la fréquentation des gares"
     )
     st.caption(
         "Projet mené par Jean-Baptiste Clavier, Jean-Baptiste Garel, Marin Lemesre, Xingshi Liu et Jonathan Ozden"
-        )
+    )
     try:
         data = load_data(DEFAULT_DATA_PATH.stat().st_mtime_ns)
     except (OSError, DataError) as exc:
@@ -393,6 +395,7 @@ def main() -> None:
             "3 · Top ICP absolu",
             "4 · Top ICP relatif",
             "5 · Conclusion",
+            "6 · Data Cleansing",
         ]
     )
     with tabs[2]:
@@ -428,20 +431,25 @@ def main() -> None:
                 )
         return
     with tabs[0]:
-        st.subheader("Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?")
-        
+        st.subheader(
+            "Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?"
+        )
+
         st.write("**Notre postulat**")
-        
-        st.write("Un voyageur dont le train arrive en retard a plus de risques de rater sa correspondance (TER, bus, tram, métro) ou de se retrouver sans transport en commun adapté. Il se reporte alors sur un taxi ou un VTC. Plus le retard est long, plus la probabilité de prendre un taxi augmente. Ce postulat n'est pas verifiable avec nos donnees (pas de données de courses ni de réservations) : nous le traitons comme une hypothèse, entièrement paramétrable et testée par des analyses de robustesse."
-                 )
+
+        st.write(
+            "Un voyageur dont le train arrive en retard a plus de risques de rater sa correspondance (TER, bus, tram, métro) ou de se retrouver sans transport en commun adapté. Il se reporte alors sur un taxi ou un VTC. Plus le retard est long, plus la probabilité de prendre un taxi augmente. Ce postulat n'est pas verifiable avec nos donnees (pas de données de courses ni de réservations) : nous le traitons comme une hypothèse, entièrement paramétrable et testée par des analyses de robustesse."
+        )
         st.write("*POURQUOI LA GARE D'ARRIVEE ?*")
 
-        st.write("Le report vers un taxi se produit à l'arrivée du train. Les données de retard à l'arrivée sont aussi les plus complètes : nombre de trains en retard, retard moyen, tranches > 15 / 30 / 60 min, et répartition des causes. Les retards et leurs causes décrivent ainsi le même événement, ce qui rend le modèle cohérent.")
+        st.write(
+            "Le report vers un taxi se produit à l'arrivée du train. Les données de retard à l'arrivée sont aussi les plus complètes : nombre de trains en retard, retard moyen, tranches > 15 / 30 / 60 min, et répartition des causes. Les retards et leurs causes décrivent ainsi le même événement, ce qui rend le modèle cohérent."
+        )
 
         st.write(
             "Pour explorer cette hypothèse, nous avons construit un indice de consommation potentielle (**ICP**). Cet indice, créé de toutes pièces pour l’étude, permet de repérer les gares où les retards à l’arrivée représentent la plus belle opportunité d’investissement."
         )
-        
+
         cols = st.columns(3)
         cols[0].metric("Gares étudiées", int(annual.gare_arrivee.nunique()))
         cols[1].metric("Nombre d'années pris en compte", int(annual.annee.nunique()))
@@ -449,32 +457,40 @@ def main() -> None:
             "Nombre de train étudié",
             f"{annual.nb_circulations_prevues.sum():,.0f}".replace(",", " "),
         )
-        
+
         st.image("https://taxi-neuville69.fr/images/ai/gare-partdieu.jpg")
-        
+
         st.write(
-                "Les onglets suivants permettent d'analyser **l'ICP** sous différents angles. "
-                                )
+            "Les onglets suivants permettent d'analyser **l'ICP** sous différents angles. "
+        )
         st.write(
             "**1. cartographie de l'ICP** : carte centrée sur la France afin de localiser les opportunités d'investissement"
         )
         st.write(
             "**2. étude par gare** : zoom sur une gare en ajustant les paramètres de temps, de variables de calcul de l'ICP et de panier moyen"
-                )
+        )
         st.write(
             "**3. top ICP absolu** : comparaison des ICP absolus, du coefficient de croissance et des extrapolations entre les gares."
-                        )
+        )
         st.write(
             "**4. top ICP relatif** : comparaison des ICP relatifs, du coefficient de croissance et des extrapolations entre les gares."
-                                )
-        st.write(
-            "**5. conclusion** : résumé les résultats et leurs limites.")
-        
-        st.caption("Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la consommation désigne le recours supplémentaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations.") 
-        st.caption("L'ICP absolu combine : \n- le volume de trains à l'arrivée dans la gare, \n- la durée des retards à l'arrivée (via une courbe de recours au taxi croissante), \n- une ponderation selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, materiel roulant, gestion en gare, etc.).")
-        st.caption("L'ICP relatif ne prend pas en compte le volume de train, et ne défavorise donc pas les petites gares à faible fréquentation")
-        st.caption("Les annulations ne sont pas integrées a l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité.")
-        st.caption("Hypothèses : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
+        )
+        st.write("**5. conclusion** : résumé les résultats et leurs limites.")
+
+        st.caption(
+            "Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la consommation désigne le recours supplémentaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations."
+        )
+        st.caption(
+            "L'ICP absolu combine : \n- le volume de trains à l'arrivée dans la gare, \n- la durée des retards à l'arrivée (via une courbe de recours au taxi croissante), \n- une ponderation selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, materiel roulant, gestion en gare, etc.)."
+        )
+        st.caption(
+            "L'ICP relatif ne prend pas en compte le volume de train, et ne défavorise donc pas les petites gares à faible fréquentation"
+        )
+        st.caption(
+            "Les annulations ne sont pas integrées a l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité."
+        )
+        st.caption(
+            "Hypothèses : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
         )
         st.caption(
             f"{int((~scope.eligible).sum())} ligne(s) non exploitable(s) dans ce périmètre. Seuls les groupes gare/année couvrant douze mois valides sont comparés ; les liaisons couvertes peuvent varier."
@@ -491,7 +507,7 @@ def main() -> None:
             for metric, enabled in [("ICP_abs", show_abs), ("ICP_rel", show_rel)]
             if enabled
         ]
-        
+
         if not selected:
             st.info("Cochez au moins un indicateur pour afficher une carte.")
         else:
@@ -520,6 +536,8 @@ def main() -> None:
     with tabs[5]:
         st.subheader("Conclusion de notre article")
         show_conclusion(annual)
+    with tabs[6]:
+        st.subheader("Data Check")
 
 
 if __name__ == "__main__":
