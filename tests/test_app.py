@@ -1,6 +1,7 @@
 """Vérifier le lien entre l'interface et le score de causes après refactorisation."""
 
 import importlib
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -8,15 +9,22 @@ import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from src.my_package.classDF import DataLoader
+from src.core import load_data
 
 
-def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch):
+@pytest.fixture(scope="module")
+def prepared_data(tmp_path_factory):
+    """Générer l'entrée depuis le CSV brut sans dépendre d'un export local."""
+    output = tmp_path_factory.mktemp("map_data") / "regularite_tgv_clean.csv"
+    return load_data(output_path=output)
+
+
+def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch, prepared_data):
     """La page atteint les classements et recalcule le compteur sans NameError."""
     source = Path(__file__).resolve().parents[1] / "src"
     monkeypatch.syspath_prepend(str(source))
     core = importlib.import_module("core")
-    data = DataLoader().load()
+    data = prepared_data
     with patch.object(core, "load_data", return_value=data):
         app = AppTest.from_file(str(source / "app.py"), default_timeout=30).run()
         assert not app.exception
@@ -67,3 +75,28 @@ def test_survol_coordonnees_partagees_affiche_montparnasse(monkeypatch, metric):
     hovered = deck.layers[1].data[0]
     assert hovered["gare_arrivee"] == "PARIS MONTPARNASSE"
     assert hovered["valeur"] == module.display(scores.iloc[1][metric], metric)
+
+
+def test_cartes_transmettent_les_informations_de_survol(monkeypatch, prepared_data):
+    """Les deux cartes transmettent au navigateur le texte et les gares survolables."""
+    source = Path(__file__).resolve().parents[1] / "src"
+    monkeypatch.syspath_prepend(str(source))
+    core = importlib.import_module("core")
+    with patch.object(core, "load_data", return_value=prepared_data):
+        app = AppTest.from_file(str(source / "app.py"), default_timeout=30).run()
+        app.checkbox(key="map_rel").check().run()
+    assert not app.exception
+    charts = app.get("deck_gl_json_chart")
+    assert len(charts) == 2
+    for chart in charts:
+        tooltip = json.loads(chart.proto.tooltip)
+        assert "{gare_arrivee}" in tooltip["text"]
+        assert "{valeur}" in tooltip["text"]
+        layers = json.loads(chart.proto.json)["layers"]
+        stations = next(layer for layer in layers if layer["@@type"] == "ScatterplotLayer")
+        assert stations["pickable"] is True
+        montparnasse = next(
+            row for row in stations["data"]
+            if row["gare_arrivee"] == "PARIS MONTPARNASSE"
+        )
+        assert montparnasse["valeur"]
