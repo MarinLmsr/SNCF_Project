@@ -270,7 +270,7 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
     """Présenter les rangs, la pente, R², les deux extrapolations et un montant."""
     basket = basket_input(basket_key)
     sort_by = st.radio(
-        "Trier par", ["ICP", "Beta 1", "R²"], horizontal=True, key=f"sort_{metric}"
+        "Trier par", ["ICP", "β₁", "R²"], horizontal=True, key=f"sort_{metric}"
     )
     table = prepare_ranking_display(annual, metric, sort_by, basket)
     table = table.rename(
@@ -289,6 +289,12 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
             "n_years": "Années complètes",
         }
     )
+    st.caption(
+        "β₁ indique l'évolution estimée de l'ICP par an : positif = hausse, "
+        "négatif = baisse. " \
+        "R² mesure à quel point les valeurs annuelles suivent "
+        "une droite : proche de 1 = bon ajustement, proche de 0 = faible ajustement."
+    )
     st.dataframe(
         table,
         hide_index=True,
@@ -299,7 +305,7 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
                     "%.5f"
                     if column.startswith("β")
                     else "%.3f" if column == "R²" or "%" in column else "%.2f"
-                )
+                ),
             )
             for column in table.select_dtypes("number")
             if column not in ["Classement", "Années complètes"]
