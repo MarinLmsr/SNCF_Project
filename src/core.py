@@ -34,6 +34,8 @@ available_years = funcDF.available_years
 map_points = funcDF.map_points
 trend_data = funcDF.trend_data
 prepare_ranking_display = funcDF.prepare_ranking_display
+score_volatilite = funcDF.score_volatilite
+compteur_volatilite = funcDF.compteur_volatilite
 
 # -----------------------------------------------------------------------------
 # 2. CHARGEMENT DES DONNEES

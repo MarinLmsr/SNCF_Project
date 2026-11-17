@@ -19,6 +19,8 @@ import numpy as np
 # Pandas : Pour la manipulation des DataFrames
 import pandas as pd
 
+import plotly.graph_objects as go
+
 # Variables : années exclues, stations étrangères, classes utilisées, metriques, etc...
 from .classDF import (
     EXCLUDED_YEARS,
@@ -194,3 +196,58 @@ def prepare_ranking_display(annual: pd.DataFrame, metric: str, sort_by: str, bas
     if metric == "ICP_rel":
         table[[metric, "beta1", "prediction_2026", "prediction_2027"]] *= 100
     return table
+
+
+def score_volatilite(
+    df: pd.DataFrame,
+    poids: dict[str, float],
+    min_minutes: float = 1000.0,
+) -> pd.Series:
+    """Pondérer l'imprévisibilité des causes par les minutes de retard, sur 10."""
+    data = df.copy()
+    parts = data.reindex(columns=list(poids), fill_value=0.0).fillna(0.0)
+    total = parts.sum(axis=1).replace(0, np.nan)
+    parts = parts.div(total, axis=0)
+    data["imprevisible"] = (parts * pd.Series(poids)).sum(axis=1)
+    data["minutes"] = (
+        data["nb_retard_arrivee"].fillna(0)
+        * data["retard_moyen_arrivee"].fillna(0)
+    )
+    data["produit"] = data["imprevisible"] * data["minutes"]
+    grouped = data.groupby("gare_arrivee")[["produit", "minutes"]].sum()
+    grouped = grouped.loc[
+        grouped["minutes"].ge(min_minutes) & grouped["minutes"].gt(0)
+    ]
+    return (10 * grouped["produit"] / grouped["minutes"]).rename("score_volatilite")
+
+
+def compteur_volatilite(valeur: float, mediane: float) -> go.Figure:
+    """Afficher le score de causes sur 10 et la médiane des gares étudiées."""
+    figure = go.Figure(
+        go.Indicator(
+            mode="gauge+number+delta",
+            value=round(valeur, 1),
+            number={"suffix": " / 10"},
+            delta={
+                "reference": round(mediane, 1),
+                "increasing": {"color": "#c0392b"},
+                "decreasing": {"color": "#27ae60"},
+            },
+            title={"text": "Volatilité des causes de retard"},
+            gauge={
+                "axis": {"range": [0, 10], "tickmode": "linear", "dtick": 1},
+                "bar": {"color": "#2c3e50"},
+                "steps": [
+                    {"range": [0, 3.33], "color": "#d5f5e3"},
+                    {"range": [3.33, 6.67], "color": "#fdebd0"},
+                    {"range": [6.67, 10], "color": "#f5b7b1"},
+                ],
+                "threshold": {
+                    "line": {"color": "black", "width": 3},
+                    "value": mediane,
+                },
+            },
+        )
+    )
+    figure.update_layout(height=300, margin=dict(l=20, r=20, t=60, b=10))
+    return figure

@@ -13,10 +13,12 @@ from core import (
     DataError,
     analyze_data,
     available_years,
+    compteur_volatilite,
     configure_logging,
     map_points,
     prepare_ranking_display,
     ranking_table,
+    score_volatilite,
     trend_data,
 )
 from core import (
@@ -82,19 +84,36 @@ def show_map(scores: pd.DataFrame, metric: str) -> None:
     records = points[
         ["gare_arrivee", "latitude", "longitude", "poids", "valeur"]
     ].to_dict("records")
+    # À coordonnées identiques, privilégier la gare localisée précisément au survol.
+    hover_points = points.sort_values("indicative", kind="stable").drop_duplicates(
+        ["latitude", "longitude"]
+    )
+    hover_records = hover_points[
+        ["gare_arrivee", "latitude", "longitude", "poids", "valeur"]
+    ].to_dict("records")
     layers = [
         pdk.Layer(
             "HeatmapLayer",
             records,
             get_position="[longitude, latitude]",
             get_weight="poids",
-            radius_pixels=35,
-            intensity=1,
-            threshold=0.03,
+            aggregation="MEAN",
+            radius_pixels=55,
+            intensity=2,
+            threshold=0.01,
+            opacity=0.9,
+            color_range=[
+                [255, 220, 0],
+                [255, 166, 0],
+                [255, 106, 0],
+                [245, 49, 24],
+                [211, 16, 42],
+                [145, 0, 45],
+            ],
         ),
         pdk.Layer(
             "ScatterplotLayer",
-            records,
+            hover_records,
             get_position="[longitude, latitude]",
             get_radius=4500,
             radius_min_pixels=4,
@@ -223,7 +242,7 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
     """Présenter les rangs, la pente, R², les deux extrapolations et un montant."""
     basket = basket_input(basket_key)
     sort_by = st.radio(
-        "Trier par", ["ICP", "Beta 1", "R²"], horizontal=True, key=f"sort_{metric}"
+        "Trier par", ["ICP", "β₁", "R²"], horizontal=True, key=f"sort_{metric}"
     )
     table = prepare_ranking_display(annual, metric, sort_by, basket)
     table = table.rename(
@@ -242,6 +261,12 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
             "n_years": "Années complètes",
         }
     )
+    st.caption(
+        "β₁ indique l'évolution estimée de l'ICP par an : positif = hausse, "
+        "négatif = baisse. " \
+        "R² mesure à quel point les valeurs annuelles suivent "
+        "une droite : proche de 1 = bon ajustement, proche de 0 = faible ajustement."
+    )
     st.dataframe(
         table,
         hide_index=True,
@@ -252,7 +277,7 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
                     "%.5f"
                     if column.startswith("β")
                     else "%.3f" if column == "R²" or "%" in column else "%.2f"
-                )
+                ),
             )
             for column in table.select_dtypes("number")
             if column not in ["Classement", "Années complètes"]
@@ -281,7 +306,7 @@ def show_conclusion(annual: pd.DataFrame) -> None:
     else:
         first, intense = absolute.iloc[0], relative.iloc[0]
         st.write(
-            f"Sur la période et le service sélectionnés, **{first.gare_arrivee}** présente le potentiel absolu simulé le plus élevé, avec **{display(first.ICP_abs, 'ICP_abs')} courses supplémentaires par mois observé**. **{intense.gare_arrivee}** arrive en tête du classement relatif, à **{display(intense.ICP_rel, 'ICP_rel')}** des voyageurs prévus."
+            f"Sur les liaisons nationales de la période sélectionnée, **{first.gare_arrivee}** présente le potentiel absolu simulé le plus élevé, avec **{display(first.ICP_abs, 'ICP_abs')} courses supplémentaires par mois observé**. **{intense.gare_arrivee}** arrive en tête du classement relatif, à **{display(intense.ICP_rel, 'ICP_rel')}** des voyageurs prévus."
         )
         st.write(
             "Ces deux classements répondent à des questions différentes : le premier décrit un volume potentiel, le second l'intensité du phénomène. Le choix d'une gare doit aussi tenir compte de la régularité de ce potentiel, visible dans l'onglet Tendances."
@@ -313,7 +338,7 @@ def main() -> None:
         LOGGER.exception("Lecture impossible")
         st.error(str(exc))
         return
-    years = available_years(data)
+    years = available_years(data.loc[data["service"].eq("National")])
     if not years:
         st.info("Aucune année historique exploitable avant 2026.")
         return
@@ -328,9 +353,6 @@ def main() -> None:
             )
         else:
             start = end = years[0]
-        service = st.selectbox(
-            "Service", ["Tous", "National", "International"], key="service"
-        )
         minimum = st.number_input(
             "Minimum de trains sur la période",
             min_value=0,
@@ -339,7 +361,7 @@ def main() -> None:
             key="minimum",
         )
         st.caption(
-            "Gares d'arrivée françaises. Années COVID 2020–2021 exclues. Années incomplètes exclues des comparaisons et régressions."
+            "Liaisons nationales uniquement, vers les gares françaises. Années COVID 2020–2021 exclues. Années incomplètes exclues des comparaisons et régressions."
         )
         st.caption(
             "Source : data/regularite_tgv_clean.csv, préparé automatiquement depuis le CSV brut."
@@ -368,8 +390,8 @@ def main() -> None:
         )
         basket_input("basket_trend")
     scope, annual = analyze_data(
-        data, start, end, service, minimum,
-        ConfigurationICP(taux_recours_60min=percentage / 100, pax_defaut=550.0),
+        data, start, end, service="National", minimum=minimum,
+        config=ConfigurationICP(taux_recours_60min=percentage / 100, pax_defaut=550.0),
     )
     if annual.empty:
         for tab in tabs:
@@ -378,6 +400,10 @@ def main() -> None:
                     "Aucune gare ne dispose d'une année complète et du volume demandé. Élargissez la période ou réduisez le minimum de trains."
                 )
         return
+    scores = score_volatilite(
+        scope.loc[scope.eligible], POIDS_IMPREVISIBILITE, MIN_MINUTES_RETARD
+    )
+    scores = scores.loc[scores.index.isin(annual.gare_arrivee.unique())]
     with tabs[0]:
         st.subheader("Où renforcer l'offre de taxis et VTC ?")
         st.write(
@@ -423,7 +449,7 @@ def main() -> None:
                     )
                     show_map(ranking_table(annual, metric), metric)
         st.caption(
-            "Survolez les points pour les valeurs exactes. Les couleurs dépendent du poids des gares et de leur proximité : les deux cartes ont des échelles distinctes. Localisations indicatives pour les libellés regroupés ou historiques."
+            "Survolez les points pour les valeurs exactes. Dans les zones de chevauchement, la couleur représente une moyenne pondérée des ICP voisins. Les deux cartes ont des échelles distinctes. Localisations indicatives pour les libellés regroupés ou historiques."
         )
         st.markdown(
             "Coordonnées : [SNCF · Gares de voyageurs](https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs/)."
