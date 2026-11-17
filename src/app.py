@@ -13,10 +13,12 @@ from core import (
     DataError,
     analyze_data,
     available_years,
+    compteur_volatilite,
     configure_logging,
     map_points,
     prepare_ranking_display,
     ranking_table,
+    score_volatilite,
     trend_data,
 )
 from core import (
@@ -406,6 +408,10 @@ def main() -> None:
                     "Aucune gare ne dispose d'une année complète et du volume demandé. Élargissez la période ou réduisez le minimum de trains."
                 )
         return
+    scores = score_volatilite(
+        scope.loc[scope.eligible], POIDS_IMPREVISIBILITE, MIN_MINUTES_RETARD
+    )
+    scores = scores.loc[scores.index.isin(annual.gare_arrivee.unique())]
     with tabs[0]:
         st.subheader("Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?")
         
