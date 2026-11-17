@@ -9,3 +9,4 @@ __pycache__/
 .coverage
 htmlcov/
 tmp/
+/data/regularite_tgv_clean.csv
