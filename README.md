@@ -38,10 +38,10 @@ La source brute n'est jamais modifiée.
 | 4 · ICP relatif | Même tableau, avec taux en pourcentage et pente en points par an |
 | 5 · Conclusion | Texte court dont les résultats chiffrés suivent les filtres |
 
-Les filtres de période, de service et de minimum de trains sont communs aux
-onglets. Le périmètre est celui des gares d'arrivée françaises ; les services
-internationaux vers ces gares peuvent être inclus avec `Tous` ou `International`.
-Les huit libellés étrangers du fichier AQST sont explicitement exclus.
+Les filtres de période et de minimum de trains sont communs aux onglets.
+L'application utilise uniquement les liaisons de service `National` vers les
+gares d'arrivée françaises. Les huit libellés étrangers du fichier AQST sont
+explicitement exclus.
 
 Dans l'onglet 2, le curseur règle le recours au taxi pour un retard d'au moins
 60 minutes. Il proportionne toute la courbe : à 25 %, les taux sont 1 % à 1–15 min,

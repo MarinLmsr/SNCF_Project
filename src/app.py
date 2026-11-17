@@ -311,7 +311,7 @@ def show_conclusion(annual: pd.DataFrame) -> None:
     else:
         first, intense = absolute.iloc[0], relative.iloc[0]
         st.write(
-            f"Sur la période et le service sélectionnés, **{first.gare_arrivee}** présente le potentiel absolu simulé le plus élevé, avec **{display(first.ICP_abs, 'ICP_abs')} courses supplémentaires par mois observé**. **{intense.gare_arrivee}** arrive en tête du classement relatif, à **{display(intense.ICP_rel, 'ICP_rel')}** des voyageurs prévus."
+            f"Sur les liaisons nationales de la période sélectionnée, **{first.gare_arrivee}** présente le potentiel absolu simulé le plus élevé, avec **{display(first.ICP_abs, 'ICP_abs')} courses supplémentaires par mois observé**. **{intense.gare_arrivee}** arrive en tête du classement relatif, à **{display(intense.ICP_rel, 'ICP_rel')}** des voyageurs prévus."
         )
         st.write(
             "Ces deux classements répondent à des questions différentes : le premier décrit un volume potentiel, le second l'intensité du phénomène. Le choix d'une gare doit aussi tenir compte de la régularité de ce potentiel, visible dans l'onglet Tendances."
@@ -343,7 +343,7 @@ def main() -> None:
         LOGGER.exception("Lecture impossible")
         st.error(str(exc))
         return
-    years = available_years(data)
+    years = available_years(data.loc[data["service"].eq("National")])
     if not years:
         st.info("Aucune année historique exploitable avant 2026.")
         return
@@ -358,9 +358,6 @@ def main() -> None:
             )
         else:
             start = end = years[0]
-        service = st.selectbox(
-            "Service", ["Tous", "National", "International"], key="service"
-        )
         minimum = st.number_input(
             "Minimum de trains sur la période",
             min_value=0,
@@ -369,7 +366,7 @@ def main() -> None:
             key="minimum",
         )
         st.caption(
-            "Gares d'arrivée françaises. Années COVID 2020–2021 exclues. Années incomplètes exclues des comparaisons et régressions."
+            "Liaisons nationales uniquement, vers les gares françaises. Années COVID 2020–2021 exclues. Années incomplètes exclues des comparaisons et régressions."
         )
         st.caption(
             "Source : data/regularite_tgv_clean.csv, préparé automatiquement depuis le CSV brut."
@@ -398,8 +395,8 @@ def main() -> None:
         )
         basket_input("basket_trend")
     scope, annual = analyze_data(
-        data, start, end, service, minimum,
-        ConfigurationICP(taux_recours_60min=percentage / 100, pax_defaut=550.0),
+        data, start, end, service="National", minimum=minimum,
+        config=ConfigurationICP(taux_recours_60min=percentage / 100, pax_defaut=550.0),
     )
     if annual.empty:
         for tab in tabs:

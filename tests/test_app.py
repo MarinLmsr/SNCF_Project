@@ -4,6 +4,7 @@ import importlib
 from pathlib import Path
 from unittest.mock import patch
 
+import pandas as pd
 from streamlit.testing.v1 import AppTest
 
 from src.my_package.classDF import DataLoader
@@ -21,6 +22,18 @@ def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch):
         assert len(app.tabs) == 6
         assert len(app.dataframe) == 2
         assert len(app.get("plotly_chart")) == 1
+        assert "service" not in {widget.key for widget in app.selectbox}
+        _, expected_annual = core.analyze_data(
+            data, 2018, 2025, service="National", minimum=1000
+        )
+        expected = core.prepare_ranking_display(
+            expected_annual, "ICP_abs", "ICP", 25.0
+        )
+        pd.testing.assert_series_equal(
+            app.dataframe[0].value["ICP absolu / mois"],
+            expected["ICP_abs"],
+            check_names=False,
+        )
 
         app.select_slider(key="period").set_range(2022, 2023).run()
         assert not app.exception
