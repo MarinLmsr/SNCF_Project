@@ -491,6 +491,7 @@ def main() -> None:
             for metric, enabled in [("ICP_abs", show_abs), ("ICP_rel", show_rel)]
             if enabled
         ]
+        
         if not selected:
             st.info("Cochez au moins un indicateur pour afficher une carte.")
         else:
