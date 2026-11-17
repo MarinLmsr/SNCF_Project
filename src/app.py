@@ -1,6 +1,5 @@
 """Six onglets simples pour étudier le potentiel taxi/VTC des gares d'arrivée."""
 
-import json
 import logging
 
 import numpy as np
@@ -11,39 +10,31 @@ import math
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from core import (
-    DEFAULT_DATA_PATH,
-    EXCLUDED_YEARS,
-    PROJECT_ROOT,
+    RAW_DATA_PATH,
+    ConfigurationICP,
     DataError,
-    DataLoader,
-    filter_data,
-    fit_trend,
+    analyze_data,
+    available_years,
+    compteur_volatilite,
+    configure_logging,
+    map_points,
+    prepare_ranking_display,
     ranking_table,
+    score_volatilite,
+    trend_data,
 )
-from icp import SimulationConfig, annual_icp
+from core import (
+    load_data as prepare_data,
+)
 
 LOGGER = logging.getLogger("railinsight")
 BASKET_KEYS = ("basket_trend", "basket_absolute", "basket_relative")
 
 
-def configure_logging() -> None:
-    """Créer des journaux distincts sans ajouter de handler à chaque interaction."""
-    if LOGGER.handlers:
-        return
-    folder = PROJECT_ROOT / "logs"
-    folder.mkdir(exist_ok=True)
-    LOGGER.setLevel(logging.INFO)
-    for name, level in [("debug.log", logging.INFO), ("errors.log", logging.ERROR)]:
-        handler = logging.FileHandler(folder / name, encoding="utf-8")
-        handler.setLevel(level)
-        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-        LOGGER.addHandler(handler)
-
-
 @st.cache_data(show_spinner=False)
 def load_data(modified_at: int) -> pd.DataFrame:
-    """Mettre en cache le CSV nettoyé en invalidant le cache si le fichier change."""
-    return DataLoader().load()
+    """Mettre en cache la préparation jusqu'à la modification du CSV brut."""
+    return prepare_data()
 
 
 def sync_basket(source: str) -> None:
@@ -78,20 +69,14 @@ def display(value: float, metric: str, slope: bool = False) -> str:
 
 def show_map(scores: pd.DataFrame, metric: str) -> None:
     """Combiner chaleur et points survolables, sur les coordonnées SNCF locales."""
-    path = PROJECT_ROOT / "data" / "station_coordinates.json"
     try:
-        coordinates = pd.DataFrame(
-            json.loads(path.read_text(encoding="utf-8"))["stations"]
-        )
-    except (OSError, ValueError, KeyError) as exc:
+        points, missing = map_points(scores)
+    except DataError as exc:
         LOGGER.error("Coordonnées indisponibles : %s", exc)
         st.warning("Les coordonnées des gares sont indisponibles.")
         return
-    points = scores.merge(coordinates, on="gare_arrivee", how="left")
-    missing = points.loc[points["latitude"].isna(), "gare_arrivee"].tolist()
     if missing:
         st.caption("Gares non localisées : " + ", ".join(missing))
-    points = points.dropna(subset=["latitude", "longitude"]).copy()
     if points.empty:
         st.info("Aucune gare géolocalisée dans cette période.")
         return
@@ -101,19 +86,36 @@ def show_map(scores: pd.DataFrame, metric: str) -> None:
     records = points[
         ["gare_arrivee", "latitude", "longitude", "poids", "valeur"]
     ].to_dict("records")
+    # À coordonnées identiques, privilégier la gare localisée précisément au survol.
+    hover_points = points.sort_values("indicative", kind="stable").drop_duplicates(
+        ["latitude", "longitude"]
+    )
+    hover_records = hover_points[
+        ["gare_arrivee", "latitude", "longitude", "poids", "valeur"]
+    ].to_dict("records")
     layers = [
         pdk.Layer(
             "HeatmapLayer",
             records,
             get_position="[longitude, latitude]",
             get_weight="poids",
-            radius_pixels=35,
-            intensity=1,
-            threshold=0.03,
+            aggregation="MEAN",
+            radius_pixels=55,
+            intensity=2,
+            threshold=0.01,
+            opacity=0.9,
+            color_range=[
+                [255, 220, 0],
+                [255, 166, 0],
+                [255, 106, 0],
+                [245, 49, 24],
+                [211, 16, 42],
+                [145, 0, 45],
+            ],
         ),
         pdk.Layer(
             "ScatterplotLayer",
-            records,
+            hover_records,
             get_position="[longitude, latitude]",
             get_radius=4500,
             radius_min_pixels=4,
@@ -145,9 +147,7 @@ def show_trend(annual: pd.DataFrame) -> None:
         horizontal=True,
         key="trend_metric",
     )
-    group = annual.loc[annual.gare_arrivee.eq(station)].sort_values("annee")
-    fit = fit_trend(group.annee.to_numpy(), group[metric].to_numpy(), metric)
-    summary = ranking_table(group, metric).iloc[0]
+    summary, chart = trend_data(annual, station, metric)
     basket = float(st.session_state["basket_trend"])
     columns = st.columns(3)
     columns[0].metric(
@@ -157,10 +157,6 @@ def show_trend(annual: pd.DataFrame) -> None:
     columns[2].metric(
         "CA potentiel / mois", f"{summary.ICP_abs * basket:,.0f} €".replace(",", " ")
     )
-    chart = group[["annee", metric]].rename(columns={metric: "observed"}).copy()
-    chart["regression"] = fit["beta1"] * chart.annee + fit["intercept"]
-    if metric == "ICP_rel":
-        chart[["observed", "regression"]] *= 100
     ylabel = (
         "ICP absolu · courses / mois observé"
         if metric == "ICP_abs"
@@ -217,27 +213,28 @@ def show_trend(annual: pd.DataFrame) -> None:
     columns = st.columns(4)
     columns[0].metric(
         "Spearman ρ · temps / ICP",
-        "—" if pd.isna(fit["spearman"]) else f"{fit['spearman']:.3f}",
+        "—" if pd.isna(summary["spearman"]) else f"{summary['spearman']:.3f}",
     )
-    columns[1].metric("Pente β₁", display(fit["beta1"], metric, slope=True))
+    columns[1].metric("Pente β₁", display(summary["beta1"], metric, slope=True))
     columns[2].metric(
-        "R² · détermination", "—" if pd.isna(fit["r2"]) else f"{fit['r2']:.3f}"
+        "R² · détermination", "—" if pd.isna(summary["r2"]) else f"{summary['r2']:.3f}"
     )
     columns[3].metric(
-        "Variabilité annuelle (CV)", "—" if pd.isna(fit["cv"]) else f"{fit['cv']:.1%}"
+        "Variabilité annuelle (CV)",
+        "—" if pd.isna(summary["cv"]) else f"{summary['cv']:.1%}",
     )
-    if fit["n_years"] < 3:
+    if summary["n_years"] < 3:
         st.info(
             "Moins de trois années complètes : régression, Spearman et prévisions non affichés."
         )
     else:
         direction = (
             "stable"
-            if np.isclose(fit["beta1"], 0)
-            else ("à la hausse" if fit["beta1"] > 0 else "à la baisse")
+            if np.isclose(summary["beta1"], 0)
+            else ("à la hausse" if summary["beta1"] > 0 else "à la baisse")
         )
         st.write(
-            f"Sur **{int(fit['n_years'])} années complètes**, la tendance estimée est **{direction}**. Le CV décrit les fluctuations annuelles : plus il est élevé, moins l'opportunité est régulière."
+            f"Sur **{int(summary['n_years'])} années complètes**, la tendance estimée est **{direction}**. Le CV décrit les fluctuations annuelles : plus il est élevé, moins l'opportunité est régulière."
         )
     st.caption(
         "R² n'est pas un coefficient de corrélation. Une tendance ou un Spearman élevé ne prouve ni une demande réelle ni une rentabilité."
@@ -248,24 +245,9 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
     """Présenter les rangs, la pente, R², les deux extrapolations et un montant."""
     basket = basket_input(basket_key)
     sort_by = st.radio(
-        "Trier par", ["ICP", "Beta 1", "R²"], horizontal=True, key=f"sort_{metric}"
+        "Trier par", ["ICP", "β₁", "R²"], horizontal=True, key=f"sort_{metric}"
     )
-    scores = ranking_table(annual, metric, sort_by)
-    table = scores[
-        [
-            "rank",
-            "gare_arrivee",
-            metric,
-            "beta1",
-            "r2",
-            "prediction_2026",
-            "prediction_2027",
-            "n_years",
-        ]
-    ].copy()
-    table["CA potentiel / mois (€)"] = scores["ICP_abs"] * basket
-    factor = 100 if metric == "ICP_rel" else 1
-    table[[metric, "beta1", "prediction_2026", "prediction_2027"]] *= factor
+    table = prepare_ranking_display(annual, metric, sort_by, basket)
     table = table.rename(
         columns={
             "rank": "Classement",
@@ -282,6 +264,12 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
             "n_years": "Années complètes",
         }
     )
+    st.caption(
+        "β₁ indique l'évolution estimée de l'ICP par an : positif = hausse, "
+        "négatif = baisse. "
+        "R² mesure à quel point les valeurs annuelles suivent "
+        "une droite : proche de 1 = bon ajustement, proche de 0 = faible ajustement."
+    )
     st.dataframe(
         table,
         hide_index=True,
@@ -292,7 +280,7 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
                     "%.5f"
                     if column.startswith("β")
                     else "%.3f" if column == "R²" or "%" in column else "%.2f"
-                )
+                ),
             )
             for column in table.select_dtypes("number")
             if column not in ["Classement", "Années complètes"]
@@ -321,7 +309,7 @@ def show_conclusion(annual: pd.DataFrame) -> None:
     else:
         first, intense = absolute.iloc[0], relative.iloc[0]
         st.write(
-            f"Sur la période et le service sélectionnés, **{first.gare_arrivee}** présente le potentiel absolu simulé le plus élevé, avec **{display(first.ICP_abs, 'ICP_abs')} courses supplémentaires par mois observé**. **{intense.gare_arrivee}** arrive en tête du classement relatif, à **{display(intense.ICP_rel, 'ICP_rel')}** des voyageurs prévus."
+            f"Sur les liaisons nationales de la période sélectionnée, **{first.gare_arrivee}** présente le potentiel absolu simulé le plus élevé, avec **{display(first.ICP_abs, 'ICP_abs')} courses supplémentaires par mois observé**. **{intense.gare_arrivee}** arrive en tête du classement relatif, à **{display(intense.ICP_rel, 'ICP_rel')}** des voyageurs prévus."
         )
         st.write(
             "Ces deux classements répondent à des questions différentes : le premier décrit un volume potentiel, le second l'intensité du phénomène. Le choix d'une gare doit aussi tenir compte de la régularité de ce potentiel, visible dans l'onglet Tendances."
@@ -370,16 +358,12 @@ def main() -> None:
         "Projet mené par Jean-Baptiste Clavier, Jean-Baptiste Garel, Marin Lemesre, Xingshi Liu et Jonathan Ozden"
     )
     try:
-        data = load_data(DEFAULT_DATA_PATH.stat().st_mtime_ns)
+        data = load_data(RAW_DATA_PATH.stat().st_mtime_ns)
     except (OSError, DataError) as exc:
         LOGGER.exception("Lecture impossible")
         st.error(str(exc))
         return
-    years = sorted(
-        int(y)
-        for y in data.annee.dropna().unique()
-        if y < 2026 and y not in EXCLUDED_YEARS
-    )
+    years = available_years(data.loc[data["service"].eq("National")])
     if not years:
         st.info("Aucune année historique exploitable avant 2026.")
         return
@@ -394,9 +378,6 @@ def main() -> None:
             )
         else:
             start = end = years[0]
-        service = st.selectbox(
-            "Service", ["Tous", "National", "International"], key="service"
-        )
         minimum = st.number_input(
             "Minimum de trains sur la période",
             min_value=0,
@@ -405,18 +386,18 @@ def main() -> None:
             key="minimum",
         )
         st.caption(
-            "Gares d'arrivée françaises. Années COVID 2020–2021 exclues. Années incomplètes exclues des comparaisons et régressions."
+            "Liaisons nationales uniquement, vers les gares françaises. Années COVID 2020–2021 exclues. Années incomplètes exclues des comparaisons et régressions."
         )
         st.caption(
-            "Source : data/regularite_tgv_clean.csv. Aucun nettoyage ni export automatique."
+            "Source : data/regularite_tgv_clean.csv, préparé automatiquement depuis le CSV brut."
         )
     tabs = st.tabs(
         [
             "0 · Accueil",
-            "1 · Cartographie de l'ICP",
-            "2 · Etude par gare",
-            "3 · Top ICP absolu",
-            "4 · Top ICP relatif",
+            "1 · Carte de chaleur",
+            "2 · Tendances",
+            "3 · ICP absolu",
+            "4 · ICP relatif",
             "5 · Conclusion",
             "6 · Annexes",
         ]
@@ -434,17 +415,13 @@ def main() -> None:
             f"Toute la courbe est ajustée proportionnellement : 1–15 min → {percentage * 0.04:.2f} %, 30 min → {percentage * 0.4:.2f} %, ≥60 min → {percentage} %. Ce réglage met à jour tous les onglets."
         )
         basket_input("basket_trend")
-    scope = filter_data(data, start, end, service)
-    annual = annual_icp(scope, SimulationConfig(taxi_rate_60=percentage / 100))
-    volumes = annual.groupby("gare_arrivee").nb_circulations_prevues.sum()
-    annual = annual.loc[annual.gare_arrivee.isin(volumes[volumes.ge(minimum)].index)]
-    LOGGER.info(
-        "Analyse arrivée : %s-%s, service=%s, recours=%s, seuil=%s",
+    scope, annual = analyze_data(
+        data,
         start,
         end,
-        service,
-        percentage,
-        minimum,
+        service="National",
+        minimum=minimum,
+        config=ConfigurationICP(taux_recours_60min=percentage / 100, pax_defaut=550.0),
     )
     if annual.empty:
         for tab in tabs:
@@ -453,67 +430,27 @@ def main() -> None:
                     "Aucune gare ne dispose d'une année complète et du volume demandé. Élargissez la période ou réduisez le minimum de trains."
                 )
         return
+    scores = score_volatilite(
+        scope.loc[scope.eligible], POIDS_IMPREVISIBILITE, MIN_MINUTES_RETARD
+    )
+    scores = scores.loc[scores.index.isin(annual.gare_arrivee.unique())]
     with tabs[0]:
-        st.subheader(
-            "Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?"
-        )
-
-        st.write("**Notre postulat**")
-
+        st.subheader("Où renforcer l'offre de taxis et VTC ?")
         st.write(
-            "Un voyageur dont le train arrive en retard a plus de risques de rater sa correspondance (TER, bus, tram, métro) ou de se retrouver sans transport en commun adapté. Il se reporte alors sur un taxi ou un VTC. Plus le retard est long, plus la probabilité de prendre un taxi augmente. Ce postulat n'est pas verifiable avec nos donnees (pas de données de courses ni de réservations) : nous le traitons comme une hypothèse, entièrement paramétrable et testée par des analyses de robustesse."
+            "Un retard à l'arrivée peut pousser un voyageur vers un taxi/VTC. Nous explorons cette hypothèse avec un ICP, un indicateur de consommation potentielle, sans données réelles de réservations."
         )
-        st.write("*POURQUOI LA GARE D'ARRIVEE ?*")
-
-        st.write(
-            "Le report vers un taxi se produit à l'arrivée du train. Les données de retard à l'arrivée sont aussi les plus complètes : nombre de trains en retard, retard moyen, tranches > 15 / 30 / 60 min, et répartition des causes. Les retards et leurs causes décrivent ainsi le même événement, ce qui rend le modèle cohérent."
-        )
-
-        st.write(
-            "Pour explorer cette hypothèse, nous avons construit un indice de consommation potentielle (**ICP**). Cet indice, créé de toutes pièces pour l’étude, permet de repérer les gares où les retards à l’arrivée représentent la plus belle opportunité d’investissement."
-        )
-
         cols = st.columns(3)
         cols[0].metric("Gares étudiées", int(annual.gare_arrivee.nunique()))
-        cols[1].metric("Nombre d'années pris en compte", int(annual.annee.nunique()))
+        cols[1].metric("Années historiques", int(annual.annee.nunique()))
         cols[2].metric(
-            "Nombre de train étudié",
+            "Trains prévus",
             f"{annual.nb_circulations_prevues.sum():,.0f}".replace(",", " "),
         )
-
-        st.image("https://taxi-neuville69.fr/images/ai/gare-partdieu.jpg")
-
         st.write(
-            "Les onglets suivants permettent d'analyser **l'ICP** sous différents angles. "
-        )
-        st.write(
-            "**1. cartographie de l'ICP** : carte centrée sur la France afin de localiser les opportunités d'investissement"
-        )
-        st.write(
-            "**2. étude par gare** : zoom sur une gare en ajustant les paramètres de temps, de variables de calcul de l'ICP et de panier moyen"
-        )
-        st.write(
-            "**3. top ICP absolu** : comparaison des ICP absolus, du coefficient de croissance et des extrapolations entre les gares."
-        )
-        st.write(
-            "**4. top ICP relatif** : comparaison des ICP relatifs, du coefficient de croissance et des extrapolations entre les gares."
-        )
-        st.write("**5. conclusion** : résumé les résultats et leurs limites.")
-
-        st.caption(
-            "Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la consommation désigne le recours supplémentaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations."
+            "**Carte** : localiser le potentiel. **Tendances** : examiner sa régularité. **Classements** : comparer les ICP, les pentes et les extrapolations. **Conclusion** : résumer les résultats et leurs limites."
         )
         st.caption(
-            "L'ICP absolu combine : \n- le volume de trains à l'arrivée dans la gare, \n- la durée des retards à l'arrivée (via une courbe de recours au taxi croissante), \n- une ponderation selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, materiel roulant, gestion en gare, etc.)."
-        )
-        st.caption(
-            "L'ICP relatif ne prend pas en compte le volume de train, et ne défavorise donc pas les petites gares à faible fréquentation"
-        )
-        st.caption(
-            "Les annulations ne sont pas integrées a l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité."
-        )
-        st.caption(
-            "Hypothèses : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
+            "ICP absolu : courses simulées par mois observé. ICP relatif : courses simulées / voyageurs prévus. Hypothèse : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
         )
         st.caption(
             f"{int((~scope.eligible).sum())} ligne(s) non exploitable(s) dans ce périmètre. Seuls les groupes gare/année couvrant douze mois valides sont comparés ; les liaisons couvertes peuvent varier."
@@ -530,7 +467,6 @@ def main() -> None:
             for metric, enabled in [("ICP_abs", show_abs), ("ICP_rel", show_rel)]
             if enabled
         ]
-
         if not selected:
             st.info("Cochez au moins un indicateur pour afficher une carte.")
         else:
@@ -543,7 +479,7 @@ def main() -> None:
                     )
                     show_map(ranking_table(annual, metric), metric)
         st.caption(
-            "Survolez les points pour les valeurs exactes. Les couleurs dépendent du poids des gares et de leur proximité : les deux cartes ont des échelles distinctes. Localisations indicatives pour les libellés regroupés ou historiques."
+            "Survolez les points pour les valeurs exactes. Dans les zones de chevauchement, la couleur représente une moyenne pondérée des ICP voisins. Les deux cartes ont des échelles distinctes. Localisations indicatives pour les libellés regroupés ou historiques."
         )
         st.markdown(
             "Coordonnées : [SNCF · Gares de voyageurs](https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs/)."

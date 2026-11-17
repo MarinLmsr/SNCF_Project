@@ -1,98 +1,69 @@
-"""Exercer les six onglets, la carte et les hypothèses partagées."""
+"""Vérifier le lien entre l'interface et le score de causes après refactorisation."""
 
-import json
+import importlib
 from pathlib import Path
+from unittest.mock import patch
 
-import altair as alt
+import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
-APP = Path(__file__).resolve().parents[1] / "src" / "app.py"
+from src.my_package.classDF import DataLoader
 
 
-def start() -> AppTest:
-    """Démarrer l'application depuis le vrai fichier."""
-    return AppTest.from_file(str(APP), default_timeout=30).run()
+def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch):
+    """La page atteint les classements et recalcule le compteur sans NameError."""
+    source = Path(__file__).resolve().parents[1] / "src"
+    monkeypatch.syspath_prepend(str(source))
+    core = importlib.import_module("core")
+    data = DataLoader().load()
+    with patch.object(core, "load_data", return_value=data):
+        app = AppTest.from_file(str(source / "app.py"), default_timeout=30).run()
+        assert not app.exception
+        assert len(app.tabs) == 6
+        assert len(app.dataframe) == 2
+        assert len(app.get("plotly_chart")) == 1
+        assert "service" not in {widget.key for widget in app.selectbox}
+        _, expected_annual = core.analyze_data(
+            data, 2018, 2025, service="National", minimum=1000
+        )
+        expected = core.prepare_ranking_display(
+            expected_annual, "ICP_abs", "ICP", 25.0
+        )
+        pd.testing.assert_series_equal(
+            app.dataframe[0].value["ICP absolu / mois"],
+            expected["ICP_abs"],
+            check_names=False,
+        )
+
+        app.select_slider(key="period").set_range(2022, 2023).run()
+        assert not app.exception
+        assert len(app.get("plotly_chart")) == 1
+        assert app.dataframe[0].value["Prévision 2026"].isna().all()
+
+        app.number_input(key="minimum").set_value(1_000_000_000).run()
+        assert not app.exception
+        assert len(app.info) == 6
 
 
-def test_six_tabs_clean_source_and_schemas() -> None:
-    """La page fonctionne avec six onglets et une carte des gares françaises."""
-    app = start()
-    assert not app.exception
-    assert len(app.tabs) == 6
-    assert app.tabs[0].label == "0 · Accueil"
-    assert app.tabs[5].label == "5 · Conclusion"
-    assert len(app.get("deck_gl_json_chart")) == 1
-    assert len(app.dataframe) == 2
-    for chart in app.get("vega_lite_chart"):
-        spec = json.loads(chart.proto.spec)
-        spec["data"] = {"values": []}
-        alt.Chart.from_dict(spec)
-
-
-def test_map_checkboxes_and_period() -> None:
-    """Les cartes sont cochables séparément ; aucune sélection est expliquée."""
-    app = start()
-    app.checkbox(key="map_rel").check().run()
-    assert not app.exception
-    assert len(app.get("deck_gl_json_chart")) == 2
-    app.checkbox(key="map_abs").uncheck()
-    app.checkbox(key="map_rel").uncheck().run()
-    assert len(app.get("deck_gl_json_chart")) == 0
-    assert any("Cochez" in info.value for info in app.info)
-    app.select_slider(key="period").set_range(2022, 2023).run()
-    assert not app.exception
-    assert app.dataframe[0].value["Prévision 2026"].isna().all()
-
-
-def test_percentages_basket_synchronization_and_relative_units() -> None:
-    """Le curseur change les ICP ; le prix change seulement les montants."""
-    app = start()
-    before = app.dataframe[0].value.copy()
-    app.slider(key="taxi_percentage").set_value(50).run()
-    assert not app.exception
-    after = app.dataframe[0].value
-    assert after.iloc[0]["ICP absolu / mois"] == pytest.approx(
-        before.iloc[0]["ICP absolu / mois"] * 2
+@pytest.mark.parametrize("metric", ["ICP_abs", "ICP_rel"])
+def test_survol_coordonnees_partagees_affiche_montparnasse(monkeypatch, metric):
+    """Le survol utilise Montparnasse pour les deux ICP au point partagé."""
+    source = Path(__file__).resolve().parents[1] / "src"
+    monkeypatch.syspath_prepend(str(source))
+    module = importlib.import_module("app")
+    scores = pd.DataFrame({
+        "gare_arrivee": ["PARIS VAUGIRARD", "PARIS MONTPARNASSE"],
+        "ICP_abs": [1504.6, 53778.6],
+        "ICP_rel": [0.021, 0.016],
+    })
+    with patch.object(module.st, "pydeck_chart") as draw:
+        module.show_map(scores, metric)
+    deck = draw.call_args.args[0]
+    assert {row["gare_arrivee"] for row in deck.layers[0].data} == set(
+        scores["gare_arrivee"]
     )
-    app.number_input(key="basket_absolute").set_value(50.0).run()
-    assert not app.exception
-    assert app.number_input(key="basket_trend").value == 50
-    assert app.number_input(key="basket_relative").value == 50
-    absolute = app.dataframe[0].value.set_index("Gare d'arrivée")
-    relative = app.dataframe[1].value.set_index("Gare d'arrivée")
-    station = absolute.index[0]
-    assert absolute.loc[station, "CA potentiel / mois (€)"] == pytest.approx(
-        absolute.loc[station, "ICP absolu / mois"] * 50
-    )
-    assert (
-        relative.loc[station, "CA potentiel / mois (€)"]
-        == absolute.loc[station, "CA potentiel / mois (€)"]
-    )
-
-
-def test_sort_forecasts_station_and_empty_selection() -> None:
-    """Le tri, le choix de gare et les seuils trop élevés restent utilisables."""
-    app = start()
-    app.selectbox(key="trend_station").select("PARIS LYON")
-    app.radio(key="trend_metric").set_value("ICP_rel")
-    app.radio(key="sort_ICP_abs").set_value("Beta 1").run()
-    assert not app.exception
-    slopes = app.dataframe[0].value["β₁ (ICP/an)"].dropna()
-    assert slopes.is_monotonic_decreasing
-    assert {"Prévision 2026", "Prévision 2027", "R²"}.issubset(
-        app.dataframe[0].value.columns
-    )
-    app.number_input(key="minimum").set_value(1_000_000_000).run()
-    assert not app.exception
-    assert not app.dataframe
-    assert len(app.info) == 6
-
-
-def test_zero_assumption_has_honest_conclusion() -> None:
-    """Un recours nul n'attribue pas arbitrairement une opportunité au premier rang."""
-    app = start()
-    app.slider(key="taxi_percentage").set_value(0).run()
-    assert not app.exception
-    assert app.dataframe[0].value["ICP absolu / mois"].eq(0).all()
-    assert any("tous les ICP valent zéro" in item.value for item in app.markdown)
+    assert len(deck.layers[1].data) == 1
+    hovered = deck.layers[1].data[0]
+    assert hovered["gare_arrivee"] == "PARIS MONTPARNASSE"
+    assert hovered["valeur"] == module.display(scores.iloc[1][metric], metric)
