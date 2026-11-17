@@ -94,12 +94,20 @@ def show_map(scores: pd.DataFrame, metric: str) -> None:
     records = points[
         ["gare_arrivee", "latitude", "longitude", "poids", "valeur"]
     ].to_dict("records")
+    # À coordonnées identiques, privilégier la gare localisée précisément au survol.
+    hover_points = points.sort_values("indicative", kind="stable").drop_duplicates(
+        ["latitude", "longitude"]
+    )
+    hover_records = hover_points[
+        ["gare_arrivee", "latitude", "longitude", "poids", "valeur"]
+    ].to_dict("records")
     layers = [
         pdk.Layer(
             "HeatmapLayer",
             records,
             get_position="[longitude, latitude]",
             get_weight="poids",
+            aggregation="MEAN",
             radius_pixels=55,
             intensity=2,
             threshold=0.01,
@@ -115,7 +123,7 @@ def show_map(scores: pd.DataFrame, metric: str) -> None:
         ),
         pdk.Layer(
             "ScatterplotLayer",
-            records,
+            hover_records,
             get_position="[longitude, latitude]",
             get_radius=4500,
             radius_min_pixels=4,
@@ -495,7 +503,7 @@ def main() -> None:
                     )
                     show_map(ranking_table(annual, metric), metric)
         st.caption(
-            "Survolez les points pour les valeurs exactes. Les couleurs dépendent du poids des gares et de leur proximité : les deux cartes ont des échelles distinctes. Localisations indicatives pour les libellés regroupés ou historiques."
+            "Survolez les points pour les valeurs exactes. Dans les zones de chevauchement, la couleur représente une moyenne pondérée des ICP voisins. Les deux cartes ont des échelles distinctes. Localisations indicatives pour les libellés regroupés ou historiques."
         )
         st.markdown(
             "Coordonnées : [SNCF · Gares de voyageurs](https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs/)."
