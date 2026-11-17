@@ -3,8 +3,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-csv_path = Path(__file__).parent / "SNCF_Project" / "data" / "regularite-mensuelle-tgv-aqst.csv"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+csv_path = PROJECT_ROOT / 'data' / 'regularite-mensuelle-tgv-aqst.csv'
 df = pd.read_csv(csv_path, sep=";")
 
 years_to_keep = [2018, 2019, 2022, 2023, 2024, 2025]
