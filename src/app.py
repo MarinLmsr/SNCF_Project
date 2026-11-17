@@ -470,11 +470,11 @@ def main() -> None:
         st.write(
             "**5. conclusion** : résumé les résultats et leurs limites.")
         
-        st.caption("Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la 'consommation' désigne le recours supplementaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations.") 
-        st.caption("L'ICP combine : \n- le volume de trains à l'arrivee dans la gare, \n- la duree des retards a l'arrivee (via une courbe de recours au taxi croissante), \n- une ponderation selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, materiel roulant, gestion en gare, prise en compte des voyageurs dont les correspondances.")
-        st.caption("Les annulations ne sont pas integrees a l'ICP : un train annule n'arrive jamais, donc il ne genere pas de voyageurs a l'arrivee. Elles restent presentes dans le classement de fiabilite.")
-        st.caption(
-            "ICP absolu : courses simulées par mois observé. ICP relatif : courses simulées / voyageurs prévus. Hypothèse : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
+        st.caption("Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la consommation désigne le recours supplémentaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations.") 
+        st.caption("L'ICP absolu combine : \n- le volume de trains à l'arrivée dans la gare, \n- la durée des retards à l'arrivée (via une courbe de recours au taxi croissante), \n- une ponderation selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, materiel roulant, gestion en gare, etc.).")
+        st.caption("L'ICP relatif ne prend pas en compte le volume de train, et ne défavorise donc pas les petites gares à faible fréquentation")
+        st.caption("Les annulations ne sont pas integrées a l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité.")
+        st.caption("Hypothèses : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
         )
         st.caption(
             f"{int((~scope.eligible).sum())} ligne(s) non exploitable(s) dans ce périmètre. Seuls les groupes gare/année couvrant douze mois valides sont comparés ; les liaisons couvertes peuvent varier."
