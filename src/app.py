@@ -593,12 +593,8 @@ def main() -> None:
         boxplot_bundle(data, data_num_bundle, 3)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
-        for i, col in enumerate(data_num_cols):
-            print(i, col)
-
-        data_notnum_cols = [c for c in data.select_dtypes(exclude="number").columns]
-        for i, col in enumerate(data_notnum_cols):
-            print(i, col)
+        # for i, col in enumerate(data_num_cols):
+        #    print(i, col)
 
 
 if __name__ == "__main__":
