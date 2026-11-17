@@ -1,46 +1,36 @@
 """Six onglets simples pour étudier le potentiel taxi/VTC des gares d'arrivée."""
 
-import json
 import logging
 
 import numpy as np
 import pandas as pd
 import pydeck as pdk
 import streamlit as st
+
 from core import (
-    DEFAULT_DATA_PATH,
-    EXCLUDED_YEARS,
-    PROJECT_ROOT,
+    RAW_DATA_PATH,
+    ConfigurationICP,
     DataError,
-    DataLoader,
-    filter_data,
-    fit_trend,
+    analyze_data,
+    available_years,
+    configure_logging,
+    map_points,
     ranking_table,
+    ranking_values,
+    trend_data,
 )
-from icp import SimulationConfig, annual_icp
+from core import (
+    load_data as prepare_data,
+)
 
 LOGGER = logging.getLogger("railinsight")
 BASKET_KEYS = ("basket_trend", "basket_absolute", "basket_relative")
 
 
-def configure_logging() -> None:
-    """Créer des journaux distincts sans ajouter de handler à chaque interaction."""
-    if LOGGER.handlers:
-        return
-    folder = PROJECT_ROOT / "logs"
-    folder.mkdir(exist_ok=True)
-    LOGGER.setLevel(logging.INFO)
-    for name, level in [("debug.log", logging.INFO), ("errors.log", logging.ERROR)]:
-        handler = logging.FileHandler(folder / name, encoding="utf-8")
-        handler.setLevel(level)
-        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-        LOGGER.addHandler(handler)
-
-
 @st.cache_data(show_spinner=False)
 def load_data(modified_at: int) -> pd.DataFrame:
-    """Mettre en cache le CSV nettoyé en invalidant le cache si le fichier change."""
-    return DataLoader().load()
+    """Mettre en cache la préparation jusqu'à la modification du CSV brut."""
+    return prepare_data()
 
 
 def sync_basket(source: str) -> None:
@@ -75,20 +65,14 @@ def display(value: float, metric: str, slope: bool = False) -> str:
 
 def show_map(scores: pd.DataFrame, metric: str) -> None:
     """Combiner chaleur et points survolables, sur les coordonnées SNCF locales."""
-    path = PROJECT_ROOT / "data" / "station_coordinates.json"
     try:
-        coordinates = pd.DataFrame(
-            json.loads(path.read_text(encoding="utf-8"))["stations"]
-        )
-    except (OSError, ValueError, KeyError) as exc:
+        points, missing = map_points(scores)
+    except DataError as exc:
         LOGGER.error("Coordonnées indisponibles : %s", exc)
         st.warning("Les coordonnées des gares sont indisponibles.")
         return
-    points = scores.merge(coordinates, on="gare_arrivee", how="left")
-    missing = points.loc[points["latitude"].isna(), "gare_arrivee"].tolist()
     if missing:
         st.caption("Gares non localisées : " + ", ".join(missing))
-    points = points.dropna(subset=["latitude", "longitude"]).copy()
     if points.empty:
         st.info("Aucune gare géolocalisée dans cette période.")
         return
@@ -142,9 +126,7 @@ def show_trend(annual: pd.DataFrame) -> None:
         horizontal=True,
         key="trend_metric",
     )
-    group = annual.loc[annual.gare_arrivee.eq(station)].sort_values("annee")
-    fit = fit_trend(group.annee.to_numpy(), group[metric].to_numpy(), metric)
-    summary = ranking_table(group, metric).iloc[0]
+    summary, fit, chart = trend_data(annual, station, metric)
     basket = float(st.session_state["basket_trend"])
     columns = st.columns(3)
     columns[0].metric(
@@ -154,10 +136,6 @@ def show_trend(annual: pd.DataFrame) -> None:
     columns[2].metric(
         "CA potentiel / mois", f"{summary.ICP_abs * basket:,.0f} €".replace(",", " ")
     )
-    chart = group[["annee", metric]].rename(columns={metric: "observed"}).copy()
-    chart["regression"] = fit["beta1"] * chart.annee + fit["intercept"]
-    if metric == "ICP_rel":
-        chart[["observed", "regression"]] *= 100
     ylabel = (
         "ICP absolu · courses / mois observé"
         if metric == "ICP_abs"
@@ -247,22 +225,7 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
     sort_by = st.radio(
         "Trier par", ["ICP", "Beta 1", "R²"], horizontal=True, key=f"sort_{metric}"
     )
-    scores = ranking_table(annual, metric, sort_by)
-    table = scores[
-        [
-            "rank",
-            "gare_arrivee",
-            metric,
-            "beta1",
-            "r2",
-            "prediction_2026",
-            "prediction_2027",
-            "n_years",
-        ]
-    ].copy()
-    table["CA potentiel / mois (€)"] = scores["ICP_abs"] * basket
-    factor = 100 if metric == "ICP_rel" else 1
-    table[[metric, "beta1", "prediction_2026", "prediction_2027"]] *= factor
+    table = ranking_values(annual, metric, sort_by, basket)
     table = table.rename(
         columns={
             "rank": "Classement",
@@ -345,16 +308,12 @@ def main() -> None:
         "Projet mené par Jean-Baptiste Clavier, Jean-Baptiste Garel, Marin Lemesre, Xingshi Liu et Jonathan Ozden"
         )
     try:
-        data = load_data(DEFAULT_DATA_PATH.stat().st_mtime_ns)
+        data = load_data(RAW_DATA_PATH.stat().st_mtime_ns)
     except (OSError, DataError) as exc:
         LOGGER.exception("Lecture impossible")
         st.error(str(exc))
         return
-    years = sorted(
-        int(y)
-        for y in data.annee.dropna().unique()
-        if y < 2026 and y not in EXCLUDED_YEARS
-    )
+    years = available_years(data)
     if not years:
         st.info("Aucune année historique exploitable avant 2026.")
         return
@@ -383,7 +342,7 @@ def main() -> None:
             "Gares d'arrivée françaises. Années COVID 2020–2021 exclues. Années incomplètes exclues des comparaisons et régressions."
         )
         st.caption(
-            "Source : data/regularite_tgv_clean.csv. Aucun nettoyage ni export automatique."
+            "Source : data/regularite_tgv_clean.csv, préparé automatiquement depuis le CSV brut."
         )
     tabs = st.tabs(
         [
@@ -408,17 +367,9 @@ def main() -> None:
             f"Toute la courbe est ajustée proportionnellement : 1–15 min → {percentage * 0.04:.2f} %, 30 min → {percentage * 0.4:.2f} %, ≥60 min → {percentage} %. Ce réglage met à jour tous les onglets."
         )
         basket_input("basket_trend")
-    scope = filter_data(data, start, end, service)
-    annual = annual_icp(scope, SimulationConfig(taxi_rate_60=percentage / 100))
-    volumes = annual.groupby("gare_arrivee").nb_circulations_prevues.sum()
-    annual = annual.loc[annual.gare_arrivee.isin(volumes[volumes.ge(minimum)].index)]
-    LOGGER.info(
-        "Analyse arrivée : %s-%s, service=%s, recours=%s, seuil=%s",
-        start,
-        end,
-        service,
-        percentage,
-        minimum,
+    scope, annual = analyze_data(
+        data, start, end, service, minimum,
+        ConfigurationICP(taux_recours_60min=percentage / 100, pax_defaut=550.0),
     )
     if annual.empty:
         for tab in tabs:

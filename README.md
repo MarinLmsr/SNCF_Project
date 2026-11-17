@@ -13,9 +13,13 @@ python -m streamlit run src/app.py
 ```
 
 Les dépendances sont déclarées dans `pyproject.toml` et `uv.lock`.
-Le seul fichier de données utilisé pour les calculs est
-**`data/regularite_tgv_clean.csv`**. L'application ne lance pas `triDF()` et
-ne réécrit aucun CSV.
+Au chargement, `core.load_data()` appelle `triDF()` pour créer
+**`data/regularite_tgv_clean.csv`** depuis
+`data/regularite-mensuelle-tgv-aqst.csv`, puis `DataLoader.load()` lit le résultat.
+Le CSV exporté possède déjà les colonnes renommées, les dates normalisées et les
+indicateurs de qualité. Streamlit met cette préparation en cache et la relance
+si le CSV brut change ; les interactions ordinaires ne réécrivent pas le fichier.
+La source brute n'est jamais modifiée.
 
 ## Les six onglets
 
@@ -52,8 +56,10 @@ correspondant, pas avec un pourcentage multiplié par un prix.
   gare d'arrivée. Les ratios sont des rapports de sommes.
 - L'ICP absolu désigne des courses simulées **par mois observé** ; l'ICP relatif
   les rapporte aux voyageurs prévus de la même période.
-- Les observations incohérentes sont signalées et écartées en mémoire, sans
-  correction du fichier. Chaque groupe gare/année doit couvrir douze mois valides.
+- `triDF()` corrige les tranches de retard, supprime les lignes aberrantes selon
+  les règles historiques et exporte les observations restantes avec `eligible`
+  et `quality_issues`. Les lignes signalées comme inéligibles sont exclues des
+  calculs, sans être supprimées du CSV nettoyé. Chaque groupe gare/année doit couvrir douze mois valides.
   Cela ne garantit pas une couverture constante de toutes les liaisons.
 - 2020–2021 sont exclus conformément au cadre. 2026 est une année incomplète du
   CSV et n'est utilisée ni comme année historique comparable ni pour entraîner
@@ -84,17 +90,36 @@ survoler les points pour les valeurs. Les cartes absolue et relative ont des
 
 ## Organisation et vérification
 
-- `src/app.py` : les six onglets et les graphiques Streamlit.
-- `src/core.py` : lecture du CSV nettoyé, périmètre et régressions.
-- `src/icp.py` : adaptation du calculateur d'arrivée existant et agrégats annuels.
-- `src/my_package/classDF.py`, `funcDF.py` : calculs et analyses de l'équipe,
-  réutilisés sans modification.
-- `src/main.py`, `triDF.py` : ancien pipeline exploratoire ; son lancement nettoie
-  et exporte des fichiers. Il n'est pas importé par l'interface.
+- `src/app.py` : les six onglets, les textes et les graphiques Streamlit,
+  conservés ; l'interface importe les traitements depuis le module voisin `core`.
+- `src/core.py` : point d'entrée commun regroupant les traitements et le flux
+  exploratoire ; orchestre les outils de `my_package`.
+- `src/my_package/classDF.py` : toutes les classes de chargement, configuration,
+  calcul et analyse. L'unique `DataLoader.load()` lit les données déjà préparées,
+  sans renommage, filtrage ni export.
+  `ConfigurationICP` remplace `ScoreConfig` et `SimulationConfig` et regroupe
+  `panier_moyen`, `poids_causes`, `seuil_min_circulations`, `pax_defaut` et
+  `taux_recours_60min`. Le PAX par défaut respecte `SNCF_PAX_DEFAUT` (550 sinon) ;
+  l'interface fixe explicitement 550 pour conserver son hypothèse affichée.
+- `src/my_package/funcDF.py` : fonctions de préparation, filtrage, ICP annuels,
+  régression, classement et préparation des valeurs affichées.
+- `src/my_package/triDF.py` : nettoyage, renommage des colonnes, validation de
+  qualité et export du fichier prêt à charger. Le paramètre `output_path`
+  permet de choisir la destination sans toucher à la source.
 - `tests/` : cas calculés à la main et interactions de la nouvelle application.
 
+Importer `core.py` ne lance aucun traitement.
+Le pipeline exploratoire avec nettoyage et export reste disponible explicitement :
+
 ```bash
-python -m pytest tests/test_core.py tests/test_icp.py tests/test_app.py tests/test_fiabilite_gare.py tests/test_graph_analyzer.py
+python src/core.py
+```
+
+Le lancement Streamlit prépare uniquement le CSV ; il ne lance ni les analyses
+exploratoires ni l'export du graphique Matplotlib.
+
+```bash
+python -m pytest tests/test_core.py tests/test_icp.py tests/test_app.py tests/test_main.py tests/test_fiabilite_gare.py tests/test_graph_analyzer.py
 ```
 
 `tests/test_fiabilite.py` est encore un ancien script exploratoire avec affichage
