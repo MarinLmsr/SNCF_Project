@@ -1,13 +1,13 @@
 """ Fonctions utilitaires de préparation des données par gare d'arrivée pour les analyses du projet SNCF - IADATA700 """
 
 # -----------------------------------------------------------------------------
-# 1. LIBRAIRIES & VARIABLES
+# 1. LIBRAIRIES & VARIABLES & CLASSES
 # -----------------------------------------------------------------------------
 
-# Json : 
+# Json : Pour lire les coordonées de chaque gares
 import json
 
-# Logging : 
+# Logging : Pour enregistrer les logs
 import logging
 
 # Path : Pour la lecture du répertoire
@@ -19,7 +19,7 @@ import numpy as np
 # Pandas : Pour la manipulation des DataFrames
 import pandas as pd
 
-# Variables : années exclues, stations étrangères, classes utilisées
+# Variables : années exclues, stations étrangères, classes utilisées, metriques, etc...
 from .classDF import (
     EXCLUDED_YEARS,
     FOREIGN_STATIONS,
@@ -32,45 +32,7 @@ from .classDF import (
 )
 
 # -----------------------------------------------------------------------------
-# 2. CONSTRUCTION DES VARIABLES EXPLICATIVES PAR GARE D'ARRIVEE
-# -----------------------------------------------------------------------------
-
-def construire_variables_gares(df_lignes: pd.DataFrame) -> pd.DataFrame:
-    """ 
-    Variables produites :
-      - volume_circulations : total des circulations prévues à destination de la gare
-      - nombre_provenances  : nombre de gares d'origine desservies
-      - duree_moyenne_trajets : durée moyenne des trajets, pondérée par les circulations
-      - taux_retard : trains en retard à l'arrivée / circulations prévues
-        (sommer d'abord, diviser ensuite)
-      - taux_annulation : étudié à part du taux de retard, comme prévu au cadre
-    """
-    
-    # Copie de df
-    df = df_lignes.copy()
-
-    # Durée pondérée par le nombre de circulations (une liaison à 500 trains : pèse plus qu'une liaison à 5 trains)
-    df["duree_ponderee"] = df["duree_moyenne_trajet"] * df["nb_circulations_prevues"]
-
-    # Aggrégation par gare d'arrivée
-    res = df.groupby("gare_arrivee").agg(
-        volume_circulations=("nb_circulations_prevues", "sum"),
-        nombre_provenances=("gare_depart", "nunique"),
-        duree_ponderee_sum=("duree_ponderee", "sum"),
-        nb_retard_arrivee=("nb_retard_arrivee", "sum"),
-        nb_annules=("nb_annules", "sum"),
-    ).reset_index()
-
-    # Calcul de la duree moyenne, des taux de retard et taux d'annulation
-    volume = res["volume_circulations"].replace(0, np.nan)
-    res["duree_moyenne_trajets"] = res["duree_ponderee_sum"] / volume
-    res["taux_retard"] = res["nb_retard_arrivee"] / volume
-    res["taux_annulation"] = res["nb_annules"] / volume
-
-    return res.drop(columns="duree_ponderee_sum")
-
-# -----------------------------------------------------------------------------
-# 3. SELECTION DE LA PERIODE HISTORIQUE
+# 2. FILTRAGE ADDITIONNEL DE LA DONNEE - filter_data()
 # -----------------------------------------------------------------------------
 
 def filter_data(data: pd.DataFrame, start: int, end: int, service: str = "Tous") -> pd.DataFrame:
@@ -85,20 +47,15 @@ def filter_data(data: pd.DataFrame, start: int, end: int, service: str = "Tous")
     return data.loc[mask].copy()
 
 # -----------------------------------------------------------------------------
-# 4. CLASSEMENT PAR GARE
+# 3. CLASSEMENT PAR GARE - ranking_table()
 # -----------------------------------------------------------------------------
 
-def ranking_table(annual: pd.DataFrame, metric: str, sort_by: str = "ICP", minimum: int = 0) -> pd.DataFrame:
-    """ Classement des gares : ICP observé et tendance (régression sur les années)."""
-
-    if metric not in METRICS or sort_by not in {"ICP", "Beta 1", "R²"}:
-        raise ValueError("Tri ou indicateur inconnu.")
+def ranking_table(annual: pd.DataFrame, metric: str, sort_by: str = "ICP") -> pd.DataFrame:
+    """Calculer et trier les ICP et tendances par gare, sans conversion d'unités."""
 
     lignes = []
+
     for gare, group in annual.groupby("gare_arrivee"):
-        # On ignore les gares sous le seuil de circulations
-        if group["nb_circulations_prevues"].sum() < minimum:
-            continue
 
         # ICP sur toute la période : on somme d'abord, on divise ensuite
         conso = group["conso_totale_sum"].sum()
@@ -116,6 +73,7 @@ def ranking_table(annual: pd.DataFrame, metric: str, sort_by: str = "ICP", minim
         "gare_arrivee", "ICP_abs", "ICP_rel", "beta1", "intercept", "r2",
         "spearman", "cv", "prediction_2026", "prediction_2027", "n_years",
     ]
+
     table = pd.DataFrame(lignes, columns=colonnes)
 
     # Tri décroissant sur le critère choisi (les NaN en dernier), puis par nom de gare
@@ -123,10 +81,11 @@ def ranking_table(annual: pd.DataFrame, metric: str, sort_by: str = "ICP", minim
     table = table.sort_values([critere, "gare_arrivee"], ascending=[False, True], na_position="last")
     table = table.reset_index(drop=True)
     table.insert(0, "rank", np.arange(1, len(table) + 1))
+    
     return table
 
 # -----------------------------------------------------------------------------
-# 5. ICP ANNUEL
+# 4. ICP ANNUEL - annual_icp()
 # -----------------------------------------------------------------------------
 
 def annual_icp(data: pd.DataFrame, config: ConfigurationICP) -> pd.DataFrame:
@@ -144,7 +103,7 @@ def annual_icp(data: pd.DataFrame, config: ConfigurationICP) -> pd.DataFrame:
     return annual.sort_values(["gare_arrivee", "annee"]).reset_index(drop=True)
 
 # -----------------------------------------------------------------------------
-# 6. GESTION DES ERREURS
+# 5. JOURNALISATION POUR HISTORIQUE DES LOGS - configure_logging()
 # -----------------------------------------------------------------------------
 
 def configure_logging() -> None:
@@ -167,7 +126,7 @@ def configure_logging() -> None:
         logger.addHandler(handler)
 
 # -----------------------------------------------------------------------------
-# 7. ANNEES VALIDES
+# 6. ANNEES VALIDES - available_years()
 # -----------------------------------------------------------------------------
 
 def available_years(data: pd.DataFrame) -> list[int]:
@@ -177,7 +136,7 @@ def available_years(data: pd.DataFrame) -> list[int]:
     return sorted(int(a) for a in annees if a < 2026 and a not in EXCLUDED_YEARS)
 
 # -----------------------------------------------------------------------------
-# 8. MAPPING CARTE
+# 7. MAPPING CARTE - map_points()
 # -----------------------------------------------------------------------------
 
 def map_points(scores: pd.DataFrame,path: Path = PROJECT_ROOT / "data" / "station_coordinates.json",) -> tuple[pd.DataFrame, list[str]]:
@@ -198,33 +157,31 @@ def map_points(scores: pd.DataFrame,path: Path = PROJECT_ROOT / "data" / "statio
     return points, manquantes
 
 # -----------------------------------------------------------------------------
-# 9. ANALYSE TENDANCE
+# 8. ANALYSE TENDANCE - trend_data()
 # -----------------------------------------------------------------------------
 
-def trend_data(annual: pd.DataFrame, station: str, metric: str) -> tuple[pd.Series, dict[str, float], pd.DataFrame]:
-    """ Prépare les données d'une gare : synthèse, résultats de la régression et courbe observée/tendance """
+def trend_data(annual: pd.DataFrame, station: str, metric: str) -> tuple[pd.Series, pd.DataFrame]:
+    """ Prépare la synthèse d'une gare et sa courbe observée/tendance """
 
     group = annual.loc[annual["gare_arrivee"].eq(station)].sort_values("annee")
 
-    # Régression et synthèse (ICP, rang, beta1...) de la gare
-    fit = TrendAnalyzer.ajuster_tendance(group["annee"].to_numpy(), group[metric].to_numpy(), metric)
     summary = ranking_table(group, metric).iloc[0]
 
     # Courbe : valeurs observées et droite de régression (pente × année + ordonnée)
     chart = group[["annee", metric]].rename(columns={metric: "observed"}).copy()
-    chart["regression"] = fit["beta1"] * chart["annee"] + fit["intercept"]
+    chart["regression"] = summary["beta1"] * chart["annee"] + summary["intercept"]
 
     # L'ICP relatif est affiché en pourcentage
     if metric == "ICP_rel":
         chart[["observed", "regression"]] *= 100
-    return summary, fit, chart
+    return summary, chart
 
 # -----------------------------------------------------------------------------
-# 10. CLASSEMENT
+# 9. PREPARATION DU CLASSEMENT POUR L'AFFICHAGE - prepare_ranking_display()
 # -----------------------------------------------------------------------------
 
-def ranking_values(annual: pd.DataFrame, metric: str, sort_by: str, basket: float) -> pd.DataFrame:
-    """ Tableau du classement, avec les unités affichées dans l'interface """
+def prepare_ranking_display(annual: pd.DataFrame, metric: str, sort_by: str, basket: float) -> pd.DataFrame:
+    """Adapter ranking_table pour l'interface : colonnes, CA potentiel et pourcentages."""
 
     scores = ranking_table(annual, metric, sort_by)
     colonnes = ["rank", "gare_arrivee", metric, "beta1", "r2", "prediction_2026", "prediction_2027", "n_years"]

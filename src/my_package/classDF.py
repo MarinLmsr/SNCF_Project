@@ -4,7 +4,7 @@ Aussi, il fournit des outils pour la visualisation et l'analyse statistique des 
 Enfin, il permet de calculer des scores et des indicateurs de performance basés sur les données traitées. """
 
 # -----------------------------------------------------------------------------
-# 1. LIBRAIRIES & VARIABLES
+# 1. LIBRAIRIES & VARIABLES & GESTION DES ERREURS DE DONNEES
 # -----------------------------------------------------------------------------
 
 """ Importation des librairies nécessaires """
@@ -27,9 +27,7 @@ from scipy.stats import spearmanr
 # Sklearn : Pour les modèles de régression linéaire
 from sklearn.linear_model import LinearRegression
 
-""" Définition des variables necessaires au projet """
-
-# racine, répertoire, années exclues, noms des colonnes, métriques...
+# Variables : racine, répertoire, années exclues, noms des colonnes, métriques...
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_PATH = PROJECT_ROOT / "data" / "regularite_tgv_clean.csv"
 RAW_DATA_PATH = PROJECT_ROOT / "data" / "regularite-mensuelle-tgv-aqst.csv"
@@ -37,42 +35,17 @@ EXCLUDED_YEARS = {2020, 2021}
 FOREIGN_STATIONS = {"BARCELONA", "FRANCFORT", "GENEVE", "ITALIE","LAUSANNE", "MADRID", "STUTTGART", "ZURICH"}
 METRICS = {"ICP_abs": "ICP absolu", "ICP_rel": "ICP relatif"}
 
-# -----------------------------------------------------------------------------
-# 2. GESTION DES ERREURS
-# -----------------------------------------------------------------------------
-
-""" Gestion des erreurs spécifiques au projet SNCF """
-
-class InsufficientDataError(Exception):
-    """Exception levée lorsque les données sont insuffisantes pour une analyse."""
-    pass
-
-class ConfigError(ValueError):
-    """Exception levée lorsque la configuration du modèle est incorrecte."""
-    pass
-
-class StationNotFoundError(Exception):
-    """Exception levée lorsqu'une gare demandée est absente des données."""
-    pass
-
-class InvalidPeriodError(Exception):
-    """Exception levée lorsque la période demandée est vide ou incohérente."""
-    pass
-
+# Classe pour la gestion des erreurs de données
 class DataError(ValueError):
-    """Signaler une source absente ou un schéma incompatible."""
     pass
 
 # -----------------------------------------------------------------------------
-# 3. CONFIGURATION DU MODÈLE (ConfigurationICP)
+# 2. CONFIGURATION DU MODÈLE - ConfigurationICP
 # -----------------------------------------------------------------------------
 
 @dataclass
 class ConfigurationICP:
     """ Configuration du modèle en regroupant les différentes hypothèses : à adapter """
-
-    # Prix moyen d'une course taxi / VTC en euros
-    panier_moyen: float = 25.0
 
     # Poids des causes (neutre)
     poids_causes: dict[str, float] = field(default_factory=lambda: {
@@ -94,7 +67,7 @@ class ConfigurationICP:
     taux_recours_60min: float = 0.25
 
 # -----------------------------------------------------------------------------
-# 4. CHARGEMENT DES DONNÉES NETTOYÉES (DataLoader)
+# 3. CHARGEMENT DES DONNÉES NETTOYÉES - DataLoader
 # -----------------------------------------------------------------------------
 
 @dataclass(frozen=True) # frozen = true --> instances immuables
@@ -113,7 +86,7 @@ class DataLoader:
         return data
 
 # -----------------------------------------------------------------------------
-# 5. CALCUL DE L'ICP (ICPCalculator)
+# 4. CALCUL DE L'ICP - ICPCalculator
 # -----------------------------------------------------------------------------
 
 class ICPCalculator:
@@ -162,16 +135,11 @@ class ICPCalculator:
         
         return df
 
-    def calculer_par_gare(self, df_lignes: pd.DataFrame, par_mois: bool = False) -> pd.DataFrame:
-        """ Sommer par gare et par année (ou par mois) avant de calculer les ICP absolu et relatif """
+    def calculer_par_gare(self, df_lignes: pd.DataFrame) -> pd.DataFrame:
+        """ Sommer par gare et par année avant de calculer les ICP absolu et relatif """
        
         df_lignes = df_lignes.copy()
 
-        # Regroupement par gare et par année, et par mois si demandé
-        regroupement = ["gare_arrivee", "annee"]
-        if par_mois:
-            regroupement.append("mois")
- 
         # Le seuil porte sur le total de chaque gare, toutes périodes fournies confondues.
         volumes = df_lignes.groupby("gare_arrivee")["nb_circulations_prevues"].transform("sum")
         df_lignes = df_lignes.loc[volumes >= self.config.seuil_min_circulations].copy()
@@ -181,7 +149,7 @@ class ICPCalculator:
         df_lignes["produit_circ_pax"] = df_lignes["nb_circulations_prevues"] * pax
         
         # Additionner les volumes avant de calculer les ratios
-        grouped = df_lignes.groupby(regroupement, as_index=False).agg(
+        grouped = df_lignes.groupby(["gare_arrivee", "annee"], as_index=False).agg(
             conso_totale_sum=("conso_totale", "sum"),
             circ_pax_sum=("produit_circ_pax", "sum"),
             nb_circulations_prevues=("nb_circulations_prevues", "sum"),
@@ -194,58 +162,11 @@ class ICPCalculator:
         # ICP relatif : courses potentielles rapportées au nombre de voyageurs prévus.
         grouped["ICP_rel"] = grouped["conso_totale_sum"] / grouped["circ_pax_sum"].replace(0, np.nan)
         
-        # Montant mensuel simulé : courses par mois × prix moyen, et non bénéfice.
-        grouped["ICP_abs_euros"] = grouped["ICP_abs"] * self.config.panier_moyen
-
         return grouped.sort_values(["annee", "ICP_abs"], ascending=[True, False])
 
 
 # -----------------------------------------------------------------------------
-# 6. CALCUL DE LA FIABILITÉ (FiabiliteCalculator)
-# -----------------------------------------------------------------------------
-
-
-class FiabiliteCalculator:
-    """ Classement de fiabilité des gares d'arrivée (classement 1 du cadre) """
-
-    # On récupère la configuration du modèle   
-    def __init__(self, config: ConfigurationICP):
-        self.config = config
-
-    def calculer_par_gare(self, df: pd.DataFrame) -> pd.DataFrame:
-        """ Classe les gares d'arrivée de la moins fiable à la plus fiable """
-
-        # Sommer d'abord, diviser ensuite (même règle que pour l'ICP)
-        group_keys = ["gare_arrivee"]
-        
-        if "annee" in df.columns:
-            group_keys.append("annee")
-        
-        grouped = df.groupby(group_keys).agg(
-            nb_circulations_prevues=("nb_circulations_prevues", "sum"),
-            nb_annules=("nb_annules", "sum"),
-            nb_retard_arrivee=("nb_retard_arrivee", "sum"),
-        ).reset_index()
-
-        # Seuil minimum de circulations (cumul par gare, toutes années confondues)
-        circ_totales = grouped.groupby("gare_arrivee")["nb_circulations_prevues"].sum()
-        gares_valides = circ_totales[circ_totales >= self.config.seuil_min_circulations].index
-        grouped = grouped[grouped["gare_arrivee"].isin(gares_valides)]
-
-        # Calcul des taux d'annulation, regard à l'arrivée, et taux de perturbation
-        denominateur = grouped["nb_circulations_prevues"].replace(0, np.nan)
-        grouped["taux_annulation"] = grouped["nb_annules"] / denominateur
-        grouped["taux_retard_arrivee"] = grouped["nb_retard_arrivee"] / denominateur
-        grouped["taux_perturbation"] = (grouped["nb_annules"] + grouped["nb_retard_arrivee"]) / denominateur
-
-        # Tri par année et par taux de perturbation
-        sort_cols = ["annee", "taux_perturbation"] if "annee" in grouped.columns else ["taux_perturbation"]
-        
-        return grouped.sort_values(by=sort_cols, ascending=[True, False] if len(sort_cols) > 1 else False)
-
-
-# -----------------------------------------------------------------------------
-# 7. MODULES D'ANALYSE
+# 5. ANALYSE DES TENDANCES - TrendAnalyzer
 # -----------------------------------------------------------------------------
 
 class TrendAnalyzer:
@@ -294,95 +215,5 @@ class TrendAnalyzer:
             prediction = slope * year + intercept
             if prediction >= 0 and (metric != "ICP_rel" or prediction <= 1):
                 result[f"prediction_{year}"] = float(prediction)
+        
         return result
-
-    @staticmethod
-    def analyser_tendance(df_gares_annuel: pd.DataFrame) -> pd.DataFrame:
-        """ Pente, pente relative (% de l'ICP moyen) et R² de l'ICP relatif pour chaque gare """
-
-        resultats = []
-        for gare, group in df_gares_annuel.groupby("gare_arrivee"):
-            fit = TrendAnalyzer.ajuster_tendance(group["annee"].to_numpy(), group["ICP_rel"].to_numpy(), "ICP_rel")
-
-            # Gare ignorée s'il n'y a pas assez d'années pour une tendance
-            if np.isnan(fit["beta1"]):
-                continue
-
-            moyenne_icp = group["ICP_rel"].mean()
-            pente_relative = (fit["beta1"] / moyenne_icp) * 100 if moyenne_icp != 0 else 0
-
-            resultats.append({
-                "gare_arrivee": gare,
-                "pente": fit["beta1"],
-                "pente_relative_pct": pente_relative,
-                "R2": fit["r2"]
-            })
-
-        return pd.DataFrame(resultats)
-
-
-class PersistenceAnalyzer:
-    """ Analyse de la persistance des ICP par gare : le classement des gares se maintient-il d'une année à l'autre ? """
-    
-    @staticmethod
-    def calculer_persistance(df_suivi: pd.DataFrame) -> dict[int, float]:
-        annees = sorted(df_suivi["annee"].unique())
-        scores_spearman = {}
-
-        # On compare chaque année avec la suivante (2018->2019, 2019->2020, ...)
-        for i in range(len(annees) - 1):
-            annee_n = annees[i]
-            annee_suivante = annees[i+1]
-            
-            # ICP relatif de chaque gare pour les deux années, indexé par gare
-            df_n = df_suivi[df_suivi["annee"] == annee_n].set_index("gare_arrivee")["ICP_rel"]
-            df_suiv = df_suivi[df_suivi["annee"] == annee_suivante].set_index("gare_arrivee")["ICP_rel"]
-            
-            # On ne garde que les gares présentes les deux années
-            commun = df_n.index.intersection(df_suiv.index)
-            
-            if len(commun) > 1:
-
-                # Corrélation de Spearman entre les classements : proche de 1 = classement stable
-                corr, _ = spearmanr(df_n[commun], df_suiv[commun])
-                scores_spearman[f"{annee_n}->{annee_suivante}"] = corr
-
-        return scores_spearman
-
-
-class QuadrantClassifier:
-    """ Prépare le classement des gares en quadrants : niveau d'ICP moyen vs régularité dans le temps """
-
-    @staticmethod
-    def classifier(df_gare_mensuel: pd.DataFrame) -> pd.DataFrame:
-        
-        # Pour chaque gare : ICP relatif moyen et volatilité (coefficient de variation = écart-type / moyenne)
-        res = df_gare_mensuel.groupby("gare_arrivee").agg(
-            icp_rel_moyen=("ICP_rel", "mean"),
-            volatilite=("ICP_rel", lambda x: x.std() / x.mean() if x.mean() != 0 else 0)
-        ).reset_index()
-
-        # Plus la volatilité est faible, plus la gare est stable ; le 1e-5 évite une division par zéro
-        res["volatilite_inverse"] = 1.0 / (res["volatilite"] + 1e-5)
-        return res
-
-
-class CorrelationAnalyzer:
-    """ Mesure le lien entre les caractéristiques des gares et leur taux de retard """
-
-    @staticmethod
-    def analyser_correlations(df_gares: pd.DataFrame) -> dict[str, float]:
-        
-        vars_explicatives = ["volume_circulations", "nombre_provenances", "duree_moyenne_trajets"]
-        corrs = {}
-
-        for var in vars_explicatives:
-
-            # On ne calcule que si la variable et le taux de retard sont présents
-            if var in df_gares.columns and "taux_retard" in df_gares.columns:
-
-                # Corrélation de Spearman (basée sur les rangs), en ignorant les valeurs manquantes
-                corr, _ = spearmanr(df_gares[var], df_gares["taux_retard"], nan_policy="omit")
-                corrs[var] = corr
-        
-        return corrs

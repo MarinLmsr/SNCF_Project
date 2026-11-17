@@ -2,7 +2,7 @@
 Il identifie les anomalies et propose des actions correctives pour chaque index du DataFrame. """
 
 # -----------------------------------------------------------------------------
-# 1. LIBRAIRIES & VARIABLES
+# 1. LIBRAIRIES & VARIABLES & GESTION DES ERREURS DE DONNEE
 # -----------------------------------------------------------------------------
 
 """ Importation des librairies nécessaires """
@@ -20,9 +20,9 @@ import pandas as pd
 
 # Chemin des fichiers de données, et gesion des erreurs de données
 if __package__:
-    from .classDF import DEFAULT_DATA_PATH, RAW_DATA_PATH, DataError
+    from .classDF import DEFAULT_DATA_PATH, EXCLUDED_YEARS, RAW_DATA_PATH, DataError
 else:
-    from classDF import DEFAULT_DATA_PATH, RAW_DATA_PATH, DataError
+    from classDF import DEFAULT_DATA_PATH, EXCLUDED_YEARS, RAW_DATA_PATH, DataError
 
 # Repertoire des données
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -84,21 +84,26 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
         "Nombre trains en retard > 30min", "Nombre trains en retard > 60min",
     }
 
-    # Colonnes manquantes 
-    missing = required - set(df_raw.columns)
-    if missing:
-        raise DataError("Colonnes manquantes : " + ", ".join(sorted(missing)))
+    # # Colonnes manquantes 
+    # missing = required - set(df_raw.columns)
+    # if missing:
+    #     raise DataError("Colonnes manquantes : " + ", ".join(sorted(missing)))
     
     # Copie de df_raw
     df = df_raw.copy()
+
+    # Exclusion des années COVID et formatting des dates
+    df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m", errors="coerce")
+    annees_exclues = df["Date"].dt.year.isin(EXCLUDED_YEARS)
+    indices_annees_exclues = df.index[annees_exclues].tolist()
+    df = df.loc[~annees_exclues].copy()
 
     # Colonnes numériques au format nombre
     for column in (set(COLUMNS) & set(df.columns)) - set(list(COLUMNS)[:4]):
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
-    # Liste pour stocker toutes les anomalies identifiées index par index
+    # Initialisation d'une liste pour stocker toutes les anomalies identifiées index par index
     anomalies_list = []
-
 
     # B) CALCUL DES RÉFÉRENTIELS PAR LIAISON (Gare départ -> Gare arrivée)
     # -----------------------------------------------------------------------------
@@ -276,11 +281,11 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
 
     # Suppression des colonnes à enlever
     df_final = df_clean.drop(index=indices_a_supprimer).drop(columns=['duree_reference']).rename(columns=COLUMNS)
+    indices_a_supprimer.extend(indices_annees_exclues)
     
     # Date au bon format
     df_final["date"] = pd.to_datetime(df_final["date"], format="%Y-%m", errors="coerce")
     df_final["annee"] = df_final["date"].dt.year
-    df_final["mois"] = df_final["date"].dt.month
 
     # Uniformisation des textes
     for key in ["service", "gare_depart", "gare_arrivee"]:
@@ -312,6 +317,16 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
     df_final["quality_issues"] = df_final["quality_issues"].str.rstrip("; ")
     df_final["eligible"] = df_final["quality_issues"].eq("")
     df_final.loc[df_final["nb_retard_arrivee"].eq(0), "retard_moyen_arrivee"] = 0
+
+    # Suppression des colonnes inutiles
+    colonnes_utiles = [
+        "date", "service", "gare_arrivee",
+        "nb_circulations_prevues", "nb_retard_arrivee", "retard_moyen_arrivee",
+        *[col for col in COLUMNS.values() if col.startswith("p_") and col in df_final.columns],
+        "annee", "eligible",
+    ]
+
+    df_final = df_final[colonnes_utiles].copy()
 
     """ 6. EXPORT DU DATAFRAME FINAL NETTOYÉ """
 

@@ -15,8 +15,8 @@ from core import (
     available_years,
     configure_logging,
     map_points,
+    prepare_ranking_display,
     ranking_table,
-    ranking_values,
     trend_data,
 )
 from core import (
@@ -126,7 +126,7 @@ def show_trend(annual: pd.DataFrame) -> None:
         horizontal=True,
         key="trend_metric",
     )
-    summary, fit, chart = trend_data(annual, station, metric)
+    summary, chart = trend_data(annual, station, metric)
     basket = float(st.session_state["basket_trend"])
     columns = st.columns(3)
     columns[0].metric(
@@ -192,27 +192,27 @@ def show_trend(annual: pd.DataFrame) -> None:
     columns = st.columns(4)
     columns[0].metric(
         "Spearman ρ · temps / ICP",
-        "—" if pd.isna(fit["spearman"]) else f"{fit['spearman']:.3f}",
+        "—" if pd.isna(summary["spearman"]) else f"{summary['spearman']:.3f}",
     )
-    columns[1].metric("Pente β₁", display(fit["beta1"], metric, slope=True))
+    columns[1].metric("Pente β₁", display(summary["beta1"], metric, slope=True))
     columns[2].metric(
-        "R² · détermination", "—" if pd.isna(fit["r2"]) else f"{fit['r2']:.3f}"
+        "R² · détermination", "—" if pd.isna(summary["r2"]) else f"{summary['r2']:.3f}"
     )
     columns[3].metric(
-        "Variabilité annuelle (CV)", "—" if pd.isna(fit["cv"]) else f"{fit['cv']:.1%}"
+        "Variabilité annuelle (CV)", "—" if pd.isna(summary["cv"]) else f"{summary['cv']:.1%}"
     )
-    if fit["n_years"] < 3:
+    if summary["n_years"] < 3:
         st.info(
             "Moins de trois années complètes : régression, Spearman et prévisions non affichés."
         )
     else:
         direction = (
             "stable"
-            if np.isclose(fit["beta1"], 0)
-            else ("à la hausse" if fit["beta1"] > 0 else "à la baisse")
+            if np.isclose(summary["beta1"], 0)
+            else ("à la hausse" if summary["beta1"] > 0 else "à la baisse")
         )
         st.write(
-            f"Sur **{int(fit['n_years'])} années complètes**, la tendance estimée est **{direction}**. Le CV décrit les fluctuations annuelles : plus il est élevé, moins l'opportunité est régulière."
+            f"Sur **{int(summary['n_years'])} années complètes**, la tendance estimée est **{direction}**. Le CV décrit les fluctuations annuelles : plus il est élevé, moins l'opportunité est régulière."
         )
     st.caption(
         "R² n'est pas un coefficient de corrélation. Une tendance ou un Spearman élevé ne prouve ni une demande réelle ni une rentabilité."
@@ -225,7 +225,7 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
     sort_by = st.radio(
         "Trier par", ["ICP", "Beta 1", "R²"], horizontal=True, key=f"sort_{metric}"
     )
-    table = ranking_values(annual, metric, sort_by, basket)
+    table = prepare_ranking_display(annual, metric, sort_by, basket)
     table = table.rename(
         columns={
             "rank": "Classement",
