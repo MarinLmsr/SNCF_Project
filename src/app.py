@@ -26,6 +26,16 @@ from core import (
 LOGGER = logging.getLogger("railinsight")
 BASKET_KEYS = ("basket_trend", "basket_absolute", "basket_relative")
 
+# 0 = cause prévisible et améliorable, 1 = cause imprévisible
+POIDS_IMPREVISIBILITE = {
+    "p_externes": 1.0,
+    "p_gestion_trafic": 0.5,
+    "p_infrastructure": 0.0,
+    "p_materiel_roulant": 0.0,
+    "p_gestion_gare": 0.0,
+    "p_prise_en_compte_voyageurs": 0.0,
+}
+MIN_MINUTES_RETARD = 1000.0
 
 @st.cache_data(show_spinner=False)
 def load_data(modified_at: int) -> pd.DataFrame:
@@ -114,7 +124,7 @@ def show_map(scores: pd.DataFrame, metric: str) -> None:
     )
 
 
-def show_trend(annual: pd.DataFrame) -> None:
+def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
     """Afficher une gare, ses années observées et une droite de régression."""
     station = st.selectbox(
         "Gare d'arrivée", sorted(annual.gare_arrivee.unique()), key="trend_station"
@@ -189,6 +199,24 @@ def show_trend(annual: pd.DataFrame) -> None:
     st.caption(
         "Barres bleues : ICP annuel observé (moyenne mensuelle). Droite orange : ajustement linéaire. Les années COVID ne sont pas imputées."
     )
+    col_gauge, col_text = st.columns([1, 2])
+    with col_gauge:
+        if station in scores.index:
+            st.plotly_chart(
+                compteur_volatilite(scores[station], scores.median()),
+                use_container_width=True,
+            )
+        else:
+            st.info("Pas assez de minutes de retard pour calculer la volatilité de cette gare.")
+    with col_text:
+        st.markdown("**Volatilité des causes de retard**")
+        st.write(
+            "Proche de 0 : les retards viennent de causes connues et améliorables "
+            "(infrastructure, matériel, gestion en gare). Proche de 10 : ils viennent "
+            "d'événements imprévisibles, comme les intempéries ou les incidents extérieurs. "
+            "Pour un investisseur, une gare à faible score a des retards plus réguliers, "
+            "donc une opportunité plus consistante. Le trait noir indique la médiane des gares."
+        )
     columns = st.columns(4)
     columns[0].metric(
         "Spearman ρ · temps / ICP",
@@ -347,10 +375,10 @@ def main() -> None:
     tabs = st.tabs(
         [
             "0 · Accueil",
-            "1 · Carte de chaleur",
-            "2 · Tendances",
-            "3 · ICP absolu",
-            "4 · ICP relatif",
+            "1 · Cartographie de l'ICP",
+            "2 · Etude par gare",
+            "3 · Top ICP absolu",
+            "4 · Top ICP relatif",
             "5 · Conclusion",
         ]
     )
@@ -379,22 +407,53 @@ def main() -> None:
                 )
         return
     with tabs[0]:
-        st.subheader("Où renforcer l'offre de taxis et VTC ?")
+        st.subheader("Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?")
+        
+        st.write("**Notre postulat**")
+        
+        st.write("Un voyageur dont le train arrive en retard a plus de risques de rater sa correspondance (TER, bus, tram, métro) ou de se retrouver sans transport en commun adapté. Il se reporte alors sur un taxi ou un VTC. Plus le retard est long, plus la probabilité de prendre un taxi augmente. Ce postulat n'est pas verifiable avec nos donnees (pas de données de courses ni de réservations) : nous le traitons comme une hypothèse, entièrement paramétrable et testée par des analyses de robustesse."
+                 )
+        st.write("*POURQUOI LA GARE D'ARRIVEE ?*")
+
+        st.write("Le report vers un taxi se produit à l'arrivée du train. Les données de retard à l'arrivée sont aussi les plus complètes : nombre de trains en retard, retard moyen, tranches > 15 / 30 / 60 min, et répartition des causes. Les retards et leurs causes décrivent ainsi le même événement, ce qui rend le modèle cohérent.")
+
         st.write(
-            "Un retard à l'arrivée peut pousser un voyageur vers un taxi/VTC. Nous explorons cette hypothèse avec un ICP, un indicateur de consommation potentielle, sans données réelles de réservations."
+            "Pour explorer cette hypothèse, nous avons construit un indice de consommation potentielle (**ICP**). Cet indice, créé de toutes pièces pour l’étude, permet de repérer les gares où les retards à l’arrivée représentent la plus belle opportunité d’investissement."
         )
+        
         cols = st.columns(3)
         cols[0].metric("Gares étudiées", int(annual.gare_arrivee.nunique()))
-        cols[1].metric("Années historiques", int(annual.annee.nunique()))
+        cols[1].metric("Nombre d'années pris en compte", int(annual.annee.nunique()))
         cols[2].metric(
-            "Trains prévus",
+            "Nombre de train étudié",
             f"{annual.nb_circulations_prevues.sum():,.0f}".replace(",", " "),
         )
+        
+        st.image("https://taxi-neuville69.fr/images/ai/gare-partdieu.jpg")
+        
         st.write(
-            "**Carte** : localiser le potentiel. **Tendances** : examiner sa régularité. **Classements** : comparer les ICP, les pentes et les extrapolations. **Conclusion** : résumer les résultats et leurs limites."
+                "Les onglets suivants permettent d'analyser **l'ICP** sous différents angles. "
+                                )
+        st.write(
+            "**1. cartographie de l'ICP** : carte centrée sur la France afin de localiser les opportunités d'investissement"
         )
-        st.caption(
-            "ICP absolu : courses simulées par mois observé. ICP relatif : courses simulées / voyageurs prévus. Hypothèse : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
+        st.write(
+            "**2. étude par gare** : zoom sur une gare en ajustant les paramètres de temps, de variables de calcul de l'ICP et de panier moyen"
+                )
+        st.write(
+            "**3. top ICP absolu** : comparaison des ICP absolus, du coefficient de croissance et des extrapolations entre les gares."
+                        )
+        st.write(
+            "**4. top ICP relatif** : comparaison des ICP relatifs, du coefficient de croissance et des extrapolations entre les gares."
+                                )
+        st.write(
+            "**5. conclusion** : résumé les résultats et leurs limites.")
+        
+        st.caption("Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la consommation désigne le recours supplémentaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations.") 
+        st.caption("L'ICP absolu combine : \n- le volume de trains à l'arrivée dans la gare, \n- la durée des retards à l'arrivée (via une courbe de recours au taxi croissante), \n- une ponderation selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, materiel roulant, gestion en gare, etc.).")
+        st.caption("L'ICP relatif ne prend pas en compte le volume de train, et ne défavorise donc pas les petites gares à faible fréquentation")
+        st.caption("Les annulations ne sont pas integrées a l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité.")
+        st.caption("Hypothèses : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
         )
         st.caption(
             f"{int((~scope.eligible).sum())} ligne(s) non exploitable(s) dans ce périmètre. Seuls les groupes gare/année couvrant douze mois valides sont comparés ; les liaisons couvertes peuvent varier."
@@ -411,6 +470,7 @@ def main() -> None:
             for metric, enabled in [("ICP_abs", show_abs), ("ICP_rel", show_rel)]
             if enabled
         ]
+        
         if not selected:
             st.info("Cochez au moins un indicateur pour afficher une carte.")
         else:
@@ -429,7 +489,7 @@ def main() -> None:
             "Coordonnées : [SNCF · Gares de voyageurs](https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs/)."
         )
     with tabs[2]:
-        show_trend(annual)
+        show_trend(annual, scores)
     with tabs[3]:
         st.subheader("Classement · ICP absolu")
         show_ranking(annual, "ICP_abs", "basket_absolute")
