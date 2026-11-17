@@ -13,9 +13,19 @@ python -m streamlit run src/app.py
 ```
 
 Les dépendances sont déclarées dans `pyproject.toml` et `uv.lock`.
-Le seul fichier de données utilisé pour les calculs est
-**`data/regularite_tgv_clean.csv`**. L'application ne lance pas `triDF()` et
-ne réécrit aucun CSV.
+Au chargement, `core.load_data()` appelle `triDF()` pour créer
+**`data/regularite_tgv_clean.csv`** depuis
+`data/regularite-mensuelle-tgv-aqst.csv`, puis `DataLoader.load()` lit le résultat.
+Le CSV exporté exclut déjà 2020 et 2021 et ne conserve que les colonnes utiles aux
+calculs et à l'application : date, service, gare d'arrivée, circulations prévues,
+nombre et retard moyen des trains en retard à l'arrivée, causes disponibles,
+année et `eligible`.
+La gare de départ, les annulations et la durée du trajet restent utilisées
+pendant les contrôles de qualité, mais ne sont pas exportées.
+Les colonnes sont renommées et les dates normalisées.
+Streamlit met cette préparation en cache et la relance
+si le CSV brut change ; les interactions ordinaires ne réécrivent pas le fichier.
+La source brute n'est jamais modifiée.
 
 ## Les six onglets
 
@@ -52,8 +62,12 @@ correspondant, pas avec un pourcentage multiplié par un prix.
   gare d'arrivée. Les ratios sont des rapports de sommes.
 - L'ICP absolu désigne des courses simulées **par mois observé** ; l'ICP relatif
   les rapporte aux voyageurs prévus de la même période.
-- Les observations incohérentes sont signalées et écartées en mémoire, sans
-  correction du fichier. Chaque groupe gare/année doit couvrir douze mois valides.
+- `triDF()` exclut 2020–2021 avant le calcul des références par liaison, corrige les
+  tranches de retard et supprime les lignes aberrantes selon les règles historiques.
+  Les colonnes utilisées uniquement pour le nettoyage sont retirées avant l'export.
+  Les observations restantes conservent `eligible`, mais pas le diagnostic
+  intermédiaire `quality_issues`. Les lignes signalées comme inéligibles sont exclues des
+  calculs, sans être supprimées du CSV nettoyé. Chaque groupe gare/année doit couvrir douze mois valides.
   Cela ne garantit pas une couverture constante de toutes les liaisons.
 - 2020–2021 sont exclus conformément au cadre. 2026 est une année incomplète du
   CSV et n'est utilisée ni comme année historique comparable ni pour entraîner
@@ -84,19 +98,33 @@ survoler les points pour les valeurs. Les cartes absolue et relative ont des
 
 ## Organisation et vérification
 
-- `src/app.py` : les six onglets et les graphiques Streamlit.
-- `src/core.py` : lecture du CSV nettoyé, périmètre et régressions.
-- `src/icp.py` : adaptation du calculateur d'arrivée existant et agrégats annuels.
-- `src/my_package/classDF.py`, `funcDF.py` : calculs et analyses de l'équipe,
-  réutilisés sans modification.
-- `src/main.py`, `triDF.py` : ancien pipeline exploratoire ; son lancement nettoie
-  et exporte des fichiers. Il n'est pas importé par l'interface.
-- `tests/` : cas calculés à la main et interactions de la nouvelle application.
+- `src/app.py` : les six onglets, les textes et les graphiques Streamlit,
+  conservés ; l'interface importe les traitements depuis le module voisin `core`.
+- `src/core.py` : lien avec l'application ; orchestre le chargement et l'analyse,
+  et expose les fonctions utiles de `my_package`.
+- `src/my_package/classDF.py` : `DataError`, `ConfigurationICP`, `DataLoader`,
+  `ICPCalculator` et `TrendAnalyzer`. Le calcul des ICP et la régression linéaire
+  sont définis uniquement dans les méthodes de ces classes.
+  `DataLoader.load()` lit les données déjà préparées, sans les modifier.
+  `ConfigurationICP` regroupe les poids des causes, le seuil de circulations,
+  le nombre de voyageurs (550 par défaut) et le taux de recours au taxi.
+- `src/my_package/funcDF.py` : filtrage, sélection des années complètes,
+  classements, coordonnées, journalisation et préparation des valeurs affichées.
+  Ces fonctions appellent les classes de calcul sans réimplémenter la régression.
+  La synthèse d'une gare et sa courbe réutilisent le même ajustement.
+- `src/my_package/triDF.py` : nettoyage, renommage des colonnes, validation de
+  qualité et export du fichier prêt à charger. Le paramètre `output_path`
+  permet de choisir la destination sans toucher à la source.
+- `tests/` : vérification du nettoyage, du calcul des tendances et des erreurs
+  remontées à l'application.
+
+Importer `core.py` ne lance aucun traitement. L'ancien traitement console et les
+analyses non utilisées par l'application (fiabilité, corrélations entre gares,
+persistance et quadrants) ont été retirés. Le prix de la course intervient
+uniquement dans la préparation des montants affichés, pas dans le calcul des ICP.
 
 ```bash
-python -m pytest tests/test_core.py tests/test_icp.py tests/test_app.py tests/test_fiabilite_gare.py tests/test_graph_analyzer.py
+python -m pytest tests/
 ```
 
-`tests/test_fiabilite.py` est encore un ancien script exploratoire avec affichage
-graphique, pas un test unitaire ; la commande ci-dessus ne l'exécute pas.
 Les journaux de l'application sont dans `logs/debug.log` et `logs/errors.log`.
