@@ -41,6 +41,7 @@ POIDS_IMPREVISIBILITE = {
 }
 MIN_MINUTES_RETARD = 1000.0
 
+
 @st.cache_data(show_spinner=False)
 def load_data(modified_at: int) -> pd.DataFrame:
     """Mettre en cache la préparation jusqu'à la modification du CSV brut."""
@@ -244,7 +245,9 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
                 use_container_width=True,
             )
         else:
-            st.info("Pas assez de minutes de retard pour calculer la volatilité de cette gare.")
+            st.info(
+                "Pas assez de minutes de retard pour calculer la volatilité de cette gare."
+            )
     with col_text:
         st.markdown("**Volatilité des causes de retard**")
         st.write(
@@ -479,20 +482,25 @@ def main() -> None:
     )
     scores = scores.loc[scores.index.isin(annual.gare_arrivee.unique())]
     with tabs[0]:
-        st.subheader("Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?")
-        
+        st.subheader(
+            "Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?"
+        )
+
         st.write("**Notre postulat**")
-        
-        st.write("Un voyageur dont le train arrive en retard a plus de risques de rater sa correspondance (TER, bus, tram, métro) ou de se retrouver sans transport en commun adapté. Il se reporte alors sur un taxi ou un VTC. Plus le retard est long, plus la probabilité de prendre un taxi augmente. Ce postulat n'est pas verifiable avec nos donnees (pas de données de courses ni de réservations) : nous le traitons comme une hypothèse, entièrement paramétrable et testée par des analyses de robustesse."
-                 )
+
+        st.write(
+            "Un voyageur dont le train arrive en retard a plus de risques de rater sa correspondance (TER, bus, tram, métro) ou de se retrouver sans transport en commun adapté. Il se reporte alors sur un taxi ou un VTC. Plus le retard est long, plus la probabilité de prendre un taxi augmente. Ce postulat n'est pas verifiable avec nos donnees (pas de données de courses ni de réservations) : nous le traitons comme une hypothèse, entièrement paramétrable et testée par des analyses de robustesse."
+        )
         st.write("*POURQUOI LA GARE D'ARRIVEE ?*")
 
-        st.write("Le report vers un taxi se produit à l'arrivée du train. Les données de retard à l'arrivée sont aussi les plus complètes : nombre de trains en retard, retard moyen, tranches > 15 / 30 / 60 min, et répartition des causes. Les retards et leurs causes décrivent ainsi le même événement, ce qui rend le modèle cohérent.")
+        st.write(
+            "Le report vers un taxi se produit à l'arrivée du train. Les données de retard à l'arrivée sont aussi les plus complètes : nombre de trains en retard, retard moyen, tranches > 15 / 30 / 60 min, et répartition des causes. Les retards et leurs causes décrivent ainsi le même événement, ce qui rend le modèle cohérent."
+        )
 
         st.write(
             "Pour explorer cette hypothèse, nous avons construit un indice de consommation potentielle (**ICP**). Cet indice, créé de toutes pièces pour l’étude, permet de repérer les gares où les retards à l’arrivée représentent la plus belle opportunité d’investissement."
         )
-        
+
         cols = st.columns(3)
         cols[0].metric("Gares étudiées", int(annual.gare_arrivee.nunique()))
         cols[1].metric("Nombre d'années pris en compte", int(annual.annee.nunique()))
@@ -500,32 +508,40 @@ def main() -> None:
             "Nombre de train étudié",
             f"{annual.nb_circulations_prevues.sum():,.0f}".replace(",", " "),
         )
-        
+
         st.image("https://taxi-neuville69.fr/images/ai/gare-partdieu.jpg")
-        
+
         st.write(
-                "Les onglets suivants permettent d'analyser **l'ICP** sous différents angles. "
-                                )
+            "Les onglets suivants permettent d'analyser **l'ICP** sous différents angles. "
+        )
         st.write(
             "**1. cartographie de l'ICP** : carte centrée sur la France afin de localiser les opportunités d'investissement"
         )
         st.write(
             "**2. étude par gare** : zoom sur une gare en ajustant les paramètres de temps, de variables de calcul de l'ICP et de panier moyen"
-                )
+        )
         st.write(
             "**3. top ICP absolu** : comparaison des ICP absolus, du coefficient de croissance et des extrapolations entre les gares."
-                        )
+        )
         st.write(
             "**4. top ICP relatif** : comparaison des ICP relatifs, du coefficient de croissance et des extrapolations entre les gares."
-                                )
-        st.write(
-            "**5. conclusion** : résumé les résultats et leurs limites.")
-        
-        st.caption("Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la consommation désigne le recours supplémentaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations.") 
-        st.caption("L'ICP absolu combine : \n- le volume de trains à l'arrivée dans la gare, \n- la durée des retards à l'arrivée (via une courbe de recours au taxi croissante), \n- une ponderation selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, materiel roulant, gestion en gare, etc.).")
-        st.caption("L'ICP relatif ne prend pas en compte le volume de train, et ne défavorise donc pas les petites gares à faible fréquentation")
-        st.caption("Les annulations ne sont pas integrées a l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité.")
-        st.caption("Hypothèses : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
+        )
+        st.write("**5. conclusion** : résumé les résultats et leurs limites.")
+
+        st.caption(
+            "Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la consommation désigne le recours supplémentaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations."
+        )
+        st.caption(
+            "L'ICP absolu combine : \n- le volume de trains à l'arrivée dans la gare, \n- la durée des retards à l'arrivée (via une courbe de recours au taxi croissante), \n- une ponderation selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, materiel roulant, gestion en gare, etc.)."
+        )
+        st.caption(
+            "L'ICP relatif ne prend pas en compte le volume de train, et ne défavorise donc pas les petites gares à faible fréquentation"
+        )
+        st.caption(
+            "Les annulations ne sont pas integrées a l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité."
+        )
+        st.caption(
+            "Hypothèses : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
         )
         st.caption(
             f"{int((~scope.eligible).sum())} ligne(s) non exploitable(s) dans ce périmètre. Seuls les groupes gare/année couvrant douze mois valides sont comparés ; les liaisons couvertes peuvent varier."
@@ -542,7 +558,7 @@ def main() -> None:
             for metric, enabled in [("ICP_abs", show_abs), ("ICP_rel", show_rel)]
             if enabled
         ]
-        
+
         if not selected:
             st.info("Cochez au moins un indicateur pour afficher une carte.")
         else:
@@ -576,6 +592,9 @@ def main() -> None:
 
         data_num_cols = [c for c in data.select_dtypes("number").columns]
 
+        # for i, col in enumerate(data_num_cols):
+        #     print(i, col)
+
         # Boxplots des retards à l'arrivée
         st.write(
             "Boxplots des retards à l'arrivée - Distribution typique de retards avec peu d'outliers avec des valeurs extrêmes"
@@ -606,7 +625,7 @@ def main() -> None:
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # for i, col in enumerate(data_num_cols):
-        #    print(i, col)
+        #     print(i, col)
 
 
 if __name__ == "__main__":
