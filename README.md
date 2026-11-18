@@ -13,6 +13,11 @@ python -m streamlit run src/app.py
 ```
 
 Les dépendances sont déclarées dans `pyproject.toml` et `uv.lock`.
+Streamlit 1.66.0 au minimum est requis : la version 1.65.0 peut afficher les
+infobulles des cartes hors de l'écran
+([correctif officiel](https://github.com/streamlit/streamlit/pull/17313)).
+Après une mise à jour des dépendances, redémarrer le serveur Streamlit.
+
 Au chargement, `core.load_data()` appelle `triDF()` pour créer
 **`data/regularite_tgv_clean.csv`** depuis
 `data/regularite-mensuelle-tgv-aqst.csv`, puis `DataLoader.load()` lit le résultat.

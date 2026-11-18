@@ -29,6 +29,7 @@ from core import (
 
 LOGGER = logging.getLogger("railinsight")
 BASKET_KEYS = ("basket_trend", "basket_absolute", "basket_relative")
+MAP_RADIUS_PIXELS = 55
 
 # 0 = cause prévisible et améliorable, 1 = cause imprévisible
 POIDS_IMPREVISIBILITE = {
@@ -111,8 +112,8 @@ def show_map(scores: pd.DataFrame, metric: str) -> None:
             id=f"heatmap_{metric}",
             get_position="[longitude, latitude]",
             get_weight="poids",
-            aggregation="MEAN",
-            radius_pixels=55,
+            aggregation=pdk.types.String("MEAN"),
+            radius_pixels=MAP_RADIUS_PIXELS,
             intensity=2,
             threshold=0.01,
             opacity=0.9,
@@ -124,6 +125,19 @@ def show_map(scores: pd.DataFrame, metric: str) -> None:
                 [211, 16, 42],
                 [145, 0, 45],
             ],
+        ),
+        # La chaleur n'expose pas les gares au survol : couvrir aussi son halo.
+        # Garder les marqueurs au-dessus pour identifier leur gare précisément.
+        pdk.Layer(
+            "ScatterplotLayer",
+            hover_records,
+            id=f"hover_{metric}",
+            get_position="[longitude, latitude]",
+            radius_units=pdk.types.String("pixels"),
+            get_radius=MAP_RADIUS_PIXELS,
+            get_fill_color=[30, 64, 100, 1],
+            stroked=False,
+            pickable=True,
         ),
         pdk.Layer(
             "ScatterplotLayer",
