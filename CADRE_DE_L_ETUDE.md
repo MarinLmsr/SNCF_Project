@@ -153,9 +153,7 @@ $$w_{\text{cause}} = \sum_{c} (p_c \times w_c)$$
 def taux_conso(retard_min: float) -> float:
     # 0 min : 0 % | 1 à 15 min : 1 % | 30 min : 10 % | 60 min : 25 %
     # plafonné au-delà
-    return float(np.interp(retard_min,
-                           [0, 1, 15, 30, 60],
-                           [0.0, 0.01, 0.01, 0.10, 0.25]))
+    return float(np.interp(retard_min, [0, 1, 15, 30, 60], [0.0, 0.01, 0.01, 0.10, 0.25]))
 ```
 
 ### 3. Par ligne ($\text{liaison} \times \text{mois}$), rattachée à sa gare d'arrivée

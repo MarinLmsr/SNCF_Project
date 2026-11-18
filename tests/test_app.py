@@ -12,25 +12,36 @@ from streamlit.testing.v1 import AppTest
 from src.core import load_data
 
 
-@pytest.mark.parametrize("metric, pente, expected_format", [
-    ("ICP_abs", "β₁ (ICP/an)", "%,.0f"),
-    ("ICP_rel", "β₁ (pt/an)", "%.5f"),
-])
+@pytest.mark.parametrize(
+    "metric, pente, expected_format",
+    [
+        ("ICP_abs", "β₁ (ICP/an)", "%,.0f"),
+        ("ICP_rel", "β₁ (pt/an)", "%.5f"),
+    ],
+)
 def test_classement_formats_et_largeurs(monkeypatch, metric, pente, expected_format):
     source = Path(__file__).resolve().parents[1] / "src"
     monkeypatch.syspath_prepend(str(source))
     module = importlib.import_module("app")
-    table = pd.DataFrame({
-        "rank": [1], "gare_arrivee": ["LYON"], metric: [70181.83],
-        "beta1": [2426.95059], "r2": [0.8], "prediction_2026": [1.0],
-        "prediction_2027": [2.0], "n_years": [3],
-        "CA potentiel / mois (€)": [10000.0],
-    })
-    with patch.object(module, "basket_input", return_value=25.0), patch.object(
-        module, "prepare_ranking_display", return_value=table
-    ), patch.object(module.st, "radio", return_value="ICP"), patch.object(
-        module.st, "dataframe"
-    ) as dataframe:
+    table = pd.DataFrame(
+        {
+            "rank": [1],
+            "gare_arrivee": ["LYON"],
+            metric: [70181.83],
+            "beta1": [2426.95059],
+            "r2": [0.8],
+            "prediction_2026": [1.0],
+            "prediction_2027": [2.0],
+            "n_years": [3],
+            "CA potentiel / mois (€)": [10000.0],
+        }
+    )
+    with (
+        patch.object(module, "basket_input", return_value=25.0),
+        patch.object(module, "prepare_ranking_display", return_value=table),
+        patch.object(module.st, "radio", return_value="ICP"),
+        patch.object(module.st, "dataframe") as dataframe,
+    ):
         module.show_ranking(pd.DataFrame(), metric, "basket")
     config = dataframe.call_args.kwargs["column_config"]
     assert config[pente]["type_config"]["format"] == expected_format
@@ -40,11 +51,14 @@ def test_classement_formats_et_largeurs(monkeypatch, metric, pente, expected_for
     assert config["Gare d'arrivée"]["pinned"] is True
 
 
-@pytest.mark.parametrize("pvalue, expected, interpretation", [
-    (0.02346, "0.0235", "à la hausse, significative"),
-    (0.173, "0.173", "n'est pas statistiquement significative"),
-    (float("nan"), "—", "ne peut pas être évaluée"),
-])
+@pytest.mark.parametrize(
+    "pvalue, expected, interpretation",
+    [
+        (0.02346, "0.0235", "à la hausse, significative"),
+        (0.173, "0.173", "n'est pas statistiquement significative"),
+        (float("nan"), "—", "ne peut pas être évaluée"),
+    ],
+)
 def test_tendance_affiche_pvalue_regression(monkeypatch, pvalue, expected, interpretation):
     source = Path(__file__).resolve().parents[1] / "src"
     monkeypatch.syspath_prepend(str(source))
@@ -57,14 +71,22 @@ def test_tendance_affiche_pvalue_regression(monkeypatch, pvalue, expected, inter
     gauge_columns = [MagicMock() for _ in range(2)]
     trend_columns = [MagicMock() for _ in range(5)]
     interface.columns.side_effect = [first_columns, gauge_columns, trend_columns]
-    summary = pd.Series({
-        "ICP_abs": 10.0, "ICP_rel": 0.1, "spearman": 0.5,
-        "regression_pvalue": pvalue, "beta1": 1.0, "r2": 0.5,
-        "cv": 0.2, "n_years": 3,
-    })
+    summary = pd.Series(
+        {
+            "ICP_abs": 10.0,
+            "ICP_rel": 0.1,
+            "spearman": 0.5,
+            "regression_pvalue": pvalue,
+            "beta1": 1.0,
+            "r2": 0.5,
+            "cv": 0.2,
+            "n_years": 3,
+        }
+    )
     annual = pd.DataFrame({"gare_arrivee": ["LYON"]})
-    with patch.object(module, "st", interface), patch.object(
-        module, "trend_data", return_value=(summary, pd.DataFrame())
+    with (
+        patch.object(module, "st", interface),
+        patch.object(module, "trend_data", return_value=(summary, pd.DataFrame())),
     ):
         module.show_trend(annual, pd.Series(dtype=float))
     trend_columns[1].metric.assert_called_once_with("p-value · pente", expected)
@@ -75,20 +97,39 @@ def test_conclusion_utilise_icp_relatif_et_precise_profil_candidate(monkeypatch)
     source = Path(__file__).resolve().parents[1] / "src"
     monkeypatch.syspath_prepend(str(source))
     module = importlib.import_module("app")
-    absolute = pd.DataFrame([
-        {"gare_arrivee": "MONTPELLIER", "ICP_abs": 100.0, "ICP_rel": 0.1,
-         "n_years": 4, "beta1": 1.0, "r2": 0.01, "regression_pvalue": 0.173, "cv": 0.1},
-        {"gare_arrivee": "LYON", "ICP_abs": 50.0, "ICP_rel": 0.05,
-         "n_years": 4, "beta1": 2.0, "r2": 0.8, "regression_pvalue": 0.01, "cv": 0.4},
-    ])
+    absolute = pd.DataFrame(
+        [
+            {
+                "gare_arrivee": "MONTPELLIER",
+                "ICP_abs": 100.0,
+                "ICP_rel": 0.1,
+                "n_years": 4,
+                "beta1": 1.0,
+                "r2": 0.01,
+                "regression_pvalue": 0.173,
+                "cv": 0.1,
+            },
+            {
+                "gare_arrivee": "LYON",
+                "ICP_abs": 50.0,
+                "ICP_rel": 0.05,
+                "n_years": 4,
+                "beta1": 2.0,
+                "r2": 0.8,
+                "regression_pvalue": 0.01,
+                "cv": 0.4,
+            },
+        ]
+    )
     relative = absolute.copy()
     relative.loc[0, "beta1"] = -0.01
     annual = pd.DataFrame({"annee": [2018, 2019, 2022, 2023], "gare_arrivee": ["MONTPELLIER"] * 4})
     scores = pd.Series({"MONTPELLIER": 3.0, "LYON": 3.7, "AUTRE": 2.2})
     interface = MagicMock()
     interface.session_state = {"taxi_percentage": 25, "basket_trend": 25.0}
-    with patch.object(module, "st", interface), patch.object(
-        module, "ranking_table", side_effect=[absolute, relative]
+    with (
+        patch.object(module, "st", interface),
+        patch.object(module, "ranking_table", side_effect=[absolute, relative]),
     ):
         module.show_conclusion(annual, scores)
     textes = " ".join(str(call) for call in interface.write.call_args_list)
@@ -117,8 +158,12 @@ def test_poids_causes_modifient_icp(monkeypatch, prepared_data):
         app = AppTest.from_file(str(source / "app.py"), default_timeout=60).run()
         assert not app.exception
         causes = [
-            "externes", "infrastructure", "gestion_trafic", "materiel_roulant",
-            "gestion_gare", "prise_en_compte_voyageurs",
+            "externes",
+            "infrastructure",
+            "gestion_trafic",
+            "materiel_roulant",
+            "gestion_gare",
+            "prise_en_compte_voyageurs",
         ]
         assert all(app.slider(key=f"poids_{cause}").value == 1.0 for cause in causes)
         avant = app.dataframe[0].value.set_index("Gare d'arrivée")["ICP absolu / mois"]
@@ -141,12 +186,8 @@ def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch, prepared_
         assert len(app.dataframe) == 2
         assert len(app.tabs[2].get("plotly_chart")) == 1
         assert "service" not in {widget.key for widget in app.selectbox}
-        _, expected_annual = core.analyze_data(
-            data, 2018, 2025, service="National", minimum=1000
-        )
-        expected = core.prepare_ranking_display(
-            expected_annual, "ICP_abs", "ICP", 25.0
-        )
+        _, expected_annual = core.analyze_data(data, 2018, 2025, service="National", minimum=1000)
+        expected = core.prepare_ranking_display(expected_annual, "ICP_abs", "ICP", 25.0)
         pd.testing.assert_series_equal(
             app.dataframe[0].value["ICP absolu / mois"],
             expected["ICP_abs"],
@@ -169,17 +210,17 @@ def test_survol_coordonnees_partagees_affiche_montparnasse(monkeypatch, metric):
     source = Path(__file__).resolve().parents[1] / "src"
     monkeypatch.syspath_prepend(str(source))
     module = importlib.import_module("app")
-    scores = pd.DataFrame({
-        "gare_arrivee": ["PARIS VAUGIRARD", "PARIS MONTPARNASSE"],
-        "ICP_abs": [1504.6, 53778.6],
-        "ICP_rel": [0.021, 0.016],
-    })
+    scores = pd.DataFrame(
+        {
+            "gare_arrivee": ["PARIS VAUGIRARD", "PARIS MONTPARNASSE"],
+            "ICP_abs": [1504.6, 53778.6],
+            "ICP_rel": [0.021, 0.016],
+        }
+    )
     with patch.object(module.st, "pydeck_chart") as draw:
         module.show_map(scores, metric)
     deck = draw.call_args.args[0]
-    assert {row["gare_arrivee"] for row in deck.layers[0].data} == set(
-        scores["gare_arrivee"]
-    )
+    assert {row["gare_arrivee"] for row in deck.layers[0].data} == set(scores["gare_arrivee"])
     for layer in deck.layers[1:]:
         assert len(layer.data) == 1
         hovered = layer.data[0]
@@ -216,7 +257,6 @@ def test_cartes_transmettent_les_informations_de_survol(monkeypatch, prepared_da
         for layer in (halo, stations):
             assert layer["pickable"] is True
             montparnasse = next(
-                row for row in layer["data"]
-                if row["gare_arrivee"] == "PARIS MONTPARNASSE"
+                row for row in layer["data"] if row["gare_arrivee"] == "PARIS MONTPARNASSE"
             )
             assert montparnasse["valeur"]

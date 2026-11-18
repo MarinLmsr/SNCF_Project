@@ -106,9 +106,9 @@ def show_map(scores: pd.DataFrame, metric: str) -> None:
     points["valeur"] = points[metric].map(lambda x: display(x, metric))
     points["poids"] = points[metric]
     # Limiter les données envoyées à la carte aux champs utiles au survol.
-    records = points[
-        ["gare_arrivee", "latitude", "longitude", "poids", "valeur"]
-    ].to_dict("records")
+    records = points[["gare_arrivee", "latitude", "longitude", "poids", "valeur"]].to_dict(
+        "records"
+    )
     # À coordonnées identiques, privilégier la gare localisée précisément au survol.
     hover_points = points.sort_values("indicative", kind="stable").drop_duplicates(
         ["latitude", "longitude"]
@@ -202,18 +202,10 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
     summary, chart = trend_data(annual, station, metric)
     basket = float(st.session_state["basket_trend"])
     columns = st.columns(3)
-    columns[0].metric(
-        "ICP absolu · moyenne mensuelle", display(summary.ICP_abs, "ICP_abs")
-    )
+    columns[0].metric("ICP absolu · moyenne mensuelle", display(summary.ICP_abs, "ICP_abs"))
     columns[1].metric("ICP relatif · période", display(summary.ICP_rel, "ICP_rel"))
-    columns[2].metric(
-        "CA potentiel / mois", f"{summary.ICP_abs * basket:,.0f} €".replace(",", " ")
-    )
-    ylabel = (
-        "ICP absolu · courses / mois observé"
-        if metric == "ICP_abs"
-        else "ICP relatif (%)"
-    )
+    columns[2].metric("CA potentiel / mois", f"{summary.ICP_abs * basket:,.0f} €".replace(",", " "))
+    ylabel = "ICP absolu · courses / mois observé" if metric == "ICP_abs" else "ICP relatif (%)"
     encoding = {
         "x": {
             "field": "annee",
@@ -270,11 +262,8 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
                 use_container_width=True,
             )
         else:
-            st.info(
-                "Pas assez de minutes de retard pour calculer la volatilité de cette gare."
-            )
+            st.info("Pas assez de minutes de retard pour calculer la volatilité de cette gare.")
     with col_text:
-        
         st.write(
             "Proche de 0 : les retards viennent de causes connues et améliorables "
             "(infrastructure, matériel, gestion en gare). Proche de 10 : ils viennent "
@@ -318,19 +307,17 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
         )
     st.caption(
         "La p-value mesure la probabilité d'observer une pente au moins aussi forte "
-    "si l'ICP n'avait en réalité aucune tendance. Elle est calculée gare par gare, "
-    "sans correction pour les nombreuses comparaisons, et sur seulement quelques "
-    "années : une p-value élevée signifie que les données ne permettent pas de "
-    "conclure, pas qu'il n'y a pas de tendance. R² n'est pas un coefficient de corrélation. Une tendance ou un Spearman élevé ne prouve ni une demande réelle ni une rentabilité."
+        "si l'ICP n'avait en réalité aucune tendance. Elle est calculée gare par gare, "
+        "sans correction pour les nombreuses comparaisons, et sur seulement quelques "
+        "années : une p-value élevée signifie que les données ne permettent pas de "
+        "conclure, pas qu'il n'y a pas de tendance. R² n'est pas un coefficient de corrélation. Une tendance ou un Spearman élevé ne prouve ni une demande réelle ni une rentabilité."
     )
 
 
 def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
     """Présenter les rangs, la pente, R², les deux extrapolations et un montant."""
     basket = basket_input(basket_key)
-    sort_by = st.radio(
-        "Trier par", ["ICP", "β₁", "R²"], horizontal=True, key=f"sort_{metric}"
-    )
+    sort_by = st.radio("Trier par", ["ICP", "β₁", "R²"], horizontal=True, key=f"sort_{metric}")
     table = prepare_ranking_display(annual, metric, sort_by, basket)
     table = table.rename(
         columns={
@@ -339,12 +326,8 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
             metric: "ICP relatif (%)" if metric == "ICP_rel" else "ICP absolu / mois",
             "beta1": "β₁ (pt/an)" if metric == "ICP_rel" else "β₁ (ICP/an)",
             "r2": "R²",
-            "prediction_2026": (
-                "Prévision 2026 (%)" if metric == "ICP_rel" else "Prévision 2026"
-            ),
-            "prediction_2027": (
-                "Prévision 2027 (%)" if metric == "ICP_rel" else "Prévision 2027"
-            ),
+            "prediction_2026": ("Prévision 2026 (%)" if metric == "ICP_rel" else "Prévision 2026"),
+            "prediction_2027": ("Prévision 2027 (%)" if metric == "ICP_rel" else "Prévision 2027"),
             "n_years": "Années complètes",
         }
     )
@@ -362,17 +345,22 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
             "Classement": st.column_config.NumberColumn(width=75),
             "Gare d'arrivée": st.column_config.TextColumn(width=170, pinned=True),
             "Années complètes": st.column_config.NumberColumn(width=140),
-            **{column: st.column_config.NumberColumn(
-                width=145 if column.startswith("Prévision") else 140,
-                format=(
-                    "%,.0f" if column == "β₁ (ICP/an)"
-                    else "%.5f" if column == "β₁ (pt/an)"
-                    else "%.3f" if column == "R²" or "%" in column
-                    else "%,.2f"
-                ),
-            )
-            for column in table.select_dtypes("number")
-            if column not in ["Classement", "Années complètes"]},
+            **{
+                column: st.column_config.NumberColumn(
+                    width=145 if column.startswith("Prévision") else 140,
+                    format=(
+                        "%,.0f"
+                        if column == "β₁ (ICP/an)"
+                        else "%.5f"
+                        if column == "β₁ (pt/an)"
+                        else "%.3f"
+                        if column == "R²" or "%" in column
+                        else "%,.2f"
+                    ),
+                )
+                for column in table.select_dtypes("number")
+                if column not in ["Classement", "Années complètes"]
+            },
         },
     )
     st.caption(
@@ -384,6 +372,7 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
     st.caption(
         "Le CA potentiel utilise l'ICP absolu correspondant × prix moyen, même dans le classement relatif. C'est un montant mensuel simulé, pas un bénéfice."
     )
+
 
 def fr(text: str) -> str:
     """Mettre un nombre au format français (virgule décimale)."""
@@ -409,7 +398,11 @@ def station_profile(row: pd.Series, scores: pd.Series) -> str:
         regularity = f"plutôt régulière (variabilité annuelle de {row.cv:.0%})"
     else:
         regularity = f"irrégulière (variabilité annuelle de {row.cv:.0%})"
-    if row.gare_arrivee in scores.index and pd.notna(scores[row.gare_arrivee]) and pd.notna(scores.median()):
+    if (
+        row.gare_arrivee in scores.index
+        and pd.notna(scores[row.gare_arrivee])
+        and pd.notna(scores.median())
+    ):
         vol = scores[row.gare_arrivee]
         mediane = scores.median()
         comparison = "autant" if vol == mediane else ("moins" if vol < mediane else "plus")
@@ -420,10 +413,10 @@ def station_profile(row: pd.Series, scores: pd.Series) -> str:
     else:
         volatility = "une volatilité des causes non calculable"
     return (
-        f"**{row.gare_arrivee.title()}** : {trend}, une opportunité {regularity}, "
-        f"et {volatility}."
+        f"**{row.gare_arrivee.title()}** : {trend}, une opportunité {regularity}, et {volatility}."
     )
-    
+
+
 def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
     """Rédiger la conclusion à partir du périmètre et des hypothèses affichés."""
     absolute = ranking_table(annual, "ICP_abs")
@@ -463,9 +456,7 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
         f"d'affaires potentiel d'environ **{revenue} par mois** pour l'ensemble de "
         f"l'offre taxi/VTC de la gare."
     )
-    paris = int(
-        absolute.head(10).gare_arrivee.str.upper().str.startswith("PARIS").sum()
-    )
+    paris = int(absolute.head(10).gare_arrivee.str.upper().str.startswith("PARIS").sum())
     if paris >= 2:
         st.write(
             f"Ce classement mesure surtout la taille du trafic : **{paris} des dix "
@@ -512,9 +503,7 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
     candidates = absolute[absolute.gare_arrivee.isin(both)]
     candidates = candidates[candidates.cv.le(CV_MAX)]
     if not scores.empty:
-        candidates = candidates[
-            candidates.gare_arrivee.map(scores).le(scores.median())
-        ]
+        candidates = candidates[candidates.gare_arrivee.map(scores).le(scores.median())]
     if candidates.empty:
         st.write(
             "Aucune gare ne cumule, dans les dix premières des deux classements, une "
@@ -548,9 +537,7 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
     )
 
 
-def boxhistplot_bundle_figure(
-    data: pd.DataFrame, datacols: list, ncols: int
-) -> go.Figure:
+def boxhistplot_bundle_figure(data: pd.DataFrame, datacols: list, ncols: int) -> go.Figure:
 
     datacols = [col for col in datacols for _ in range(2)]
 
@@ -559,12 +546,9 @@ def boxhistplot_bundle_figure(
     fig = make_subplots(rows=nrows, cols=ncols, subplot_titles=list(datacols))
 
     for i, col in enumerate(datacols):
-
         if i % 2 == 0:
             fig.add_trace(
-                go.Box(
-                    y=data[col], name=col, boxmean=True
-                ),  # boxmean : affiche aussi la moyenne
+                go.Box(y=data[col], name=col, boxmean=True),  # boxmean : affiche aussi la moyenne
                 row=i // ncols + 1,
                 col=i % ncols + 1,
             )
@@ -587,13 +571,9 @@ def boxhistplot_bundle(data: pd.DataFrame, datacols: list, ncols: int) -> None:
 
 def main() -> None:
     """Relier les six onglets à une seule source et à des hypothèses communes."""
-    st.set_page_config(
-        page_title="RailInsight · Taxis en gare", page_icon="🚉", layout="wide"
-    )
+    st.set_page_config(page_title="RailInsight · Taxis en gare", page_icon="🚉", layout="wide")
     configure_logging()
-    st.title(
-        "RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire"
-    )
+    st.title("RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire")
     st.caption(
         "Étude du potentiel de recours aux taxis et VTC dans les gares d’arrivée, à partir du volume des trains, de la durée des retards et de leurs causes."
     )
@@ -690,14 +670,10 @@ def main() -> None:
                     "Aucune gare ne dispose d'une année complète et du volume demandé. Élargissez la période ou réduisez le minimum de trains."
                 )
         return
-    scores = score_volatilite(
-        scope.loc[scope.eligible], POIDS_IMPREVISIBILITE, MIN_MINUTES_RETARD
-    )
+    scores = score_volatilite(scope.loc[scope.eligible], POIDS_IMPREVISIBILITE, MIN_MINUTES_RETARD)
     scores = scores.loc[scores.index.isin(annual.gare_arrivee.unique())]
     with tabs[0]:
-        st.subheader(
-            "Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?"
-        )
+        st.subheader("Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?")
 
         st.write("*NOTRE POSTULAT*")
 
@@ -715,9 +691,12 @@ def main() -> None:
             "Pour explorer cette hypothèse, nous avons construit un indice de consommation potentielle (**ICP**). Cet indice, créé de toutes pièces pour l’étude, permet de repérer les gares où les retards à l’arrivée représentent la plus belle opportunité d’investissement."
         )
         st.write("*REGRESSION LINEAIRE*")
-        st.write("Le calcul de cet indice a été choisi annuellement afin d'éviter les effets de saisonnalité. \nAinsi, plus une gare connaît de retards sur une année, plus grand sera son ICP en général."
-                )
-        st.write("Pour évaluer le potentiel d'investissement de chaque gare, nous réalisons une régression linéaire de son ICP au fil des années. Elle permet de répondre à trois questions :\n- L'ICP augmente-t-il avec le temps ?\n- L'opportunité est-elle régulière d'une année à l'autre ?\n- Peut-on prévoir les ICP des prochaines années ?")
+        st.write(
+            "Le calcul de cet indice a été choisi annuellement afin d'éviter les effets de saisonnalité. \nAinsi, plus une gare connaît de retards sur une année, plus grand sera son ICP en général."
+        )
+        st.write(
+            "Pour évaluer le potentiel d'investissement de chaque gare, nous réalisons une régression linéaire de son ICP au fil des années. Elle permet de répondre à trois questions :\n- L'ICP augmente-t-il avec le temps ?\n- L'opportunité est-elle régulière d'une année à l'autre ?\n- Peut-on prévoir les ICP des prochaines années ?"
+        )
 
         cols = st.columns(3)
         cols[0].metric("Gares étudiées", int(annual.gare_arrivee.nunique()))
@@ -729,9 +708,7 @@ def main() -> None:
 
         st.image(str(RAW_DATA_PATH.parent.parent / "images" / "Taxis_at_EDDT.jpg"))
         st.caption("source : Matti Blume/https://commons.wikimedia.org/wiki/File:Taxis_at_EDDT.jpg")
-        st.write(
-            "Les onglets suivants permettent d'analyser **l'ICP** sous différents angles. "
-        )
+        st.write("Les onglets suivants permettent d'analyser **l'ICP** sous différents angles. ")
         st.write(
             "**1. cartographie de l'ICP** : carte centrée sur la France afin de localiser les opportunités d'investissement"
         )
@@ -744,10 +721,12 @@ def main() -> None:
         st.write(
             "**4. top ICP relatif** : comparaison des ICP relatifs, du coefficient de croissance et des extrapolations entre les gares."
         )
-        st.write("**5. conclusion** : Synthèse des classements, de leurs tendances et des limites de l'étude.")
+        st.write(
+            "**5. conclusion** : Synthèse des classements, de leurs tendances et des limites de l'étude."
+        )
 
         st.write("**6. annexes** : Boxplots et histogrammes des données après nettoyage. ")
-        
+
         st.write("Notes à l'intention des investisseurs pointilleux : ")
         st.caption(
             "Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la consommation désigne le recours supplémentaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations."
@@ -771,13 +750,9 @@ def main() -> None:
         st.subheader(f"Carte de chaleur · {start}–{end}")
         cols = st.columns(2)
         show_abs = cols[0].checkbox("Afficher l'ICP absolu", value=True, key="map_abs")
-        show_rel = cols[1].checkbox(
-            "Afficher l'ICP relatif", value=False, key="map_rel"
-        )
+        show_rel = cols[1].checkbox("Afficher l'ICP relatif", value=False, key="map_rel")
         selected = [
-            metric
-            for metric, enabled in [("ICP_abs", show_abs), ("ICP_rel", show_rel)]
-            if enabled
+            metric for metric, enabled in [("ICP_abs", show_abs), ("ICP_rel", show_rel)] if enabled
         ]
 
         if not selected:
