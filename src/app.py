@@ -733,9 +733,9 @@ def main() -> None:
         st.write(
             "**4. top ICP relatif** : comparaison des ICP relatifs, du coefficient de croissance et des extrapolations entre les gares."
         )
-        st.write("**5. conclusion** : résumé des résultats et leurs limites.")
+        st.write("**5. conclusion** : Synthèse des classements, de leurs tendances et des limites de l'étude.")
 
-        st.write("**6. annexes** : statistiques après le nettoyage des données ")
+        st.write("**6. annexes** : Boxplots et histogrammes des données après nettoyage. ")
         
         st.write("Notes à l'intention des investisseurs pointilleux : ")
         st.caption(
