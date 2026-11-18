@@ -119,14 +119,16 @@ class ICPCalculator:
     def __init__(self, config: ConfigurationICP):
         self.config = config
 
-    # Calcul le taux de recours selon le retard en minutes : @staticmethod car pas d'utilisation de self
+    # Calcul le taux de recours selon le retard en minutes : @staticmethod car pas d'utilisation 
+    # de self
     @staticmethod
     def taux_conso(retard_min: float) -> float:
         minutes = [0, 1, 15, 30, 60]
         taux = [0.0, 0.01, 0.01, 0.10, 0.25]
         return float(np.interp(retard_min, minutes, taux))
 
-    # Calcul pour chaque ligne du DataFrame de la consommation potentielle - de Taxi/VTC - en se basant sur les hypothèses du modèle
+    # Calcul pour chaque ligne du DataFrame de la consommation potentielle - de Taxi/VTC - 
+    # en se basant sur les hypothèses du modèle
     def calculer_ligne(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculer les courses potentielles par liaison et mois, hors annulations"""
 
@@ -202,7 +204,8 @@ class TrendAnalyzer:
 
     @staticmethod
     def ajuster_tendance(years: np.ndarray, values: np.ndarray, metric: str) -> dict[str, float]:
-        """Régression linéaire de l'ICP sur les années (au moins 3, 2026 exclue) et prédictions 2026-2027"""
+        """Régression linéaire de l'ICP sur les années (au moins 3, 2026 exclue) 
+        et prédictions 2026-2027"""
 
         if metric not in METRICS:
             raise ValueError("Indicateur inconnu.")

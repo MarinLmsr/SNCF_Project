@@ -8,6 +8,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import pydeck as pdk
 import streamlit as st
+from plotly.subplots import make_subplots
+
 from core import (
     RAW_DATA_PATH,
     ConfigurationICP,
@@ -25,7 +27,6 @@ from core import (
 from core import (
     load_data as prepare_data,
 )
-from plotly.subplots import make_subplots
 
 LOGGER = logging.getLogger("railinsight")
 BASKET_KEYS = ("basket_trend", "basket_absolute", "basket_relative")
