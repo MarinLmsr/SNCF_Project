@@ -1,30 +1,21 @@
 """Ce script contient les classes pour le traitement des données SNCF du projet SNCF - IADATA700
 Il inclut la configuration du modèle, le chargement des données nettoyées, ainsi que la gestion des erreurs.
 Aussi, il fournit des outils pour la visualisation et l'analyse statistique des données.
-Enfin, il permet de calculer des scores et des indicateurs de performance basés sur les données traitées."""
+Enfin, il permet de calculer des scores et des indicateurs de performance basés sur les données traitées.
+"""
 
-# -----------------------------------------------------------------------------
-# 1. LIBRAIRIES & VARIABLES & GESTION DES ERREURS DE DONNEES
-# -----------------------------------------------------------------------------
-
-""" Importation des librairies nécessaires """
-
-# Pandas : Pour la manipulation des DataFrames
-# Dataclasses : Pour la définition de classes de configuration
 from dataclasses import dataclass, field
-
-# Path : Pour la lecture du répertoire
 from pathlib import Path
 
-# Numpy : Pour les opérations numériques
 import numpy as np
 import pandas as pd
-
-# Scipy : Pour les statistiques
 from scipy.stats import linregress, spearmanr
-
-# Sklearn : Pour les modèles de régression linéaire
 from sklearn.linear_model import LinearRegression
+
+# -----------------------------------------------------------------------------
+# 1.VARIABLES & GESTION DES ERREURS DE DONNEES
+# -----------------------------------------------------------------------------
+
 
 # Variables : racine, répertoire, années exclues, noms des colonnes, métriques...
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
