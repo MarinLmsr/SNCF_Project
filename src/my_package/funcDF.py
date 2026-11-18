@@ -79,7 +79,7 @@ def ranking_table(annual: pd.DataFrame, metric: str, sort_by: str = "ICP") -> pd
     table = pd.DataFrame(lignes, columns=colonnes)
 
     # Tri décroissant sur le critère choisi (les NaN en dernier), puis par nom de gare
-    critere = {"ICP": metric, "Beta 1": "beta1", "R²": "r2"}[sort_by]
+    critere = {"ICP": metric, "β₁": "beta1", "R²": "r2"}[sort_by]
     table = table.sort_values([critere, "gare_arrivee"], ascending=[False, True], na_position="last")
     table = table.reset_index(drop=True)
     table.insert(0, "rank", np.arange(1, len(table) + 1))

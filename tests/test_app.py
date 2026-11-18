@@ -71,10 +71,11 @@ def test_survol_coordonnees_partagees_affiche_montparnasse(monkeypatch, metric):
     assert {row["gare_arrivee"] for row in deck.layers[0].data} == set(
         scores["gare_arrivee"]
     )
-    assert len(deck.layers[1].data) == 1
-    hovered = deck.layers[1].data[0]
-    assert hovered["gare_arrivee"] == "PARIS MONTPARNASSE"
-    assert hovered["valeur"] == module.display(scores.iloc[1][metric], metric)
+    for layer in deck.layers[1:]:
+        assert len(layer.data) == 1
+        hovered = layer.data[0]
+        assert hovered["gare_arrivee"] == "PARIS MONTPARNASSE"
+        assert hovered["valeur"] == module.display(scores.iloc[1][metric], metric)
 
 
 def test_cartes_transmettent_les_informations_de_survol(monkeypatch, prepared_data):
@@ -93,10 +94,20 @@ def test_cartes_transmettent_les_informations_de_survol(monkeypatch, prepared_da
         assert "{gare_arrivee}" in tooltip["text"]
         assert "{valeur}" in tooltip["text"]
         layers = json.loads(chart.proto.json)["layers"]
-        stations = next(layer for layer in layers if layer["@@type"] == "ScatterplotLayer")
-        assert stations["pickable"] is True
-        montparnasse = next(
-            row for row in stations["data"]
-            if row["gare_arrivee"] == "PARIS MONTPARNASSE"
-        )
-        assert montparnasse["valeur"]
+        heat, halo, stations = layers
+        assert heat["aggregation"] == "MEAN"
+        # Le halo reste survolable sur toute sa surface, quel que soit le zoom.
+        assert halo["id"].startswith("hover_")
+        assert halo["radiusUnits"] == "pixels"
+        assert halo["getRadius"] == heat["radiusPixels"]
+        assert 0 < halo["getFillColor"][3] < 5
+        # Les marqueurs sont au-dessus des halos voisins pour garder la bonne gare.
+        assert stations["id"].startswith("stations_")
+        assert stations["radiusMaxPixels"] < halo["getRadius"]
+        for layer in (halo, stations):
+            assert layer["pickable"] is True
+            montparnasse = next(
+                row for row in layer["data"]
+                if row["gare_arrivee"] == "PARIS MONTPARNASSE"
+            )
+            assert montparnasse["valeur"]
