@@ -254,7 +254,7 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
     st.caption(
         "Barres bleues : ICP annuel observé (moyenne mensuelle). Droite orange : ajustement linéaire. Les années COVID ne sont pas imputées."
     )
-    col_gauge, col_text = st.columns([1, 2])
+    col_gauge, col_text = st.columns([1, 2], vertical_alignment="center")
     with col_gauge:
         if station in scores.index:
             st.plotly_chart(
