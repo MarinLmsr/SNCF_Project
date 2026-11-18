@@ -70,7 +70,7 @@ retards mais peu de passage ne justifie pas de mobiliser des chauffeurs.
 Nous comparons trois classements (gares d'arrivee) :
  
 1) FIABILITE
-   Mesure : taux de perturbation = (annules + retards a l'arrivee) /
+   Mesure : taux de perturbation = (retards a l'arrivee) /
    circulations prevues.
    Ce qu'il montre : les gares d'arrivee les moins fiables.
  
