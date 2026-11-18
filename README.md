@@ -147,7 +147,4 @@ uniquement dans la préparation des montants affichés, pas dans le calcul des I
 uv run pytest tests/
 ```
 
-Au dernier contrôle, un test d'interface échoue car il attend six onglets alors
-que l'application en affiche sept.
-
 Les journaux de l'application sont dans `logs/debug.log` et `logs/errors.log`.

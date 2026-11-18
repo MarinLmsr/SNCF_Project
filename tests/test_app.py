@@ -101,7 +101,7 @@ def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch, prepared_
     with patch.object(core, "load_data", return_value=data):
         app = AppTest.from_file(str(source / "app.py"), default_timeout=30).run()
         assert not app.exception
-        assert len(app.tabs) == 6
+        assert len(app.tabs) == 7
         assert len(app.dataframe) == 2
         assert len(app.get("plotly_chart")) == 1
         assert "service" not in {widget.key for widget in app.selectbox}
