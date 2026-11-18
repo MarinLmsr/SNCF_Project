@@ -8,6 +8,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import pydeck as pdk
 import streamlit as st
+from plotly.subplots import make_subplots
+
 from core import (
     RAW_DATA_PATH,
     ConfigurationICP,
@@ -25,7 +27,6 @@ from core import (
 from core import (
     load_data as prepare_data,
 )
-from plotly.subplots import make_subplots
 
 LOGGER = logging.getLogger("railinsight")
 BASKET_KEYS = ("basket_trend", "basket_absolute", "basket_relative")
@@ -278,7 +279,7 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
     )
     columns[1].metric(
         "p-value · pente",
-        "—" if pd.isna(summary["regression_pvalue"]) else f"{summary['regression_pvalue']:.3g}",
+        ("—" if pd.isna(summary["regression_pvalue"]) else f"{summary['regression_pvalue']:.3g}"),
     )
     columns[2].metric("Pente β₁", display(summary["beta1"], metric, slope=True))
     columns[3].metric(
@@ -351,11 +352,13 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
                     format=(
                         "%,.0f"
                         if column == "β₁ (ICP/an)"
-                        else "%.5f"
-                        if column == "β₁ (pt/an)"
-                        else "%.3f"
-                        if column == "R²" or "%" in column
-                        else "%,.2f"
+                        else (
+                            "%.5f"
+                            if column == "β₁ (pt/an)"
+                            else "%.3f"
+                            if column == "R²" or "%" in column
+                            else "%,.2f"
+                        )
                     ),
                 )
                 for column in table.select_dtypes("number")
@@ -758,7 +761,7 @@ def main() -> None:
         if not selected:
             st.info("Cochez au moins un indicateur pour afficher une carte.")
         else:
-            for container, metric in zip(st.columns(len(selected)), selected):
+            for container, metric in zip(st.columns(len(selected)), selected, strict=True):
                 with container:
                     st.markdown(
                         "**ICP absolu · courses/mois**"
