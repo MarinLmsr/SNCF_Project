@@ -40,6 +40,14 @@ POIDS_IMPREVISIBILITE = {
     "p_prise_en_compte_voyageurs": 0.0,
 }
 MIN_MINUTES_RETARD = 1000.0
+CAUSES_RETARD = {
+    "externes": "Causes externes",
+    "infrastructure": "Infrastructure",
+    "gestion_trafic": "Gestion du trafic",
+    "materiel_roulant": "Matériel roulant",
+    "gestion_gare": "Gestion en gare",
+    "prise_en_compte_voyageurs": "Prise en compte des voyageurs",
+}
 
 
 @st.cache_data(show_spinner=False)
@@ -451,6 +459,19 @@ def main() -> None:
         st.caption(
             "Source : data/regularite_tgv_clean.csv, préparé automatiquement depuis le CSV brut."
         )
+        with st.expander("Poids des causes de retard"):
+            poids_par_defaut = ConfigurationICP().poids_causes
+            poids_causes = {
+                cause: st.slider(
+                    libelle,
+                    min_value=0.0,
+                    max_value=3.0,
+                    value=poids_par_defaut[cause],
+                    step=0.1,
+                    key=f"poids_{cause}",
+                )
+                for cause, libelle in CAUSES_RETARD.items()
+            }
     tabs = st.tabs(
         [
             "0 · Accueil",
@@ -481,7 +502,11 @@ def main() -> None:
         end,
         service="National",
         minimum=minimum,
-        config=ConfigurationICP(taux_recours_60min=percentage / 100, pax_defaut=550.0),
+        config=ConfigurationICP(
+            taux_recours_60min=percentage / 100,
+            pax_defaut=550.0,
+            poids_causes=poids_causes,
+        ),
     )
     if annual.empty:
         for tab in tabs:
@@ -562,7 +587,7 @@ def main() -> None:
             "Les annulations ne sont pas integrées à l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité."
         )
         st.caption(
-            "Hypothèses : \n- 550 voyageurs par train et un voyageur reporté équivaut à une course ; \n- les annulations n'entrent pas dans l'ICP d'arrivée."
+            "Hypothèses : \n- 550 voyageurs par train et un voyageur reporté équivaut à une course ; \n- les annulations n'entrent pas dans l'ICP d'arrivée ; \n- Nous avons supposé que la part de voyageurs qui prennent un taxi ou un VTC augmente avec la durée du retard : 1 % pour un retard de 1 à 15 minutes, 10 % à 30 minutes et 25 % à partir d’une heure, avec une progression linéaire entre ces points."
         )
         st.caption(
             f"{int((~scope.eligible).sum())} ligne(s) non exploitable(s) dans ce périmètre. Seuls les groupes gare/année couvrant douze mois valides sont comparés ; les liaisons couvertes peuvent varier."

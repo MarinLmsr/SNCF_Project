@@ -10,8 +10,6 @@ Enfin, il permet de calculer des scores et des indicateurs de performance basés
 """ Importation des librairies nécessaires """
 
 # Pandas : Pour la manipulation des DataFrames
-import pandas as pd
-
 # Dataclasses : Pour la définition de classes de configuration
 from dataclasses import dataclass, field
 
@@ -20,6 +18,7 @@ from pathlib import Path
 
 # Numpy : Pour les opérations numériques
 import numpy as np
+import pandas as pd
 
 # Scipy : Pour les statistiques
 from scipy.stats import linregress, spearmanr

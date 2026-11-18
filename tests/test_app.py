@@ -73,6 +73,25 @@ def prepared_data(tmp_path_factory):
     return load_data(output_path=output)
 
 
+def test_poids_causes_modifient_icp(monkeypatch, prepared_data):
+    source = Path(__file__).resolve().parents[1] / "src"
+    monkeypatch.syspath_prepend(str(source))
+    core = importlib.import_module("core")
+    with patch.object(core, "load_data", return_value=prepared_data):
+        app = AppTest.from_file(str(source / "app.py"), default_timeout=60).run()
+        assert not app.exception
+        causes = [
+            "externes", "infrastructure", "gestion_trafic", "materiel_roulant",
+            "gestion_gare", "prise_en_compte_voyageurs",
+        ]
+        assert all(app.slider(key=f"poids_{cause}").value == 1.0 for cause in causes)
+        avant = app.dataframe[0].value.set_index("Gare d'arrivée")["ICP absolu / mois"]
+        app.slider(key="poids_infrastructure").set_value(2.0).run()
+        assert not app.exception
+        apres = app.dataframe[0].value.set_index("Gare d'arrivée")["ICP absolu / mois"]
+        assert (apres.sort_index() != avant.sort_index()).any()
+
+
 def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch, prepared_data):
     """La page atteint les classements et recalcule le compteur sans NameError."""
     source = Path(__file__).resolve().parents[1] / "src"
