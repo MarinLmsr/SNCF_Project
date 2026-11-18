@@ -32,6 +32,7 @@ BASKET_KEYS = ("basket_trend", "basket_absolute", "basket_relative")
 MAP_RADIUS_PIXELS = 55
 TREND_R2_MIN = 0.5  # en dessous, la droite décrit mal l'évolution de l'ICP
 CV_MAX = 0.30  # au-dessus, l'opportunité est jugée irrégulière
+SEUIL_SIGNIFICATIVITE = 0.05
 
 # 0 = cause prévisible et améliorable, 1 = cause imprévisible
 POIDS_IMPREVISIBILITE = {
@@ -278,8 +279,8 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
             "Proche de 0 : les retards viennent de causes connues et améliorables "
             "(infrastructure, matériel, gestion en gare). Proche de 10 : ils viennent "
             "d'événements imprévisibles, comme les intempéries ou les incidents extérieurs. "
-            "Pour un investisseur, une gare à faible score a des retards plus réguliers, "
-            "donc une opportunité plus consistante. Le trait noir indique la médiane des gares."
+            "Ce score décrit la nature des causes, pas la régularité des retards "
+            "dans le temps. Le trait noir indique la médiane des gares."
         )
     columns = st.columns(5)
     columns[0].metric(
@@ -303,13 +304,17 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
             "Moins de trois années complètes : régression, Spearman et prévisions non affichés."
         )
     else:
-        direction = (
-            "stable"
-            if np.isclose(summary["beta1"], 0)
-            else ("à la hausse" if summary["beta1"] > 0 else "à la baisse")
-        )
+        pvalue = summary["regression_pvalue"]
+        pente = summary["beta1"]
+        if pd.isna(pvalue) or pd.isna(pente):
+            tendance = "la significativité de la tendance ne peut pas être évaluée"
+        elif pvalue >= SEUIL_SIGNIFICATIVITE:
+            tendance = "la tendance n'est pas statistiquement significative au seuil de 5 %"
+        else:
+            direction = "à la hausse" if pente > 0 else "à la baisse"
+            tendance = f"la tendance estimée est {direction}, significative au seuil de 5 %"
         st.write(
-            f"Sur **{int(summary['n_years'])} années complètes**, la tendance estimée est **{direction}**. Le CV décrit les fluctuations annuelles : plus il est élevé, moins l'opportunité est régulière."
+            f"Sur **{int(summary['n_years'])} années complètes**, {tendance}. Le CV décrit les fluctuations annuelles : plus il est élevé, moins l'opportunité est régulière."
         )
     st.caption(
         "La p-value mesure la probabilité d'observer une pente au moins aussi forte "
@@ -389,28 +394,29 @@ def station_profile(row: pd.Series, scores: pd.Series) -> str:
     """Résumer en une phrase la tendance, la régularité et l'imprévisibilité d'une gare."""
     if row.n_years < 3 or pd.isna(row.beta1):
         trend = "trop peu d'années complètes pour estimer une tendance"
+    elif pd.isna(row.regression_pvalue):
+        trend = "une tendance dont la significativité ne peut pas être évaluée"
+    elif row.regression_pvalue >= SEUIL_SIGNIFICATIVITE:
+        trend = "pas de tendance linéaire statistiquement significative au seuil de 5 %"
     else:
-        direction = (
-            "stable"
-            if np.isclose(row.beta1, 0)
-            else ("à la hausse" if row.beta1 > 0 else "à la baisse")
-        )
-        fit = "bien décrite" if row.r2 >= TREND_R2_MIN else "peu lisible"
-        trend = f"une tendance {direction}, {fit} par une droite (R² = {fr(f'{row.r2:.2f}')})"
+        direction = "à la hausse" if row.beta1 > 0 else "à la baisse"
+        trend = f"une tendance {direction}, significative au seuil de 5 %"
+    if pd.notna(row.r2):
+        trend += f" (R² = {fr(f'{row.r2:.2f}')})"
     if pd.isna(row.cv):
         regularity = "dont la régularité ne peut pas être mesurée"
     elif row.cv <= CV_MAX:
         regularity = f"plutôt régulière (variabilité annuelle de {row.cv:.0%})"
     else:
         regularity = f"irrégulière (variabilité annuelle de {row.cv:.0%})"
-    if row.gare_arrivee in scores.index:
+    if row.gare_arrivee in scores.index and pd.notna(scores[row.gare_arrivee]) and pd.notna(scores.median()):
         vol = scores[row.gare_arrivee]
-        cause = (
-            "des causes plutôt connues et améliorables"
-            if vol <= scores.median()
-            else "des causes plutôt imprévisibles"
+        mediane = scores.median()
+        comparison = "autant" if vol == mediane else ("moins" if vol < mediane else "plus")
+        volatility = (
+            f"une exposition {comparison} élevée aux causes imprévisibles que la médiane "
+            f"(score {fr(f'{vol:.1f}')} contre {fr(f'{mediane:.1f}')} / 10)"
         )
-        volatility = f"des retards dus à {cause} (score {fr(f'{vol:.1f}')} / 10)"
     else:
         volatility = "une volatilité des causes non calculable"
     return (
@@ -481,24 +487,23 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
 
     # --- L'opportunité est-elle durable ? ---
     st.markdown("#### L'opportunité est-elle durable ?")
-    reliable = absolute[absolute.n_years >= 3]
+    reliable = relative[(relative.n_years >= 3) & relative.beta1.notna()]
     if not reliable.empty:
-        solid = (reliable.r2 >= TREND_R2_MIN).mean()
         rising = (reliable.beta1 > 0).mean()
         st.write(
             f"Sur les {len(reliable)} gares ayant au moins trois années complètes, "
-            f"**{rising:.0%}** ont un ICP en hausse, mais seulement **{solid:.0%}** "
-            f"ont une tendance bien décrite par une droite (R² d'au moins "
-            f"{TREND_R2_MIN:.0%}). Avec si peu d'années par gare, les tendances et les "
-            f"prévisions sont des ordres de grandeur, pas des résultats."
+            f"**{rising:.0%}** ont une pente estimée positive de l'ICP relatif. "
+            f"Ce pourcentage décrit le signe des pentes, sans test de significativité. "
+            f"L'ICP relatif rapporte le potentiel au nombre de voyageurs prévus ; "
+            f"il ne supprime pas nécessairement les effets communs au réseau."
         )
     st.write("Voici le profil des trois gares en tête du classement en volume :")
     for _, row in absolute.head(3).iterrows():
         st.markdown(f"- {station_profile(row, scores)}")
     st.caption(
         f"Une gare est jugée régulière si la variabilité annuelle de son ICP reste "
-        f"sous {CV_MAX:.0%}. Un faible score de volatilité signifie que les retards "
-        f"viennent de causes connues, donc plus faciles à anticiper pour un investisseur."
+        f"sous {CV_MAX:.0%}. Le score des causes indique une exposition relative "
+        f"aux causes considérées comme imprévisibles, pas la variabilité de l'ICP."
     )
 
     # --- Ce qu'il faut en retenir ---
@@ -520,9 +525,15 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
         names = ", ".join(sorted(n.title() for n in candidates.gare_arrivee))
         st.write(
             f"Les gares qui cumulent un fort volume, une forte intensité, une "
-            f"opportunité régulière et des causes de retard plutôt prévisibles sont "
-            f"les meilleures candidates pour un investissement : **{names}**."
+            f"opportunité régulière"
+            f"{', et un score de causes inférieur ou égal à la médiane' if not scores.empty else ''} "
+            f"sont des candidates à examiner : **{names}**. Ces critères ne "
+            f"démontrent pas une croissance ni une rentabilité."
         )
+        if scores.empty:
+            st.write("Le score des causes n'est pas disponible pour ce périmètre.")
+        for _, row in candidates.iterrows():
+            st.markdown(f"- {station_profile(row, scores)}")
 
     # --- Limites ---
     st.markdown("#### Ce que cette étude ne dit pas")
@@ -751,7 +762,7 @@ def main() -> None:
             "Les annulations ne sont pas integrées à l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité."
         )
         st.caption(
-            "Hypothèses : \n- 550 voyageurs par train et un voyageur reporté équivaut à une course ; \n- les annulations n'entrent pas dans l'ICP d'arrivée ; \n- Nous avons supposé que la part de voyageurs qui prennent un taxi ou un VTC augmente avec la durée du retard : 1 % pour un retard de 1 à 15 minutes, 10 % à 30 minutes et 25 % à partir d’une heure, avec une progression linéaire entre ces points ;\n- Régression linéaire et statistiques associées établies à l'aide de la bibliothèque sklearn.linear_model de Python"
+            "Hypothèses : \n- 550 voyageurs par train et un voyageur reporté équivaut à une course ; \n- les annulations n'entrent pas dans l'ICP d'arrivée ; \n- Nous avons supposé que la part de voyageurs qui prennent un taxi ou un VTC augmente avec la durée du retard : 1 % pour un retard de 1 à 15 minutes, 10 % à 30 minutes et 25 % à partir d’une heure, avec une progression linéaire entre ces points ;\n- Régression linéaire ajustée avec sklearn.linear_model ; p-value de la pente et coefficient de Spearman calculés avec scipy.stats."
         )
         st.caption(
             f"{int((~scope.eligible).sum())} ligne(s) non exploitable(s) dans ce périmètre. Seuls les groupes gare/année couvrant douze mois valides sont comparés ; les liaisons couvertes peuvent varier."

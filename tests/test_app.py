@@ -40,8 +40,12 @@ def test_classement_formats_et_largeurs(monkeypatch, metric, pente, expected_for
     assert config["Gare d'arrivée"]["pinned"] is True
 
 
-@pytest.mark.parametrize("pvalue, expected", [(0.02346, "0.0235"), (float("nan"), "—")])
-def test_tendance_affiche_pvalue_regression(monkeypatch, pvalue, expected):
+@pytest.mark.parametrize("pvalue, expected, interpretation", [
+    (0.02346, "0.0235", "à la hausse, significative"),
+    (0.173, "0.173", "n'est pas statistiquement significative"),
+    (float("nan"), "—", "ne peut pas être évaluée"),
+])
+def test_tendance_affiche_pvalue_regression(monkeypatch, pvalue, expected, interpretation):
     source = Path(__file__).resolve().parents[1] / "src"
     monkeypatch.syspath_prepend(str(source))
     module = importlib.import_module("app")
@@ -64,6 +68,38 @@ def test_tendance_affiche_pvalue_regression(monkeypatch, pvalue, expected):
     ):
         module.show_trend(annual, pd.Series(dtype=float))
     trend_columns[1].metric.assert_called_once_with("p-value · pente", expected)
+    assert any(interpretation in str(call) for call in interface.write.call_args_list)
+
+
+def test_conclusion_utilise_icp_relatif_et_precise_profil_candidate(monkeypatch):
+    source = Path(__file__).resolve().parents[1] / "src"
+    monkeypatch.syspath_prepend(str(source))
+    module = importlib.import_module("app")
+    absolute = pd.DataFrame([
+        {"gare_arrivee": "MONTPELLIER", "ICP_abs": 100.0, "ICP_rel": 0.1,
+         "n_years": 4, "beta1": 1.0, "r2": 0.01, "regression_pvalue": 0.173, "cv": 0.1},
+        {"gare_arrivee": "LYON", "ICP_abs": 50.0, "ICP_rel": 0.05,
+         "n_years": 4, "beta1": 2.0, "r2": 0.8, "regression_pvalue": 0.01, "cv": 0.4},
+    ])
+    relative = absolute.copy()
+    relative.loc[0, "beta1"] = -0.01
+    annual = pd.DataFrame({"annee": [2018, 2019, 2022, 2023], "gare_arrivee": ["MONTPELLIER"] * 4})
+    scores = pd.Series({"MONTPELLIER": 3.0, "LYON": 3.7, "AUTRE": 2.2})
+    interface = MagicMock()
+    interface.session_state = {"taxi_percentage": 25, "basket_trend": 25.0}
+    with patch.object(module, "st", interface), patch.object(
+        module, "ranking_table", side_effect=[absolute, relative]
+    ):
+        module.show_conclusion(annual, scores)
+    textes = " ".join(str(call) for call in interface.write.call_args_list)
+    profils = " ".join(str(call) for call in interface.markdown.call_args_list)
+    assert "50%" in textes and "ICP relatif" in textes
+    assert "sans test de significativité" in textes
+    assert "ne démontrent pas une croissance" in textes
+    assert "pas de tendance linéaire statistiquement significative" in profils
+    assert "R² = 0,01" in profils
+    assert "score 3,7 contre 3,0 / 10" in profils
+    assert profils.count("Montpellier") >= 2
 
 
 @pytest.fixture(scope="module")
