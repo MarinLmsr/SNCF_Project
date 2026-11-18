@@ -614,7 +614,7 @@ def main() -> None:
         st.caption(
             "Source : data/regularite_tgv_clean.csv, préparé automatiquement depuis le CSV brut."
         )
-        with st.expander("Poids des causes de retard"):
+        with st.expander("Poids des causes de retard", expanded=True):
             poids_par_defaut = ConfigurationICP().poids_causes
             poids_causes = {
                 cause: st.slider(
