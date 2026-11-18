@@ -41,17 +41,20 @@ compteur_volatilite = funcDF.compteur_volatilite
 # 2. CHARGEMENT DES DONNEES
 # -----------------------------------------------------------------------------
 
+
 def load_data(file_path: Path | None = None, output_path: Path | None = None) -> pd.DataFrame:
-    """ Créer le CSV nettoyé avec triDF, puis le lire avec l'unique DataLoader """
-    
+    """Créer le CSV nettoyé avec triDF, puis le lire avec l'unique DataLoader"""
+
     file_path = RAW_DATA_PATH if file_path is None else file_path
     output_path = classDF.DEFAULT_DATA_PATH if output_path is None else output_path
     triDF(file_path, output_path)
     return classDF.DataLoader(output_path).load()
 
+
 # -----------------------------------------------------------------------------
 # 3. ANALYSE DES DONNEES
 # -----------------------------------------------------------------------------
+
 
 def analyze_data(
     data: pd.DataFrame,
@@ -59,7 +62,8 @@ def analyze_data(
     end: int,
     service: str = "Tous",
     minimum: int = 0,
-    config: ConfigurationICP | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    config: ConfigurationICP | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Orchestrer le périmètre et les ICP annuels communs aux six onglets."""
     if config is None:
         config = ConfigurationICP()
@@ -69,6 +73,10 @@ def analyze_data(
     annual = annual.loc[annual.gare_arrivee.isin(volumes[volumes.ge(minimum)].index)]
     logging.getLogger("railinsight").info(
         "Analyse arrivée : %s-%s, service=%s, recours=%s, seuil=%s",
-        start, end, service, config.taux_recours_60min * 100, minimum,
+        start,
+        end,
+        service,
+        config.taux_recours_60min * 100,
+        minimum,
     )
     return scope, annual

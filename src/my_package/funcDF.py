@@ -1,4 +1,4 @@
-""" Fonctions utilitaires de préparation des données par gare d'arrivée pour les analyses du projet SNCF - IADATA700 """
+"""Fonctions utilitaires de préparation des données par gare d'arrivée pour les analyses du projet SNCF - IADATA700"""
 
 # -----------------------------------------------------------------------------
 # 1. LIBRAIRIES & VARIABLES & CLASSES
@@ -36,9 +36,10 @@ from .classDF import (
 # 2. FILTRAGE ADDITIONNEL DE LA DONNEE - filter_data()
 # -----------------------------------------------------------------------------
 
+
 def filter_data(data: pd.DataFrame, start: int, end: int, service: str = "Tous") -> pd.DataFrame:
     """Sélectionner la période historique, les gares françaises et le service."""
-    
+
     if start > end:
         raise ValueError("Période inversée.")
     mask = data["annee"].between(start, end) & ~data["annee"].isin(EXCLUDED_YEARS)
@@ -47,9 +48,11 @@ def filter_data(data: pd.DataFrame, start: int, end: int, service: str = "Tous")
         mask &= data["service"].eq(service)
     return data.loc[mask].copy()
 
+
 # -----------------------------------------------------------------------------
 # 3. CLASSEMENT PAR GARE - ranking_table()
 # -----------------------------------------------------------------------------
+
 
 def ranking_table(annual: pd.DataFrame, metric: str, sort_by: str = "ICP") -> pd.DataFrame:
     """Calculer et trier les ICP et tendances par gare, sans conversion d'unités."""
@@ -57,7 +60,6 @@ def ranking_table(annual: pd.DataFrame, metric: str, sort_by: str = "ICP") -> pd
     lignes = []
 
     for gare, group in annual.groupby("gare_arrivee"):
-
         # ICP sur toute la période : on somme d'abord, on divise ensuite
         conso = group["conso_totale_sum"].sum()
         ligne = {
@@ -67,30 +69,49 @@ def ranking_table(annual: pd.DataFrame, metric: str, sort_by: str = "ICP") -> pd
         }
 
         # Tendance de la métrique choisie (beta1, r2, prédictions...)
-        ligne.update(TrendAnalyzer.ajuster_tendance(group["annee"].to_numpy(), group[metric].to_numpy(), metric))
+        ligne.update(
+            TrendAnalyzer.ajuster_tendance(
+                group["annee"].to_numpy(), group[metric].to_numpy(), metric
+            )
+        )
         lignes.append(ligne)
 
     colonnes = [
-        "gare_arrivee", "ICP_abs", "ICP_rel", "beta1", "intercept", "r2", "regression_pvalue",
-        "spearman", "spearman_pvalue", "cv", "prediction_2026", "prediction_2027", "n_years",
+        "gare_arrivee",
+        "ICP_abs",
+        "ICP_rel",
+        "beta1",
+        "intercept",
+        "r2",
+        "regression_pvalue",
+        "spearman",
+        "spearman_pvalue",
+        "cv",
+        "prediction_2026",
+        "prediction_2027",
+        "n_years",
     ]
 
     table = pd.DataFrame(lignes, columns=colonnes)
 
     # Tri décroissant sur le critère choisi (les NaN en dernier), puis par nom de gare
     critere = {"ICP": metric, "β₁": "beta1", "R²": "r2"}[sort_by]
-    table = table.sort_values([critere, "gare_arrivee"], ascending=[False, True], na_position="last")
+    table = table.sort_values(
+        [critere, "gare_arrivee"], ascending=[False, True], na_position="last"
+    )
     table = table.reset_index(drop=True)
     table.insert(0, "rank", np.arange(1, len(table) + 1))
-    
+
     return table
+
 
 # -----------------------------------------------------------------------------
 # 4. ICP ANNUEL - annual_icp()
 # -----------------------------------------------------------------------------
 
+
 def annual_icp(data: pd.DataFrame, config: ConfigurationICP) -> pd.DataFrame:
-    """ ICP annuel par gare, calculé uniquement sur les années complètes (12 mois) avant 2026 """
+    """ICP annuel par gare, calculé uniquement sur les années complètes (12 mois) avant 2026"""
 
     # Lignes éligibles et antérieures à 2026 (2026 ne sert pas aux prédictions)
     valid = data.loc[data["eligible"] & data["annee"].lt(2026)].copy()
@@ -103,12 +124,14 @@ def annual_icp(data: pd.DataFrame, config: ConfigurationICP) -> pd.DataFrame:
     annual = annual.loc[annual["nb_mois"].eq(12)]
     return annual.sort_values(["gare_arrivee", "annee"]).reset_index(drop=True)
 
+
 # -----------------------------------------------------------------------------
 # 5. JOURNALISATION POUR HISTORIQUE DES LOGS - configure_logging()
 # -----------------------------------------------------------------------------
 
+
 def configure_logging() -> None:
-    """ Crée deux fichiers de log : debug.log (infos et plus) et errors.log (erreurs seulement) """
+    """Crée deux fichiers de log : debug.log (infos et plus) et errors.log (erreurs seulement)"""
 
     logger = logging.getLogger("railinsight")
 
@@ -126,23 +149,30 @@ def configure_logging() -> None:
         handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
         logger.addHandler(handler)
 
+
 # -----------------------------------------------------------------------------
 # 6. ANNEES VALIDES - available_years()
 # -----------------------------------------------------------------------------
 
+
 def available_years(data: pd.DataFrame) -> list[int]:
-    """ Années proposées dans l'interface : avant 2026 et hors années exclues """
-    
+    """Années proposées dans l'interface : avant 2026 et hors années exclues"""
+
     annees = data["annee"].dropna().unique()
     return sorted(int(a) for a in annees if a < 2026 and a not in EXCLUDED_YEARS)
+
 
 # -----------------------------------------------------------------------------
 # 7. MAPPING CARTE - map_points()
 # -----------------------------------------------------------------------------
 
-def map_points(scores: pd.DataFrame,path: Path = PROJECT_ROOT / "data" / "station_coordinates.json",) -> tuple[pd.DataFrame, list[str]]:
-    """ Ajoute latitude/longitude à chaque gare et renvoie aussi la liste des gares sans coordonnées """
-    
+
+def map_points(
+    scores: pd.DataFrame,
+    path: Path = PROJECT_ROOT / "data" / "station_coordinates.json",
+) -> tuple[pd.DataFrame, list[str]]:
+    """Ajoute latitude/longitude à chaque gare et renvoie aussi la liste des gares sans coordonnées"""
+
     try:
         # Lecture du fichier de coordonnées
         coordonnees = pd.DataFrame(json.loads(path.read_text(encoding="utf-8"))["stations"])
@@ -157,12 +187,14 @@ def map_points(scores: pd.DataFrame,path: Path = PROJECT_ROOT / "data" / "statio
         raise DataError("Les coordonnées des gares sont indisponibles.") from exc
     return points, manquantes
 
+
 # -----------------------------------------------------------------------------
 # 8. ANALYSE TENDANCE - trend_data()
 # -----------------------------------------------------------------------------
 
+
 def trend_data(annual: pd.DataFrame, station: str, metric: str) -> tuple[pd.Series, pd.DataFrame]:
-    """ Prépare la synthèse d'une gare et sa courbe observée/tendance """
+    """Prépare la synthèse d'une gare et sa courbe observée/tendance"""
 
     group = annual.loc[annual["gare_arrivee"].eq(station)].sort_values("annee")
 
@@ -177,15 +209,28 @@ def trend_data(annual: pd.DataFrame, station: str, metric: str) -> tuple[pd.Seri
         chart[["observed", "regression"]] *= 100
     return summary, chart
 
+
 # -----------------------------------------------------------------------------
 # 9. PREPARATION DU CLASSEMENT POUR L'AFFICHAGE - prepare_ranking_display()
 # -----------------------------------------------------------------------------
 
-def prepare_ranking_display(annual: pd.DataFrame, metric: str, sort_by: str, basket: float) -> pd.DataFrame:
+
+def prepare_ranking_display(
+    annual: pd.DataFrame, metric: str, sort_by: str, basket: float
+) -> pd.DataFrame:
     """Adapter ranking_table pour l'interface : colonnes, CA potentiel et pourcentages."""
 
     scores = ranking_table(annual, metric, sort_by)
-    colonnes = ["rank", "gare_arrivee", metric, "beta1", "r2", "prediction_2026", "prediction_2027", "n_years"]
+    colonnes = [
+        "rank",
+        "gare_arrivee",
+        metric,
+        "beta1",
+        "r2",
+        "prediction_2026",
+        "prediction_2027",
+        "n_years",
+    ]
     table = scores[colonnes].copy()
 
     # Chiffre d'affaires potentiel par mois = courses par mois × prix moyen d'une course
@@ -208,15 +253,10 @@ def score_volatilite(
     total = parts.sum(axis=1).replace(0, np.nan)
     parts = parts.div(total, axis=0)
     data["imprevisible"] = (parts * pd.Series(poids)).sum(axis=1)
-    data["minutes"] = (
-        data["nb_retard_arrivee"].fillna(0)
-        * data["retard_moyen_arrivee"].fillna(0)
-    )
+    data["minutes"] = data["nb_retard_arrivee"].fillna(0) * data["retard_moyen_arrivee"].fillna(0)
     data["produit"] = data["imprevisible"] * data["minutes"]
     grouped = data.groupby("gare_arrivee")[["produit", "minutes"]].sum()
-    grouped = grouped.loc[
-        grouped["minutes"].ge(min_minutes) & grouped["minutes"].gt(0)
-    ]
+    grouped = grouped.loc[grouped["minutes"].ge(min_minutes) & grouped["minutes"].gt(0)]
     return (10 * grouped["produit"] / grouped["minutes"]).rename("score_volatilite")
 
 
