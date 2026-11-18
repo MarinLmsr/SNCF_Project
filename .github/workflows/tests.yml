@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v6
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.14"
           cache: pip
@@ -33,4 +33,4 @@ jobs:
         run: uv sync
 
       - name: Lancer les tests et mesurer la couverture
-        run: python -m pytest -v --cov=src --cov-report=term-missing
+        run: uv run pytest -v --cov=src --cov-report=term-missing
