@@ -2,20 +2,14 @@
 Il identifie les anomalies et propose des actions correctives pour chaque index du DataFrame.
 """
 
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
 # -----------------------------------------------------------------------------
 # 1. LIBRAIRIES & VARIABLES & GESTION DES ERREURS DE DONNEE
 # -----------------------------------------------------------------------------
-
-""" Importation des librairies nécessaires """
-
-# Path : Pour la lecture du répertoire
-from pathlib import Path
-
-# Numpy : Pour les opérations numériques
-import numpy as np
-
-# Pandas : Pour la manipulation des DataFrames
-import pandas as pd
 
 """ Importation et définitions des variables nécessaires au projet """
 
@@ -402,9 +396,9 @@ if __name__ == "__main__":
     print(f"• Nombre de lignes initiales : {df_raw.shape[0]}")
     print(f"• Colonnes supprimées (vides) : {len(cols_vides)}")
     print(f"• Lignes supprimées au total : {len(indices_a_supprimer)}")
-    print(f"  - Durées de trajet nulles : 73")
-    print(f"  - Durées anormalement courtes (< 70% médiane) : 68")
-    print(f"  - Avances au-delà des seuils (-3 minutes au dep / -10 minutes à l'arrivée)")
+    print("  - Durées de trajet nulles : 73")
+    print("  - Durées anormalement courtes (< 70% médiane) : 68")
+    print("  - Avances au-delà des seuils (-3 minutes au dep / -10 minutes à l'arrivée)")
     print(
         f"• Dimensions finales du jeu de données : {df_final.shape[0]} lignes x {df_final.shape[1]} colonnes\n"
     )
