@@ -101,9 +101,9 @@ def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch, prepared_
     with patch.object(core, "load_data", return_value=data):
         app = AppTest.from_file(str(source / "app.py"), default_timeout=30).run()
         assert not app.exception
-        assert len(app.tabs) == 6
+        assert len(app.tabs) == 7
         assert len(app.dataframe) == 2
-        assert len(app.get("plotly_chart")) == 1
+        assert len(app.tabs[2].get("plotly_chart")) == 1
         assert "service" not in {widget.key for widget in app.selectbox}
         _, expected_annual = core.analyze_data(
             data, 2018, 2025, service="National", minimum=1000
@@ -119,12 +119,12 @@ def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch, prepared_
 
         app.select_slider(key="period").set_range(2022, 2023).run()
         assert not app.exception
-        assert len(app.get("plotly_chart")) == 1
+        assert len(app.tabs[2].get("plotly_chart")) == 1
         assert app.dataframe[0].value["Prévision 2026"].isna().all()
 
         app.number_input(key="minimum").set_value(1_000_000_000).run()
         assert not app.exception
-        assert len(app.info) == 6
+        assert all(len(tab.info) == 1 for tab in app.tabs)
 
 
 @pytest.mark.parametrize("metric", ["ICP_abs", "ICP_rel"])
