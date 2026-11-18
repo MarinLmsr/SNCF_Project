@@ -41,6 +41,14 @@ POIDS_IMPREVISIBILITE = {
     "p_prise_en_compte_voyageurs": 0.0,
 }
 MIN_MINUTES_RETARD = 1000.0
+CAUSES_RETARD = {
+    "externes": "Causes externes",
+    "infrastructure": "Infrastructure",
+    "gestion_trafic": "Gestion du trafic",
+    "materiel_roulant": "Matériel roulant",
+    "gestion_gare": "Gestion en gare",
+    "prise_en_compte_voyageurs": "Prise en compte des voyageurs",
+}
 
 
 @st.cache_data(show_spinner=False)
@@ -263,7 +271,7 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
                 "Pas assez de minutes de retard pour calculer la volatilité de cette gare."
             )
     with col_text:
-        st.markdown("**Volatilité des causes de retard**")
+        
         st.write(
             "Proche de 0 : les retards viennent de causes connues et améliorables "
             "(infrastructure, matériel, gestion en gare). Proche de 10 : ils viennent "
@@ -271,16 +279,20 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
             "Pour un investisseur, une gare à faible score a des retards plus réguliers, "
             "donc une opportunité plus consistante. Le trait noir indique la médiane des gares."
         )
-    columns = st.columns(4)
+    columns = st.columns(5)
     columns[0].metric(
         "Spearman ρ · temps / ICP",
         "—" if pd.isna(summary["spearman"]) else f"{summary['spearman']:.3f}",
     )
-    columns[1].metric("Pente β₁", display(summary["beta1"], metric, slope=True))
-    columns[2].metric(
+    columns[1].metric(
+        "p-value · pente",
+        "—" if pd.isna(summary["regression_pvalue"]) else f"{summary['regression_pvalue']:.3g}",
+    )
+    columns[2].metric("Pente β₁", display(summary["beta1"], metric, slope=True))
+    columns[3].metric(
         "R² · détermination", "—" if pd.isna(summary["r2"]) else f"{summary['r2']:.3f}"
     )
-    columns[3].metric(
+    columns[4].metric(
         "Variabilité annuelle (CV)",
         "—" if pd.isna(summary["cv"]) else f"{summary['cv']:.1%}",
     )
@@ -298,7 +310,11 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
             f"Sur **{int(summary['n_years'])} années complètes**, la tendance estimée est **{direction}**. Le CV décrit les fluctuations annuelles : plus il est élevé, moins l'opportunité est régulière."
         )
     st.caption(
-        "R² n'est pas un coefficient de corrélation. Une tendance ou un Spearman élevé ne prouve ni une demande réelle ni une rentabilité."
+        "La p-value mesure la probabilité d'observer une pente au moins aussi forte "
+    "si l'ICP n'avait en réalité aucune tendance. Elle est calculée gare par gare, "
+    "sans correction pour les nombreuses comparaisons, et sur seulement quelques "
+    "années : une p-value élevée signifie que les données ne permettent pas de "
+    "conclure, pas qu'il n'y a pas de tendance. R² n'est pas un coefficient de corrélation. Une tendance ou un Spearman élevé ne prouve ni une demande réelle ni une rentabilité."
     )
 
 
@@ -336,15 +352,20 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
         hide_index=True,
         width="stretch",
         column_config={
-            column: st.column_config.NumberColumn(
+            "Classement": st.column_config.NumberColumn(width=75),
+            "Gare d'arrivée": st.column_config.TextColumn(width=170, pinned=True),
+            "Années complètes": st.column_config.NumberColumn(width=140),
+            **{column: st.column_config.NumberColumn(
+                width=145 if column.startswith("Prévision") else 140,
                 format=(
-                    "%.5f"
-                    if column.startswith("β")
-                    else "%.3f" if column == "R²" or "%" in column else "%.2f"
+                    "%,.0f" if column == "β₁ (ICP/an)"
+                    else "%.5f" if column == "β₁ (pt/an)"
+                    else "%.3f" if column == "R²" or "%" in column
+                    else "%,.2f"
                 ),
             )
             for column in table.select_dtypes("number")
-            if column not in ["Classement", "Années complètes"]
+            if column not in ["Classement", "Années complètes"]},
         },
     )
     st.caption(
@@ -370,7 +391,7 @@ def show_conclusion(annual: pd.DataFrame) -> None:
     else:
         first, intense = absolute.iloc[0], relative.iloc[0]
         st.write(
-            f"Sur les liaisons nationales de la période sélectionnée, **{first.gare_arrivee}** présente le potentiel absolu simulé le plus élevé, avec **{display(first.ICP_abs, 'ICP_abs')} courses supplémentaires par mois observé**. **{intense.gare_arrivee}** arrive en tête du classement relatif, à **{display(intense.ICP_rel, 'ICP_rel')}** des voyageurs prévus."
+            f"Sur les liaisons nationales de la période sélectionnée, *{first.gare_arrivee}* présente le potentiel absolu simulé le plus élevé, avec **{display(first.ICP_abs, 'ICP_abs')} courses supplémentaires par mois observé**. *{intense.gare_arrivee}* arrive en tête du classement relatif, à **{display(intense.ICP_rel, 'ICP_rel')}** des voyageurs prévus."
         )
         st.write(
             "Ces deux classements répondent à des questions différentes : le premier décrit un volume potentiel, le second l'intensité du phénomène. Le choix d'une gare doit aussi tenir compte de la régularité de ce potentiel, visible dans l'onglet Tendances."
@@ -469,6 +490,19 @@ def main() -> None:
         st.caption(
             "Source : data/regularite_tgv_clean.csv, préparé automatiquement depuis le CSV brut."
         )
+        with st.expander("Poids des causes de retard"):
+            poids_par_defaut = ConfigurationICP().poids_causes
+            poids_causes = {
+                cause: st.slider(
+                    libelle,
+                    min_value=0.0,
+                    max_value=3.0,
+                    value=poids_par_defaut[cause],
+                    step=0.1,
+                    key=f"poids_{cause}",
+                )
+                for cause, libelle in CAUSES_RETARD.items()
+            }
     tabs = st.tabs(
         [
             "0 · Accueil",
@@ -499,7 +533,11 @@ def main() -> None:
         end,
         service="National",
         minimum=minimum,
-        config=ConfigurationICP(taux_recours_60min=percentage / 100, pax_defaut=550.0),
+        config=ConfigurationICP(
+            taux_recours_60min=percentage / 100,
+            pax_defaut=550.0,
+            poids_causes=poids_causes,
+        ),
     )
     if annual.empty:
         for tab in tabs:
@@ -517,10 +555,10 @@ def main() -> None:
             "Taxis et VTC en gare : où les retards de TGV créent-ils de la demande ?"
         )
 
-        st.write("**Notre postulat**")
+        st.write("*NOTRE POSTULAT*")
 
         st.write(
-            "Un voyageur dont le train arrive en retard a plus de risques de rater sa correspondance (TER, bus, tram, métro) ou de se retrouver sans transport en commun adapté. Il se reporte alors sur un taxi ou un VTC. Plus le retard est long, plus la probabilité de prendre un taxi augmente. Ce postulat n'est pas verifiable avec nos donnees (pas de données de courses ni de réservations) : nous le traitons comme une hypothèse, entièrement paramétrable et testée par des analyses de robustesse."
+            "Un voyageur dont le train arrive en retard a plus de risques de rater sa correspondance (TER, bus, tram, métro) ou de se retrouver sans transport en commun adapté. Il se reporte alors sur un taxi ou un VTC. Plus le retard est long, plus la probabilité de prendre un taxi augmente. Ce postulat n'est pas vérifiable avec nos données (pas de données de courses ni de réservations) : nous le traitons comme une hypothèse, entièrement paramétrable et testée par des analyses de robustesse."
         )
         st.write("*POURQUOI LA GARE D'ARRIVEE ?*")
 
@@ -528,20 +566,25 @@ def main() -> None:
             "Le report vers un taxi se produit à l'arrivée du train. Les données de retard à l'arrivée sont aussi les plus complètes : nombre de trains en retard, retard moyen, tranches > 15 / 30 / 60 min, et répartition des causes. Les retards et leurs causes décrivent ainsi le même événement, ce qui rend le modèle cohérent."
         )
 
+        st.write("*UN INDICE DE REFERENCE*")
         st.write(
             "Pour explorer cette hypothèse, nous avons construit un indice de consommation potentielle (**ICP**). Cet indice, créé de toutes pièces pour l’étude, permet de repérer les gares où les retards à l’arrivée représentent la plus belle opportunité d’investissement."
         )
+        st.write("*REGRESSION LINEAIRE*")
+        st.write("Le calcul de cet indice a été choisi annuellement afin d'éviter les effets de saisonnalité. \nAinsi, plus une gare connaît de retards sur une année, plus grand sera son ICP en général."
+                )
+        st.write("Pour évaluer le potentiel d'investissement de chaque gare, nous réalisons une régression linéaire de son ICP au fil des années. Elle permet de répondre à trois questions :\n- L'ICP augmente-t-il avec le temps ?\n- L'opportunité est-elle régulière d'une année à l'autre ?\n- Peut-on prévoir les ICP des prochaines années ?")
 
         cols = st.columns(3)
         cols[0].metric("Gares étudiées", int(annual.gare_arrivee.nunique()))
         cols[1].metric("Nombre d'années pris en compte", int(annual.annee.nunique()))
         cols[2].metric(
-            "Nombre de train étudié",
+            "Nombre de trains étudiés",
             f"{annual.nb_circulations_prevues.sum():,.0f}".replace(",", " "),
         )
 
-        st.image("https://taxi-neuville69.fr/images/ai/gare-partdieu.jpg")
-
+        st.image(str(RAW_DATA_PATH.parent.parent / "images" / "Taxis_at_EDDT.jpg"))
+        st.caption("source : Matti Blume/https://commons.wikimedia.org/wiki/File:Taxis_at_EDDT.jpg")
         st.write(
             "Les onglets suivants permettent d'analyser **l'ICP** sous différents angles. "
         )
@@ -557,22 +600,25 @@ def main() -> None:
         st.write(
             "**4. top ICP relatif** : comparaison des ICP relatifs, du coefficient de croissance et des extrapolations entre les gares."
         )
-        st.write("**5. conclusion** : résumé les résultats et leurs limites.")
+        st.write("**5. conclusion** : résumé des résultats et leurs limites.")
 
+        st.write("**6. annexes** : statistiques après le nettoyage des données ")
+        
+        st.write("Notes à l'intention des investisseurs pointilleux : ")
         st.caption(
             "Nous construisons l'Indice de Consommation Potentielle (ICP) par gare d'arrivée. Ici, la consommation désigne le recours supplémentaire à un taxi ou VTC causé par un retard : l'ICP traduit le nombre de courses supplémentaires attendues du fait des perturbations."
         )
         st.caption(
-            "L'ICP absolu combine : \n- le volume de trains à l'arrivée dans la gare, \n- la durée des retards à l'arrivée (via une courbe de recours au taxi croissante), \n- une ponderation selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, materiel roulant, gestion en gare, etc.)."
+            "L'ICP absolu combine : \n- le volume de trains à l'arrivée dans la gare, \n- la durée des retards à l'arrivée (via une courbe de recours au taxi croissante), \n- une pondération selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, matériel roulant, gestion en gare, etc.)."
         )
         st.caption(
-            "L'ICP relatif ne prend pas en compte le volume de train, et ne défavorise donc pas les petites gares à faible fréquentation"
+            "L'ICP relatif ne prend pas en compte le volume de train, et ne défavorise donc pas les petites gares à faible fréquentation."
         )
         st.caption(
-            "Les annulations ne sont pas integrées a l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité."
+            "Les annulations ne sont pas integrées à l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité."
         )
         st.caption(
-            "Hypothèses : 550 voyageurs par train et un voyageur reporté équivaut à une course. Les annulations n'entrent pas dans l'ICP d'arrivée."
+            "Hypothèses : \n- 550 voyageurs par train et un voyageur reporté équivaut à une course ; \n- les annulations n'entrent pas dans l'ICP d'arrivée ; \n- Nous avons supposé que la part de voyageurs qui prennent un taxi ou un VTC augmente avec la durée du retard : 1 % pour un retard de 1 à 15 minutes, 10 % à 30 minutes et 25 % à partir d’une heure, avec une progression linéaire entre ces points."
         )
         st.caption(
             f"{int((~scope.eligible).sum())} ligne(s) non exploitable(s) dans ce périmètre. Seuls les groupes gare/année couvrant douze mois valides sont comparés ; les liaisons couvertes peuvent varier."

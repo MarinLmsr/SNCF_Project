@@ -3,7 +3,7 @@
 import importlib
 import json
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -12,11 +12,84 @@ from streamlit.testing.v1 import AppTest
 from src.core import load_data
 
 
+@pytest.mark.parametrize("metric, pente, expected_format", [
+    ("ICP_abs", "β₁ (ICP/an)", "%,.0f"),
+    ("ICP_rel", "β₁ (pt/an)", "%.5f"),
+])
+def test_classement_formats_et_largeurs(monkeypatch, metric, pente, expected_format):
+    source = Path(__file__).resolve().parents[1] / "src"
+    monkeypatch.syspath_prepend(str(source))
+    module = importlib.import_module("app")
+    table = pd.DataFrame({
+        "rank": [1], "gare_arrivee": ["LYON"], metric: [70181.83],
+        "beta1": [2426.95059], "r2": [0.8], "prediction_2026": [1.0],
+        "prediction_2027": [2.0], "n_years": [3],
+        "CA potentiel / mois (€)": [10000.0],
+    })
+    with patch.object(module, "basket_input", return_value=25.0), patch.object(
+        module, "prepare_ranking_display", return_value=table
+    ), patch.object(module.st, "radio", return_value="ICP"), patch.object(
+        module.st, "dataframe"
+    ) as dataframe:
+        module.show_ranking(pd.DataFrame(), metric, "basket")
+    config = dataframe.call_args.kwargs["column_config"]
+    assert config[pente]["type_config"]["format"] == expected_format
+    assert config["CA potentiel / mois (€)"]["type_config"]["format"] == "%,.2f"
+    prediction = "Prévision 2027 (%)" if metric == "ICP_rel" else "Prévision 2027"
+    assert config[prediction]["width"] == 145
+    assert config["Gare d'arrivée"]["pinned"] is True
+
+
+@pytest.mark.parametrize("pvalue, expected", [(0.02346, "0.0235"), (float("nan"), "—")])
+def test_tendance_affiche_pvalue_regression(monkeypatch, pvalue, expected):
+    source = Path(__file__).resolve().parents[1] / "src"
+    monkeypatch.syspath_prepend(str(source))
+    module = importlib.import_module("app")
+    interface = MagicMock()
+    interface.session_state = {"basket_trend": 25.0}
+    interface.selectbox.return_value = "LYON"
+    interface.radio.return_value = "ICP_abs"
+    first_columns = [MagicMock() for _ in range(3)]
+    gauge_columns = [MagicMock() for _ in range(2)]
+    trend_columns = [MagicMock() for _ in range(5)]
+    interface.columns.side_effect = [first_columns, gauge_columns, trend_columns]
+    summary = pd.Series({
+        "ICP_abs": 10.0, "ICP_rel": 0.1, "spearman": 0.5,
+        "regression_pvalue": pvalue, "beta1": 1.0, "r2": 0.5,
+        "cv": 0.2, "n_years": 3,
+    })
+    annual = pd.DataFrame({"gare_arrivee": ["LYON"]})
+    with patch.object(module, "st", interface), patch.object(
+        module, "trend_data", return_value=(summary, pd.DataFrame())
+    ):
+        module.show_trend(annual, pd.Series(dtype=float))
+    trend_columns[1].metric.assert_called_once_with("p-value · pente", expected)
+
+
 @pytest.fixture(scope="module")
 def prepared_data(tmp_path_factory):
     """Générer l'entrée depuis le CSV brut sans dépendre d'un export local."""
     output = tmp_path_factory.mktemp("map_data") / "regularite_tgv_clean.csv"
     return load_data(output_path=output)
+
+
+def test_poids_causes_modifient_icp(monkeypatch, prepared_data):
+    source = Path(__file__).resolve().parents[1] / "src"
+    monkeypatch.syspath_prepend(str(source))
+    core = importlib.import_module("core")
+    with patch.object(core, "load_data", return_value=prepared_data):
+        app = AppTest.from_file(str(source / "app.py"), default_timeout=60).run()
+        assert not app.exception
+        causes = [
+            "externes", "infrastructure", "gestion_trafic", "materiel_roulant",
+            "gestion_gare", "prise_en_compte_voyageurs",
+        ]
+        assert all(app.slider(key=f"poids_{cause}").value == 1.0 for cause in causes)
+        avant = app.dataframe[0].value.set_index("Gare d'arrivée")["ICP absolu / mois"]
+        app.slider(key="poids_infrastructure").set_value(2.0).run()
+        assert not app.exception
+        apres = app.dataframe[0].value.set_index("Gare d'arrivée")["ICP absolu / mois"]
+        assert (apres.sort_index() != avant.sort_index()).any()
 
 
 def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch, prepared_data):

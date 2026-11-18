@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from scipy.stats import linregress, spearmanr
 
 from src.my_package.classDF import TrendAnalyzer
 from src.my_package.funcDF import compteur_volatilite, score_volatilite, trend_data
@@ -30,9 +31,29 @@ def test_tendance_avec_une_seule_regression(metric, slope, observed):
     summary, chart = result
     assert summary["beta1"] == pytest.approx(slope)
     assert summary["r2"] == pytest.approx(1)
+    assert summary["regression_pvalue"] == pytest.approx(linregress([2018, 2019, 2022], observed).pvalue)
+    assert summary["spearman_pvalue"] == pytest.approx(spearmanr([2018, 2019, 2022], observed).pvalue)
     assert summary["prediction_2026"] == pytest.approx(slope * 9)
     assert chart["observed"].tolist() == pytest.approx(observed)
     assert chart["regression"].tolist() == pytest.approx(observed)
+
+
+@pytest.mark.parametrize("years, values", [
+    ([2018, 2019], [1, 2]),
+    ([2018, 2019, 2022], [1, 1, 1]),
+])
+def test_pvalue_spearman_indefinie(years, values):
+    result = TrendAnalyzer.ajuster_tendance(years, values, "ICP_abs")
+    assert pd.isna(result["spearman_pvalue"])
+    assert pd.isna(result["regression_pvalue"])
+
+
+def test_pvalue_spearman_serie_non_monotone():
+    years = [2017, 2018, 2019, 2022]
+    values = [1, 4, 2, 3]
+    result = TrendAnalyzer.ajuster_tendance(years, values, "ICP_abs")
+    assert result["spearman_pvalue"] == pytest.approx(spearmanr(years, values).pvalue)
+    assert result["regression_pvalue"] == pytest.approx(linregress(years, values).pvalue)
 
 
 def test_score_de_causes_pondere_par_minutes_et_seuil():
