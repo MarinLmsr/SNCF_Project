@@ -62,7 +62,20 @@ COLUMNS = {
 
 
 def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH):
-    """Nettoyer, renommer et contrôler les observations avant leur export CSV."""
+    """Nettoyer le CSV brut, contrôler les observations et exporter le résultat.
+
+    Args:
+        file_path: Chemin du CSV brut.
+        output_path: Chemin du CSV nettoyé à créer.
+
+    Returns:
+        Le DataFrame brut, le DataFrame nettoyé, les colonnes supprimées
+        et les indices des lignes exclues.
+
+    Raises:
+        DataError: Si la source ne peut pas être lue ou le résultat exporté,
+            ou si les chemins source et destination sont identiques.
+    """
 
     file_path, output_path = Path(file_path), Path(output_path)
     if file_path.resolve() == output_path.resolve():

@@ -539,6 +539,7 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
 
 
 def boxhistplot_bundle_figure(data: pd.DataFrame, datacols: list, ncols: int) -> go.Figure:
+    """Créer une figure Plotly de boxplots et d'histogrammes pour les colonnes choisies."""
 
     datacols = [col for col in datacols for _ in range(2)]
 
@@ -567,11 +568,12 @@ def boxhistplot_bundle_figure(data: pd.DataFrame, datacols: list, ncols: int) ->
 
 
 def boxhistplot_bundle(data: pd.DataFrame, datacols: list, ncols: int) -> None:
+    """Afficher dans Streamlit les boxplots et histogrammes des colonnes choisies."""
     st.plotly_chart(boxhistplot_bundle_figure(data, datacols, ncols))
 
 
 def main() -> None:
-    """Relier les six onglets à une seule source et à des hypothèses communes."""
+    """Relier les sept onglets à une seule source et à des hypothèses communes."""
     st.set_page_config(page_title="RailInsight · Taxis en gare", page_icon="🚉", layout="wide")
     configure_logging()
     st.title("RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire")

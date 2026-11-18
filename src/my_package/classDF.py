@@ -46,7 +46,7 @@ METRICS = {"ICP_abs": "ICP absolu", "ICP_rel": "ICP relatif"}
 
 # Classe pour la gestion des erreurs de données
 class DataError(ValueError):
-    pass
+    """Erreur lors de la lecture ou du traitement des données SNCF."""
 
 
 # -----------------------------------------------------------------------------
@@ -94,6 +94,11 @@ class DataLoader:
 
     # On charge et renvoie le fichier
     def load(self) -> pd.DataFrame:
+        """Lire le CSV préparé et retourner son DataFrame.
+
+        Raises:
+            DataError: Si le fichier ne peut pas être lu.
+        """
         try:
             data = pd.read_csv(self.path, sep=";")
         except (
@@ -117,17 +122,22 @@ class ICPCalculator:
 
     # On récupère la configuration du modèle
     def __init__(self, config: ConfigurationICP):
+        """Initialiser le calculateur avec les hypothèses ICP fournies."""
         self.config = config
 
-    # Calcul le taux de recours selon le retard en minutes : @staticmethod car pas d'utilisation 
+    # Calcul le taux de recours selon le retard en minutes : @staticmethod car pas d'utilisation
     # de self
     @staticmethod
     def taux_conso(retard_min: float) -> float:
+        """Retourner le taux de recours de référence pour un retard en minutes.
+
+        Le taux est interpolé entre les seuils définis et plafonné au-delà de 60 minutes.
+        """
         minutes = [0, 1, 15, 30, 60]
         taux = [0.0, 0.01, 0.01, 0.10, 0.25]
         return float(np.interp(retard_min, minutes, taux))
 
-    # Calcul pour chaque ligne du DataFrame de la consommation potentielle - de Taxi/VTC - 
+    # Calcul pour chaque ligne du DataFrame de la consommation potentielle - de Taxi/VTC -
     # en se basant sur les hypothèses du modèle
     def calculer_ligne(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculer les courses potentielles par liaison et mois, hors annulations"""
@@ -204,7 +214,7 @@ class TrendAnalyzer:
 
     @staticmethod
     def ajuster_tendance(years: np.ndarray, values: np.ndarray, metric: str) -> dict[str, float]:
-        """Régression linéaire de l'ICP sur les années (au moins 3, 2026 exclue) 
+        """Régression linéaire de l'ICP sur les années (au moins 3, 2026 exclue)
         et prédictions 2026-2027"""
 
         if metric not in METRICS:
