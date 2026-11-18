@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 
 # Scipy : Pour les statistiques
-from scipy.stats import spearmanr
+from scipy.stats import linregress, spearmanr
 
 # Sklearn : Pour les modèles de régression linéaire
 from sklearn.linear_model import LinearRegression
@@ -185,7 +185,7 @@ class TrendAnalyzer:
         x, y = years[ok], values[ok]
 
         # Tout est indéfini (NaN) tant qu'on n'a pas pu calculer
-        cles = ["beta1", "intercept", "r2", "spearman", "cv", "prediction_2026", "prediction_2027"]
+        cles = ["beta1", "intercept", "r2", "regression_pvalue", "spearman", "spearman_pvalue", "cv", "prediction_2026", "prediction_2027"]
         result = dict.fromkeys(cles, np.nan)
         result["n_years"] = len(x)
 
@@ -205,7 +205,10 @@ class TrendAnalyzer:
             model = LinearRegression().fit(X, y)
             slope, intercept = float(model.coef_[0]), float(model.intercept_)
             result["r2"] = float(model.score(X, y))
-            result["spearman"] = float(spearmanr(x, y).statistic)
+            result["regression_pvalue"] = float(linregress(x, y).pvalue)
+            correlation = spearmanr(x, y)
+            result["spearman"] = float(correlation.statistic)
+            result["spearman_pvalue"] = float(correlation.pvalue)
 
         result["beta1"] = slope
         result["intercept"] = intercept

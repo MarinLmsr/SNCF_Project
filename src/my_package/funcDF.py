@@ -18,7 +18,6 @@ import numpy as np
 
 # Pandas : Pour la manipulation des DataFrames
 import pandas as pd
-
 import plotly.graph_objects as go
 
 # Variables : années exclues, stations étrangères, classes utilisées, metriques, etc...
@@ -72,8 +71,8 @@ def ranking_table(annual: pd.DataFrame, metric: str, sort_by: str = "ICP") -> pd
         lignes.append(ligne)
 
     colonnes = [
-        "gare_arrivee", "ICP_abs", "ICP_rel", "beta1", "intercept", "r2",
-        "spearman", "cv", "prediction_2026", "prediction_2027", "n_years",
+        "gare_arrivee", "ICP_abs", "ICP_rel", "beta1", "intercept", "r2", "regression_pvalue",
+        "spearman", "spearman_pvalue", "cv", "prediction_2026", "prediction_2027", "n_years",
     ]
 
     table = pd.DataFrame(lignes, columns=colonnes)
