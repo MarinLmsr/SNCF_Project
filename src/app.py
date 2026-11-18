@@ -1,14 +1,13 @@
 """Six onglets simples pour étudier le potentiel taxi/VTC des gares d'arrivée."""
 
 import logging
+import math
 
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import pydeck as pdk
 import streamlit as st
-import math
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from core import (
     RAW_DATA_PATH,
     ConfigurationICP,
@@ -26,10 +25,13 @@ from core import (
 from core import (
     load_data as prepare_data,
 )
+from plotly.subplots import make_subplots
 
 LOGGER = logging.getLogger("railinsight")
 BASKET_KEYS = ("basket_trend", "basket_absolute", "basket_relative")
 MAP_RADIUS_PIXELS = 55
+TREND_R2_MIN = 0.5  # en dessous, la droite décrit mal l'évolution de l'ICP
+CV_MAX = 0.30  # au-dessus, l'opportunité est jugée irrégulière
 
 # 0 = cause prévisible et améliorable, 1 = cause imprévisible
 POIDS_IMPREVISIBILITE = {
@@ -378,29 +380,160 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
         "Le CA potentiel utilise l'ICP absolu correspondant × prix moyen, même dans le classement relatif. C'est un montant mensuel simulé, pas un bénéfice."
     )
 
+def fr(text: str) -> str:
+    """Mettre un nombre au format français (virgule décimale)."""
+    return text.replace(".", ",")
 
-def show_conclusion(annual: pd.DataFrame) -> None:
-    """Rédiger une courte conclusion fondée sur le périmètre affiché."""
-    absolute, relative = ranking_table(annual, "ICP_abs"), ranking_table(
-        annual, "ICP_rel"
+
+def station_profile(row: pd.Series, scores: pd.Series) -> str:
+    """Résumer en une phrase la tendance, la régularité et l'imprévisibilité d'une gare."""
+    if row.n_years < 3 or pd.isna(row.beta1):
+        trend = "trop peu d'années complètes pour estimer une tendance"
+    else:
+        direction = (
+            "stable"
+            if np.isclose(row.beta1, 0)
+            else ("à la hausse" if row.beta1 > 0 else "à la baisse")
+        )
+        fit = "bien décrite" if row.r2 >= TREND_R2_MIN else "peu lisible"
+        trend = f"une tendance {direction}, {fit} par une droite (R² = {fr(f'{row.r2:.2f}')})"
+    if pd.isna(row.cv):
+        regularity = "dont la régularité ne peut pas être mesurée"
+    elif row.cv <= CV_MAX:
+        regularity = f"plutôt régulière (variabilité annuelle de {row.cv:.0%})"
+    else:
+        regularity = f"irrégulière (variabilité annuelle de {row.cv:.0%})"
+    if row.gare_arrivee in scores.index:
+        vol = scores[row.gare_arrivee]
+        cause = (
+            "des causes plutôt connues et améliorables"
+            if vol <= scores.median()
+            else "des causes plutôt imprévisibles"
+        )
+        volatility = f"des retards dus à {cause} (score {fr(f'{vol:.1f}')} / 10)"
+    else:
+        volatility = "une volatilité des causes non calculable"
+    return (
+        f"**{row.gare_arrivee.title()}** : {trend}, une opportunité {regularity}, "
+        f"et {volatility}."
     )
+    
+def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
+    """Rédiger la conclusion à partir du périmètre et des hypothèses affichés."""
+    absolute = ranking_table(annual, "ICP_abs")
+    relative = ranking_table(annual, "ICP_rel")
     if absolute.ICP_abs.max() == 0:
         st.write(
-            "Avec un recours supposé nul au taxi/VTC, tous les ICP valent zéro. Le classement ne permet donc pas de distinguer les opportunités."
+            "Avec un recours supposé nul au taxi/VTC, tous les ICP valent zéro. "
+            "Le classement ne permet donc pas de distinguer les opportunités."
+        )
+        return
+
+    percentage = st.session_state.get("taxi_percentage", 25)
+    basket = float(st.session_state.get("basket_trend", 25.0))
+    n_years = int(annual.annee.nunique())
+    n_stations = int(annual.gare_arrivee.nunique())
+    first, intense = absolute.iloc[0], relative.iloc[0]
+
+    st.write(
+        f"Notre étude cherchait à repérer les gares d'arrivée où les retards de TGV "
+        f"créent le plus de demande de taxis et de VTC, et à savoir si cette "
+        f"opportunité est durable. Les résultats ci-dessous portent sur "
+        f"**{n_stations} gares** et **{n_years} années complètes**, avec un recours "
+        f"supposé de **{percentage} %** pour un retard d'au moins une heure et une "
+        f"course à **{fr(f'{basket:.0f}')} €**."
+    )
+
+    # --- Où se trouve l'opportunité ? ---
+    st.markdown("#### Où se trouve l'opportunité ?")
+    top = ", ".join(
+        f"**{r.gare_arrivee.title()}** ({fr(display(r.ICP_abs, 'ICP_abs'))})"
+        for r in absolute.head(4).itertuples()
+    )
+    revenue = f"{first.ICP_abs * basket:,.0f} €".replace(",", " ")
+    st.write(
+        f"En volume, les gares en tête sont {top} courses supplémentaires simulées "
+        f"par mois. Pour **{first.gare_arrivee.title()}**, cela représente un chiffre "
+        f"d'affaires potentiel d'environ **{revenue} par mois** pour l'ensemble de "
+        f"l'offre taxi/VTC de la gare."
+    )
+    paris = int(
+        absolute.head(10).gare_arrivee.str.upper().str.startswith("PARIS").sum()
+    )
+    if paris >= 2:
+        st.write(
+            f"Ce classement mesure surtout la taille du trafic : **{paris} des dix "
+            f"premières gares sont parisiennes**."
+        )
+    if intense.gare_arrivee == first.gare_arrivee:
+        st.write(
+            f"**{intense.gare_arrivee.title()}** arrive aussi en tête en intensité, "
+            f"avec **{fr(display(intense.ICP_rel, 'ICP_rel'))}** des voyageurs prévus : "
+            f"volume et intensité désignent ici la même gare."
         )
     else:
-        first, intense = absolute.iloc[0], relative.iloc[0]
         st.write(
-            f"Sur les liaisons nationales de la période sélectionnée, *{first.gare_arrivee}* présente le potentiel absolu simulé le plus élevé, avec **{display(first.ICP_abs, 'ICP_abs')} courses supplémentaires par mois observé**. *{intense.gare_arrivee}* arrive en tête du classement relatif, à **{display(intense.ICP_rel, 'ICP_rel')}** des voyageurs prévus."
+            f"En intensité, **{intense.gare_arrivee.title()}** arrive en tête, avec "
+            f"**{fr(display(intense.ICP_rel, 'ICP_rel'))}** des voyageurs prévus. "
+            f"Une gare très touchée par les retards n'est donc pas forcément celle où "
+            f"l'opportunité est la plus grande, et inversement."
         )
+
+    # --- L'opportunité est-elle durable ? ---
+    st.markdown("#### L'opportunité est-elle durable ?")
+    reliable = absolute[absolute.n_years >= 3]
+    if not reliable.empty:
+        solid = (reliable.r2 >= TREND_R2_MIN).mean()
+        rising = (reliable.beta1 > 0).mean()
         st.write(
-            "Ces deux classements répondent à des questions différentes : le premier décrit un volume potentiel, le second l'intensité du phénomène. Le choix d'une gare doit aussi tenir compte de la régularité de ce potentiel, visible dans l'onglet Tendances."
+            f"Sur les {len(reliable)} gares ayant au moins trois années complètes, "
+            f"**{rising:.0%}** ont un ICP en hausse, mais seulement **{solid:.0%}** "
+            f"ont une tendance bien décrite par une droite (R² d'au moins "
+            f"{TREND_R2_MIN:.0%}). Avec si peu d'années par gare, les tendances et les "
+            f"prévisions sont des ordres de grandeur, pas des résultats."
         )
-    st.write(
-        "Notre étude fournit une piste pour examiner où renforcer l'offre de taxis/VTC. Elle ne mesure pas les courses effectivement réservées. Le remplissage des trains, les transports locaux, le partage des taxis et les coûts d'exploitation ne sont pas observés. La courbe de recours est une hypothèse, appliquée à un retard moyen mensuel."
+    st.write("Voici le profil des trois gares en tête du classement en volume :")
+    for _, row in absolute.head(3).iterrows():
+        st.markdown(f"- {station_profile(row, scores)}")
+    st.caption(
+        f"Une gare est jugée régulière si la variabilité annuelle de son ICP reste "
+        f"sous {CV_MAX:.0%}. Un faible score de volatilité signifie que les retards "
+        f"viennent de causes connues, donc plus faciles à anticiper pour un investisseur."
     )
+
+    # --- Ce qu'il faut en retenir ---
+    st.markdown("#### Ce qu'il faut en retenir")
+    both = set(absolute.head(10).gare_arrivee) & set(relative.head(10).gare_arrivee)
+    candidates = absolute[absolute.gare_arrivee.isin(both)]
+    candidates = candidates[candidates.cv.le(CV_MAX)]
+    if not scores.empty:
+        candidates = candidates[
+            candidates.gare_arrivee.map(scores).le(scores.median())
+        ]
+    if candidates.empty:
+        st.write(
+            "Aucune gare ne cumule, dans les dix premières des deux classements, une "
+            "variabilité annuelle faible et des causes de retard plutôt prévisibles : "
+            "avec ces réglages, aucune candidate ne se détache nettement."
+        )
+    else:
+        names = ", ".join(sorted(n.title() for n in candidates.gare_arrivee))
+        st.write(
+            f"Les gares qui cumulent un fort volume, une forte intensité, une "
+            f"opportunité régulière et des causes de retard plutôt prévisibles sont "
+            f"les meilleures candidates pour un investissement : **{names}**."
+        )
+
+    # --- Limites ---
+    st.markdown("#### Ce que cette étude ne dit pas")
     st.write(
-        "Les tendances et les extrapolations ne garantissent pas la persistance de la demande. Une décision opérationnelle demanderait des données de terrain et une validation des hypothèses. Les montants affichés représentent un chiffre d'affaires potentiel, jamais un bénéfice démontré."
+        "Notre étude fournit une piste, pas une décision. Nous n'observons ni les "
+        "courses réellement réservées, ni le remplissage des trains, ni la qualité "
+        "des transports en commun autour de chaque gare, ni les coûts d'exploitation. "
+        "La courbe de recours au taxi est une hypothèse appliquée à un retard moyen "
+        "mensuel, et les montants affichés représentent un chiffre d'affaires "
+        "potentiel, jamais un bénéfice. Avant tout engagement, ces hypothèses devraient "
+        "être validées avec des données de terrain."
     )
 
 
@@ -451,7 +584,7 @@ def main() -> None:
         "RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire"
     )
     st.caption(
-        "Etude du retard en gare d'arrivée en fonction de la durée du retard, des causes de retard et de la fréquentation des gares"
+        "Étude du potentiel de recours aux taxis et VTC dans les gares d’arrivée, à partir du volume des trains, de la durée des retards et de leurs causes."
     )
     st.caption(
         "Projet mené par Jean-Baptiste Clavier, Jean-Baptiste Garel, Marin Lemesre, Xingshi Liu et Jonathan Ozden"
@@ -618,7 +751,7 @@ def main() -> None:
             "Les annulations ne sont pas integrées à l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l'arrivée. Elles restent présentes dans le classement de fiabilité."
         )
         st.caption(
-            "Hypothèses : \n- 550 voyageurs par train et un voyageur reporté équivaut à une course ; \n- les annulations n'entrent pas dans l'ICP d'arrivée ; \n- Nous avons supposé que la part de voyageurs qui prennent un taxi ou un VTC augmente avec la durée du retard : 1 % pour un retard de 1 à 15 minutes, 10 % à 30 minutes et 25 % à partir d’une heure, avec une progression linéaire entre ces points."
+            "Hypothèses : \n- 550 voyageurs par train et un voyageur reporté équivaut à une course ; \n- les annulations n'entrent pas dans l'ICP d'arrivée ; \n- Nous avons supposé que la part de voyageurs qui prennent un taxi ou un VTC augmente avec la durée du retard : 1 % pour un retard de 1 à 15 minutes, 10 % à 30 minutes et 25 % à partir d’une heure, avec une progression linéaire entre ces points ;\n- Régression linéaire et statistiques associées établies à l'aide de la bibliothèque sklearn.linear_model de Python"
         )
         st.caption(
             f"{int((~scope.eligible).sum())} ligne(s) non exploitable(s) dans ce périmètre. Seuls les groupes gare/année couvrant douze mois valides sont comparés ; les liaisons couvertes peuvent varier."
@@ -663,7 +796,7 @@ def main() -> None:
         show_ranking(annual, "ICP_rel", "basket_relative")
     with tabs[5]:
         st.subheader("Conclusion de notre article")
-        show_conclusion(annual)
+        show_conclusion(annual, scores)
     with tabs[6]:
         st.subheader("Statistiques post data cleansing")
 
