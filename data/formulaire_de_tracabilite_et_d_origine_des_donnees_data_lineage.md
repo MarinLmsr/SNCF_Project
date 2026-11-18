@@ -21,8 +21,8 @@
 | Champ / Critère | Valeur renseignée | Aide au remplissage / Exemple |
 | :--- | :--- | :--- |
 | **Type de source principale** | Fichiers plats (CSV, Parquet, JSON, Excel) | Sélectionner le type de source principal |
-| **Identifiant technique de la source** | [https://ressources.data.sncf.com/explore/dataset/regularite-mensuelle-tgv-axes/](https://ressources.data.sncf.com/explore/dataset/regularite-mensuelle-tgv-axes/) | Table SQL (DB.SCHEMA.TABLE), URL API, chemin S3/GCS... |
-| **Sources secondaires / Jointures** | ? position phi/G des gares / ? | Lister les autres tables ou fichiers croisés |
+| **Identifiant technique de la source** | Régularité mensuelles des TGV [https://ressources.data.sncf.com/explore/dataset/regularite-mensuelle-tgv-axes/](https://ressources.data.sncf.com/explore/dataset/regularite-mensuelle-tgv-axes/) | Table SQL (DB.SCHEMA.TABLE), URL API, chemin S3/GCS... |
+| **Sources secondaires / Jointures** | Position phi/G des gares : https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs | Lister les autres tables ou fichiers croisés |
 | **Propriétaire métier (Data Owner)** | SNCF Voyageurs | Nom du responsable métier ou équipe propriétaire |
 | **Méthode d'extraction** | export manuel | Ex : Requête SQL, pipeline Airflow, flux Kafka, export manuel |
 | **Fréquence de rafraîchissement** | Ponctuelle / Statique | Sélectionner la fréquence de mise à jour |
