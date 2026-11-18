@@ -404,7 +404,9 @@ def show_conclusion(annual: pd.DataFrame) -> None:
     )
 
 
-def boxplot_bundle(data: pd.DataFrame, datacols: list, ncols: int) -> None:
+def boxhistplot_bundle_figure(
+    data: pd.DataFrame, datacols: list, ncols: int
+) -> go.Figure:
 
     datacols = [col for col in datacols for _ in range(2)]
 
@@ -431,8 +433,12 @@ def boxplot_bundle(data: pd.DataFrame, datacols: list, ncols: int) -> None:
             )
 
     fig.update_layout(height=300 * nrows, showlegend=False)
-    fig.update_xaxes(showticklabels=False)
-    st.plotly_chart(fig)
+    fig.update_xaxes(showticklabels=True)
+    return fig
+
+
+def boxhistplot_bundle(data: pd.DataFrame, datacols: list, ncols: int) -> None:
+    st.plotly_chart(boxhistplot_bundle_figure(data, datacols, ncols))
 
 
 def main() -> None:
@@ -678,7 +684,7 @@ def main() -> None:
             or "arrivée" in i
             or "Retard moyen trains en retard > 15" in i
         ]
-        boxplot_bundle(data, data_num_bundle, 4)
+        boxhistplot_bundle(data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # Boxplots des causes de retards en pourcentage
@@ -686,13 +692,13 @@ def main() -> None:
             "Analyse des causes de retards en pourcentage - Sur base mensuelle et par ligne, les retards ont souvent des causes diversifiées sauf rarement (outliers) où une cause peut justifier la majorité des retards"
         )
         data_num_bundle = [i for i in data_num_cols if i.startswith("p_")]
-        boxplot_bundle(data, data_num_bundle, 4)
+        boxhistplot_bundle(data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # Boxplots autres colonnes numériques
         st.write("Boxplots autres colonnes numériques")
         data_num_bundle = [i for i in data_num_cols if i != "annee"]
-        boxplot_bundle(data, data_num_bundle, 4)
+        boxhistplot_bundle(data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # for i, col in enumerate(data_num_cols):
