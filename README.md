@@ -4,12 +4,18 @@ Projet étudiant Streamlit : explorer où les retards TGV à l'arrivée pourraie
 créer un report vers les taxis/VTC. L'ICP est une simulation sous hypothèses,
 pas une mesure des réservations ou de la rentabilité réelle.
 
+Le fichier [cadre.txt](cadre.txt) a servi de guide pour la réalisation du projet.
+Il présente aussi des pistes de réflexion qui ne sont pas toutes implémentées
+dans l'application actuelle.
+
 ## Lancer l'application
 
-Depuis la racine, dans l'environnement Python du projet :
+Prérequis : Python 3.12 ou plus récent et [uv](https://docs.astral.sh/uv/).
+Depuis la racine du projet, installez les dépendances et lancez l'application :
 
 ```bash
-python -m streamlit run src/app.py
+uv sync --group dev
+uv run streamlit run src/app.py
 ```
 
 Les dépendances sont déclarées dans `pyproject.toml` et `uv.lock`.
@@ -32,16 +38,17 @@ Streamlit met cette préparation en cache et la relance
 si le CSV brut change ; les interactions ordinaires ne réécrivent pas le fichier.
 La source brute n'est jamais modifiée.
 
-## Les six onglets
+## Les sept onglets
 
 | Onglet | Contenu |
 |---|---|
 | 0 · Accueil | Question de l'étude, périmètre et définition des ICP |
 | 1 · Carte de chaleur | Carte de France, cases à cocher ICP absolu / relatif, période commune |
-| 2 · Tendances | Choix d'une gare et d'un ICP, barres annuelles avec droite de régression, Spearman, β₁, R² et variabilité |
+| 2 · Étude par gare | Choix d'une gare et d'un ICP, évolution annuelle, régression, p-value de la pente, Spearman et variabilité |
 | 3 · ICP absolu | Tableau triable par ICP, β₁ ou R², extrapolations 2026 et 2027, CA potentiel |
 | 4 · ICP relatif | Même tableau, avec taux en pourcentage et pente en points par an |
-| 5 · Conclusion | Texte court dont les résultats chiffrés suivent les filtres |
+| 5 · Conclusion | Synthèse des classements, de leurs tendances et des limites de l'étude |
+| 6 · Annexes | Boxplots et histogrammes des données après nettoyage |
 
 Les filtres de période et de minimum de trains sont communs aux onglets.
 L'application utilise uniquement les liaisons de service `National` vers les
@@ -51,8 +58,14 @@ explicitement exclus.
 Dans l'onglet 2, le curseur règle le recours au taxi pour un retard d'au moins
 60 minutes. Il proportionne toute la courbe : à 25 %, les taux sont 1 % à 1–15 min,
 10 % à 30 min et 25 % à 60 min et plus. Les intermédiaires sont interpolés.
-Le réglage s'applique aux six onglets. Les causes sont neutres (= 1) et PAX est
-fixé à 550 voyageurs par train pour cette version simple.
+Le réglage s'applique aux calculs communs. Dans la barre latérale, les poids des
+six causes de retard sont réglables entre 0 et 3 ; ils valent tous 1 par défaut.
+PAX est fixé à 550 voyageurs par train pour cette version simple.
+
+L'onglet 2 affiche aussi une jauge d'imprévisibilité des causes, calculée à
+partir de coefficients fixes et pondérée par les minutes de retard. Elle ne
+mesure pas directement la variabilité temporelle de l'ICP, indiquée séparément
+par le coefficient de variation annuel.
 
 Le prix moyen d'une course est modifiable dans les onglets 2, 3 et 4, et les trois
 champs sont synchronisés. Il modifie le CA potentiel mais pas les ICP ni leurs
@@ -80,7 +93,9 @@ correspondant, pas avec un pourcentage multiplié par un prix.
 - La régression utilise les **années réelles** et exige au moins trois années
   complètes. R² est le coefficient de détermination ; Spearman mesure l'association
   monotone entre l'année et l'ICP. Une série constante n'a pas de R² ou de Spearman
-  interprétable. Une extrapolation négative, ou supérieure à 100 % pour un ratio,
+  interprétable. La p-value de la pente est calculée par gare, sans correction
+  pour comparaisons multiples, et doit être interprétée avec prudence sur peu
+  d'années. Une extrapolation négative, ou supérieure à 100 % pour un ratio,
   est laissée vide et n'est pas écrêtée silencieusement.
 - Les prévisions sont de simples extrapolations sans intervalle de prédiction.
   Elles ne démontrent pas une demande future. L'ICP ne mesure pas les réservations
@@ -103,7 +118,7 @@ survoler les points pour les valeurs. Les cartes absolue et relative ont des
 
 ## Organisation et vérification
 
-- `src/app.py` : les six onglets, les textes et les graphiques Streamlit,
+- `src/app.py` : les sept onglets, les textes et les graphiques Streamlit,
   conservés ; l'interface importe les traitements depuis le module voisin `core`.
 - `src/core.py` : lien avec l'application ; orchestre le chargement et l'analyse,
   et expose les fonctions utiles de `my_package`.
@@ -129,7 +144,10 @@ persistance et quadrants) ont été retirés. Le prix de la course intervient
 uniquement dans la préparation des montants affichés, pas dans le calcul des ICP.
 
 ```bash
-python -m pytest tests/
+uv run pytest tests/
 ```
+
+Au dernier contrôle, un test d'interface échoue car il attend six onglets alors
+que l'application en affiche sept.
 
 Les journaux de l'application sont dans `logs/debug.log` et `logs/errors.log`.
