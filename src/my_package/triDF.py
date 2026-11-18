@@ -1,5 +1,6 @@
 """Ce script permet de nettoyer et de diagnostiquer les données de régularité des trains TGV.
-Il identifie les anomalies et propose des actions correctives pour chaque index du DataFrame."""
+Il identifie les anomalies et propose des actions correctives pour chaque index du DataFrame.
+"""
 
 # -----------------------------------------------------------------------------
 # 1. LIBRAIRIES & VARIABLES & GESTION DES ERREURS DE DONNEE
@@ -74,7 +75,12 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
     # Lecture du fichier CSV
     try:
         df_raw = pd.read_csv(file_path, sep=";", encoding="utf-8-sig")
-    except (OSError, UnicodeError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
+    except (
+        OSError,
+        UnicodeError,
+        pd.errors.ParserError,
+        pd.errors.EmptyDataError,
+    ) as exc:
         raise DataError(f"Impossible de lire la source brute {file_path}.") from exc
 
     # Colonnes requises
@@ -128,8 +134,6 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
 
     # C) DÉTECTION ET DIAGNOSTIC INDEX PAR INDEX
     # -----------------------------------------------------------------------------
-
-    cols_causes = [c for c in df.columns if c.startswith("Prct retard")]
 
     for idx, row in df.iterrows():
         raisons = []
@@ -262,11 +266,13 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
     """ 2. CORRECTION LOGIQUE DES TRANCHES DE RETARD (Imputation) """
 
     df_clean["Nombre trains en retard > 30min"] = np.maximum(
-        df_clean["Nombre trains en retard > 30min"], df_clean["Nombre trains en retard > 60min"]
+        df_clean["Nombre trains en retard > 30min"],
+        df_clean["Nombre trains en retard > 60min"],
     )
 
     df_clean["Nombre trains en retard > 15min"] = np.maximum(
-        df_clean["Nombre trains en retard > 15min"], df_clean["Nombre trains en retard > 30min"]
+        df_clean["Nombre trains en retard > 15min"],
+        df_clean["Nombre trains en retard > 30min"],
     )
 
     """ 3. CALCUL DU RÉFÉRENTIEL DE DURÉE MÉDIANE PAR LIAISON """
