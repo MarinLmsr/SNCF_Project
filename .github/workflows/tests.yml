@@ -33,4 +33,4 @@ jobs:
         run: uv sync
 
       - name: Lancer les tests et mesurer la couverture
-        run: python -m pytest -v --cov=src --cov-report=term-missing
+        run: uv python -m pytest -v --cov=src --cov-report=term-missing
