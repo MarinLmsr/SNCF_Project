@@ -371,18 +371,29 @@ def show_conclusion(annual: pd.DataFrame) -> None:
 
 def boxplot_bundle(data: pd.DataFrame, datacols: list, ncols: int) -> None:
 
+    datacols = [col for col in datacols for _ in range(2)]
+
     nrows = math.ceil(len(datacols) / ncols)
 
     fig = make_subplots(rows=nrows, cols=ncols, subplot_titles=list(datacols))
 
     for i, col in enumerate(datacols):
-        fig.add_trace(
-            go.Box(
-                y=data[col], name=col, boxmean=True
-            ),  # boxmean : affiche aussi la moyenne
-            row=i // ncols + 1,
-            col=i % ncols + 1,
-        )
+
+        if i % 2 == 0:
+            fig.add_trace(
+                go.Box(
+                    y=data[col], name=col, boxmean=True
+                ),  # boxmean : affiche aussi la moyenne
+                row=i // ncols + 1,
+                col=i % ncols + 1,
+            )
+
+        else:
+            fig.add_trace(
+                go.Histogram(x=data[col], name=col, nbinsx=30),
+                row=i // ncols + 1,
+                col=i % ncols + 1,
+            )
 
     fig.update_layout(height=300 * nrows, showlegend=False)
     fig.update_xaxes(showticklabels=False)
@@ -597,7 +608,7 @@ def main() -> None:
 
         # Boxplots des retards à l'arrivée
         st.write(
-            "Boxplots des retards à l'arrivée - Distribution typique de retards avec peu d'outliers avec des valeurs extrêmes"
+            "Analyse des retards à l'arrivée - Distribution typique de retards avec peu d'outliers avec des valeurs extrêmes"
         )
         data_num_bundle = [
             i
@@ -607,21 +618,21 @@ def main() -> None:
             or "arrivée" in i
             or "Retard moyen trains en retard > 15" in i
         ]
-        boxplot_bundle(data, data_num_bundle, 3)
+        boxplot_bundle(data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # Boxplots des causes de retards en pourcentage
         st.write(
-            "Boxplots des causes de retards en pourcentage - - Sur base mensuelle et par ligne, les retards ont souvent des causes diversifiées sauf rarement (outliers) où une cause peut justifier la majorité des retards"
+            "Analyse des causes de retards en pourcentage - Sur base mensuelle et par ligne, les retards ont souvent des causes diversifiées sauf rarement (outliers) où une cause peut justifier la majorité des retards"
         )
         data_num_bundle = [i for i in data_num_cols if i.startswith("p_")]
-        boxplot_bundle(data, data_num_bundle, 3)
+        boxplot_bundle(data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # Boxplots autres colonnes numériques
         st.write("Boxplots autres colonnes numériques")
         data_num_bundle = [i for i in data_num_cols if i != "annee"]
-        boxplot_bundle(data, data_num_bundle, 3)
+        boxplot_bundle(data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # for i, col in enumerate(data_num_cols):
