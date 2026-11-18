@@ -262,7 +262,7 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
     st.caption(
         "Barres bleues : ICP annuel observé (moyenne mensuelle). Droite orange : ajustement linéaire. Les années COVID ne sont pas imputées."
     )
-    col_gauge, col_text = st.columns([1, 2])
+    col_gauge, col_text = st.columns([1, 2], vertical_alignment="center")
     with col_gauge:
         if station in scores.index:
             st.plotly_chart(
@@ -274,7 +274,6 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
                 "Pas assez de minutes de retard pour calculer la volatilité de cette gare."
             )
     with col_text:
-        
         st.write(
             "Proche de 0 : les retards viennent de causes connues et améliorables "
             "(infrastructure, matériel, gestion en gare). Proche de 10 : ils viennent "
