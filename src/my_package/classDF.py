@@ -36,6 +36,7 @@ METRICS = {"ICP_abs": "ICP absolu", "ICP_rel": "ICP relatif"}
 # Classe pour la gestion des erreurs de données
 class DataError(ValueError):
     """Signaler une erreur de lecture, d'export ou de structure des données."""
+
     pass
 
 
@@ -70,6 +71,7 @@ class ConfigurationICP:
     taux_recours_60min: float = 0.25
 
     # Le seuil minimal, le taux de recours et les poids des causes sont ajustables dans streamlit
+
 
 # -----------------------------------------------------------------------------
 # 3. CHARGEMENT DES DONNÉES NETTOYÉES - DataLoader
@@ -188,7 +190,9 @@ class ICPCalculator:
         grouped["ICP_abs"] = grouped["conso_totale_sum"] / grouped["nb_mois"].replace(0, np.nan)
 
         # ICP relatif : courses potentielles rapportées au nombre de voyageurs prévus.
-        grouped["ICP_rel"] = grouped["conso_totale_sum"] / grouped["circ_pax_sum"].replace(0, np.nan)
+        grouped["ICP_rel"] = grouped["conso_totale_sum"] / grouped["circ_pax_sum"].replace(
+            0, np.nan
+        )
 
         return grouped.sort_values(["annee", "ICP_abs"], ascending=[True, False])
 
