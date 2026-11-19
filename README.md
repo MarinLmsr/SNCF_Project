@@ -1,12 +1,19 @@
 # RailInsight — Taxis et VTC en gare d'arrivée
 
-Projet étudiant Streamlit : explorer où les retards TGV à l'arrivée pourraient
-créer un report vers les taxis/VTC. L'ICP est une simulation sous hypothèses,
+Projet IADATA700 Kit Big Data : création d'une webapp Streamlit d'analyse de données.
+Membres du groupe :  
+- Jean-Baptiste Clavier ;  
+- Jean-Baptiste Garel ;  
+- Marin Lemesre ;  
+- Xingshi Liu ;  
+- Jonathan Ozden.  
+  
+Notre travail repose sur l'exploration des retards TGV à l'arrivée et en quoi ceci pourraient créer un report vers les taxis/VTC. 
+L'ICP - indice de consommation potentielle - est une simulation sous hypothèses,
 pas une mesure des réservations ou de la rentabilité réelle.
 
 Le fichier [cadre.txt](cadre.txt) a servi de guide pour la réalisation du projet.
-Il présente aussi des pistes de réflexion qui ne sont pas toutes implémentées
-dans l'application actuelle.
+Il présente aussi des pistes de réflexion qui n'ont pas pu être implémentées.
 
 ## Lancer l'application
 
@@ -30,8 +37,7 @@ Au chargement, `core.load_data()` appelle `triDF()` pour créer
 Le CSV exporté ne conserve que le service `National`, exclut 2020 et 2021,
 et ne conserve que les colonnes utiles aux
 calculs et à l'application : date, service, gare d'arrivée, circulations prévues,
-nombre et retard moyen des trains en retard à l'arrivée, causes disponibles,
-année et `eligible`.
+nombre et retard moyen des trains en retard à l'arrivée, pourcentages des causes de retard à l'arrivée.
 La gare de départ, les annulations et la durée du trajet restent utilisées
 pendant les contrôles de qualité, mais ne sont pas exportées.
 Les colonnes sont renommées et les dates normalisées.
@@ -52,12 +58,14 @@ La source brute n'est jamais modifiée.
 | 5 · Conclusion | Synthèse des classements, de leurs tendances et des limites de l'étude |
 | 6 · Annexes | Boxplots et histogrammes des observations retenues pour les mêmes gares et années que les classements |
 
-Les filtres de période et de minimum de trains sont communs aux onglets.
+Les filtres de période, de minimum de trains et du poids des causes de retard sont communs aux onglets
+pour faciliter son exploitation.
 L'application utilise uniquement les liaisons de service `National` vers les
 gares d'arrivée françaises. Les huit libellés étrangers du fichier AQST sont
 explicitement exclus.
 
-Les Annexes suivent aussi la période, le minimum de trains et les années
+Les Annexes suivent aussi la période, le minimum de trains, les poids des causes 
+et les années
 complètes retenues pour les classements. Elles ne représentent pas l'ensemble
 du CSV nettoyé.
 
@@ -66,7 +74,8 @@ Dans l'onglet 2, le curseur règle le recours au taxi pour un retard d'au moins
 10 % à 30 min et 25 % à 60 min et plus. Les intermédiaires sont interpolés.
 Le réglage s'applique aux calculs communs. Dans la barre latérale, les poids des
 six causes de retard sont réglables entre 0 et 3 ; ils valent tous 1 par défaut.
-PAX est fixé à 550 voyageurs par train pour cette version simple.
+PAX (nombre de passager) 
+est fixé à 550 voyageurs par train pour cette version simple.
 
 L'onglet 2 affiche aussi une jauge d'imprévisibilité des causes, calculée à
 partir de coefficients fixes et pondérée par les minutes de retard. Elle ne
@@ -74,11 +83,12 @@ mesure pas directement la variabilité temporelle de l'ICP, indiquée séparéme
 par le coefficient de variation annuel.
 
 Le prix moyen d'une course est modifiable dans les onglets 2, 3 et 4, et les trois
-champs sont synchronisés. Il modifie le CA potentiel mais pas les ICP ni leurs
-rangs. Même sur la page relative, le montant est calculé avec l'ICP **absolu**
-correspondant, pas avec un pourcentage multiplié par un prix.
+champs sont synchronisés. Il modifie le chiffre d'affaire (CA) 
+potentiel mais pas les ICP ni leurs
+rangs. Tous les calculs du CA seront réalisés grâce à la formule 
+suivante : **CA = ICP_absolu * panier moyen **
 
-## Calcul et prudence d'interprétation
+## Calcul et mise en garde
 
 - Le modèle utilise le nombre de trains en retard **à l'arrivée** et le retard
   moyen de ces trains. Un train annulé ne génère pas de consommation à l'arrivée.
@@ -88,7 +98,7 @@ correspondant, pas avec un pourcentage multiplié par un prix.
   les rapporte aux voyageurs prévus de la même période.
 - `triDF()` conserve d'abord le service `National`, puis exclut 2020–2021 avant
   le calcul des références par liaison, corrige les
-  tranches de retard et supprime les lignes aberrantes selon les règles historiques.
+  tranches de retard et supprime les lignes aberrantes.
   Les colonnes utilisées uniquement pour le nettoyage sont retirées avant l'export.
   Les observations restantes conservent `eligible`, mais pas le diagnostic
   intermédiaire `quality_issues`. Les lignes signalées comme inéligibles sont exclues des
@@ -96,17 +106,19 @@ correspondant, pas avec un pourcentage multiplié par un prix.
   Cela ne garantit pas une couverture constante de toutes les liaisons.
 - 2020–2021 sont exclus conformément au cadre. 2026 est une année incomplète du
   CSV et n'est utilisée ni comme année historique comparable ni pour entraîner
-  les extrapolations 2026/2027.
-- La régression utilise les **années réelles** et exige au moins trois années
+  les prédictions 2026/2027.
+- La régression linéaire utilise les **années réelles** et exige au moins trois années
   complètes. R² est le coefficient de détermination ; Spearman mesure l'association
-  monotone entre l'année et l'ICP. Une série constante n'a pas de R² ou de Spearman
-  interprétable. La p-value de la pente est calculée par gare, sans correction
-  pour comparaisons multiples, et doit être interprétée avec prudence sur peu
-  d'années. Une extrapolation négative, ou supérieure à 100 % pour un ratio,
-  est laissée vide et n'est pas écrêtée silencieusement.
+  monotone entre l'année et l'ICP. 
+  La p-value associée est calculée par gare, 
+  et doit être interprétée avec prudence sur peu
+  d'années. Quand une extrapolation sort des valeurs possibles (négative, ou
+  au-delà de 100 % pour un ratio), on laisse la case vide plutôt que de ramener
+  la valeur de force dans l'intervalle.
 - Les prévisions sont de simples extrapolations sans intervalle de prédiction.
   Elles ne démontrent pas une demande future. L'ICP ne mesure pas les réservations
-  réelles, le partage des courses, la desserte locale ou les coûts d'exploitation.
+  réelles, le partage des courses entre voyageurs, 
+  la desserte locale ou les coûts d'exploitation.
 
 ## Coordonnées et carte
 
@@ -126,9 +138,9 @@ survoler les points pour les valeurs. Les cartes absolue et relative ont des
 ## Organisation et vérification
 
 - `src/app.py` : les sept onglets, les textes et les graphiques Streamlit,
-  conservés ; l'interface importe les traitements depuis le module voisin `core`.
-- `src/core.py` : lien avec l'application ; orchestre le chargement et l'analyse,
-  et expose les fonctions utiles de `my_package`.
+  conservés ; l'interface importe les traitements depuis le module `core`.
+- `src/core.py` : lien entre l'application et les classes/fonctions de traitement ; 
+  orchestre le chargement et l'analyse et expose les fonctions utiles de `my_package`.
 - `src/my_package/classDF.py` : `DataError`, `ConfigurationICP`, `DataLoader`,
   `ICPCalculator` et `TrendAnalyzer`. Le calcul des ICP et la régression linéaire
   sont définis uniquement dans les méthodes de ces classes.
@@ -145,9 +157,7 @@ survoler les points pour les valeurs. Les cartes absolue et relative ont des
 - `tests/` : vérification du nettoyage, du calcul des tendances et des erreurs
   remontées à l'application.
 
-Importer `core.py` ne lance aucun traitement. L'ancien traitement console et les
-analyses non utilisées par l'application (fiabilité, corrélations entre gares,
-persistance et quadrants) ont été retirés. Le prix de la course intervient
+Importer `core.py` ne lance aucun traitement. Le prix de la course intervient
 uniquement dans la préparation des montants affichés, pas dans le calcul des ICP.
 
 ```bash
@@ -170,3 +180,16 @@ uv run --locked sphinx-build -b html -W --keep-going docs docs/_build/html
 Ouvrez ensuite `docs/_build/html/index.html`. GitHub Actions contrôle le code,
 la présence des docstrings, le format, les tests, une couverture minimale de
 90 % et la construction de cette documentation.
+
+## Utilisation de LLM
+
+A des fins de transparence, il est important de mentionner l'usage de LLM 
+afin de réaliser ce projet.
+Les membres du groupe ont utilisé des LLM à certaines étapes du projet,
+et pas à d'autres :
+
+- Sans LLM : la définition de l'idée, l'architecture du code, le tri
+  et le nettoyage des données, ainsi que l'essentiel de la page Streamlit.
+- Avec LLM : les tests, l'aide au débogage, la structuration des classes 
+  et des fonctions,  pour les rendre plus lisibles et réutilisables, 
+  puis la mise au propre du code (docstrings, formatage, conformité aux linters) pour nous-mêmes comme pour les correcteurs.
