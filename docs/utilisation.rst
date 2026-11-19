@@ -80,10 +80,15 @@ distinct des sources ``.rst`` et ``conf.py`` conservées dans Git.
 Publication
 -----------
 
-Le point d'entrée à utiliser pour héberger l'application est ``src/app.py``.
+L'application en ligne est accessible à l'adresse
+https://sncfproject-nttqokh8ozmzqyszuwfy4v.streamlit.app/.
+
+Pour reproduire le déploiement sur Streamlit Community Cloud, sélectionner
+le dépôt ``MarinLmsr/SNCF_Project``, la branche ``main`` et le fichier d'entrée
+``src/app.py``. Python 3.14 correspond à la version utilisée par la CI.
 L'environnement doit être installé depuis ``pyproject.toml`` et ``uv.lock``.
 Le service a besoin d'un accès en lecture aux fichiers de ``data/`` et en
-écriture au CSV nettoyé et au répertoire de journaux. Le lien public doit
-être renseigné dans le README après validation du déploiement.
+écriture au CSV nettoyé et au répertoire de journaux. Le README contient
+le lien public et les étapes de déploiement.
 Le workflow actuel vérifie le projet ; il ne publie pas l'application.
 

@@ -16,6 +16,13 @@ de nous projeter dans ce projet en créant un storytelling autour de l'analyse d
 Le fichier [cadre.txt](cadre.txt) a servi de guide pour la réalisation du projet.
 Il présente aussi des pistes de réflexion qui n'ont pas pu être implémentées.
 
+## Application en ligne
+
+**[Ouvrir RailInsight](https://sncfproject-nttqokh8ozmzqyszuwfy4v.streamlit.app/)**
+
+L'application est hébergée sur Streamlit Community Cloud. Les fichiers de
+données nécessaires sont fournis dans le dépôt ; aucune clé API n'est requise.
+
 ## Lancer l'application
 
 Prérequis : Python 3.12 ou plus récent et [uv](https://docs.astral.sh/uv/).
