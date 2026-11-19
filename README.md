@@ -9,8 +9,9 @@ Membres du groupe :
 - Jonathan Ozden.  
   
 Notre travail repose sur l'exploration des retards TGV à l'arrivée et en quoi ceci pourraient créer un report vers les taxis/VTC. 
-L'ICP - indice de consommation potentielle - est une simulation sous hypothèses,
-pas une mesure des réservations ou de la rentabilité réelle.
+L'ICP - indice de consommation potentielle - est un indice (avec hypothèses) créé de toutes pièces
+afin de comparer les retards trains pour une gare d'arrivée donnée. Cet objet nous a permis 
+de nous projeter dans ce projet en créant un storytelling autour de l'analyse de données SNCF.  
 
 Le fichier [cadre.txt](cadre.txt) a servi de guide pour la réalisation du projet.
 Il présente aussi des pistes de réflexion qui n'ont pas pu être implémentées.
@@ -124,8 +125,7 @@ suivante : **CA = ICP_absolu * panier moyen **
 
 `data/station_coordinates.json` ne sert qu'à la localisation : il contient les
 51 libellés français rapprochés du référentiel officiel
-[SNCF · Gares de voyageurs](https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs/),
-consulté le 16 novembre 2026. Les noms et identifiants sources y sont conservés.
+[SNCF · Gares de voyageurs](https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs/). Les noms et identifiants sources y sont conservés.
 Certaines positions sont indicatives : Lille utilise le centre des deux gares
 Flandres/Europe ; Paris Vaugirard est représenté à Montparnasse, et Montpellier
 à Saint-Roch. Le référentiel complet n'est pas téléchargé pendant l'utilisation.
