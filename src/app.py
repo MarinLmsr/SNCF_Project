@@ -2,6 +2,7 @@
 
 import logging
 import math
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -56,8 +57,8 @@ CAUSES_RETARD = {
 
 
 @st.cache_data(show_spinner=False)
-def load_data(modified_at: int) -> pd.DataFrame:
-    """Mettre en cache la préparation jusqu'à la modification du CSV brut."""
+def load_data(raw_modified_at: int, cleaning_modified_at: int) -> pd.DataFrame:
+    """Invalider le cache si le CSV brut ou le script de nettoyage change."""
     return prepare_data()
 
 
@@ -585,7 +586,10 @@ def main() -> None:
         "Projet mené par Jean-Baptiste Clavier, Jean-Baptiste Garel, Marin Lemesre, Xingshi Liu et Jonathan Ozden"
     )
     try:
-        data = load_data(RAW_DATA_PATH.stat().st_mtime_ns)
+        data = load_data(
+            RAW_DATA_PATH.stat().st_mtime_ns,
+            (Path(__file__).parent / "my_package" / "triDF.py").stat().st_mtime_ns,
+        )
     except (OSError, DataError) as exc:
         LOGGER.exception("Lecture impossible")
         st.error(str(exc))

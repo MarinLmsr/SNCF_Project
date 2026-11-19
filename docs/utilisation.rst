@@ -18,7 +18,8 @@ Le navigateur doit avoir accès à Internet pour charger le fond de carte CARTO.
 
 Les fichiers CSV et les coordonnées sont fournis dans ``data/``. Au premier
 chargement, ``core.load_data()`` prépare le CSV nettoyé depuis le fichier brut.
-La préparation est mise en cache jusqu'à une modification du fichier brut.
+La préparation ne conserve que le service National. Elle est mise en cache
+jusqu'à une modification du fichier brut ou du script ``triDF.py``.
 La source brute n'est jamais écrasée.
 
 Explorer les sept onglets

@@ -7,9 +7,11 @@ Périmètre et préparation
 Le fichier brut ``regularite-mensuelle-tgv-aqst.csv`` contient 12 544 lignes
 et 26 colonnes, de janvier 2018 à juin 2026. Chaque observation correspond
 à une liaison orientée, un service et un mois. Le fichier nettoyé contient
-9 560 lignes et 14 colonnes dans la version du dépôt vérifiée le 19 novembre 2026.
+8 445 lignes et 14 colonnes, uniquement de service National, dans la version
+du dépôt vérifiée le 19 novembre 2026.
 
-``triDF()`` exclut 2020-2021 avant le calcul des durées de référence par liaison,
+``triDF()`` conserve d'abord National, puis exclut 2020-2021 avant le calcul
+des durées de référence par liaison,
 harmonise les effectifs de retard pour respecter N15 >= N30 >= N60, puis
 retire les lignes aberrantes. Les autres règles de cohérence déterminent
 ``eligible``. Les valeurs manquantes des causes ne sont pas imputées dans le
@@ -17,8 +19,8 @@ CSV : le calcul pondéré les traite comme des parts nulles et re-normalise les
 parts disponibles. Si toutes les parts manquent ou valent zéro, le poids
 de cause reste neutre, à 1.
 
-Le CSV nettoyé conserve des liaisons internationales et des observations de 2026.
-L'application les exclut de son périmètre de comparaison. Une gare/année
+Le CSV nettoyé contient uniquement National et conserve 654 observations de 2026.
+L'application exclut 2026 de son périmètre de comparaison. Une gare/année
 doit couvrir douze mois éligibles. Le minimum de trains porte sur les volumes
 des années retenues de la gare ; il ne garantit pas que toutes ses liaisons
 ont la même couverture temporelle.

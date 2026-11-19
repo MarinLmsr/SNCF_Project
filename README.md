@@ -27,7 +27,8 @@ Après une mise à jour des dépendances, redémarrer le serveur Streamlit.
 Au chargement, `core.load_data()` appelle `triDF()` pour créer
 **`data/regularite_tgv_clean.csv`** depuis
 `data/regularite-mensuelle-tgv-aqst.csv`, puis `DataLoader.load()` lit le résultat.
-Le CSV exporté exclut déjà 2020 et 2021 et ne conserve que les colonnes utiles aux
+Le CSV exporté ne conserve que le service `National`, exclut 2020 et 2021,
+et ne conserve que les colonnes utiles aux
 calculs et à l'application : date, service, gare d'arrivée, circulations prévues,
 nombre et retard moyen des trains en retard à l'arrivée, causes disponibles,
 année et `eligible`.
@@ -35,7 +36,8 @@ La gare de départ, les annulations et la durée du trajet restent utilisées
 pendant les contrôles de qualité, mais ne sont pas exportées.
 Les colonnes sont renommées et les dates normalisées.
 Streamlit met cette préparation en cache et la relance
-si le CSV brut change ; les interactions ordinaires ne réécrivent pas le fichier.
+si le CSV brut ou le script `triDF.py` change ; les interactions ordinaires
+ne réécrivent pas le fichier.
 La source brute n'est jamais modifiée.
 
 ## Les sept onglets
@@ -84,7 +86,8 @@ correspondant, pas avec un pourcentage multiplié par un prix.
   gare d'arrivée. Les ratios sont des rapports de sommes.
 - L'ICP absolu désigne des courses simulées **par mois observé** ; l'ICP relatif
   les rapporte aux voyageurs prévus de la même période.
-- `triDF()` exclut 2020–2021 avant le calcul des références par liaison, corrige les
+- `triDF()` conserve d'abord le service `National`, puis exclut 2020–2021 avant
+  le calcul des références par liaison, corrige les
   tranches de retard et supprime les lignes aberrantes selon les règles historiques.
   Les colonnes utilisées uniquement pour le nettoyage sont retirées avant l'export.
   Les observations restantes conservent `eligible`, mais pas le diagnostic
