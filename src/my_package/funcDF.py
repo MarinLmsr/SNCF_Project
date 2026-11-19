@@ -1,30 +1,20 @@
 """Fonctions utilitaires de préparation des données par gare d'arrivée pour les analyses du projet SNCF - IADATA700"""
 
-# -----------------------------------------------------------------------------
-# 1. LIBRAIRIES & VARIABLES & CLASSES
-# -----------------------------------------------------------------------------
-
-# Json : Pour lire les coordonées de chaque gares
 import json
-
-# Logging : Pour enregistrer les logs
 import logging
-
-# Path : Pour la lecture du répertoire
 from pathlib import Path
 
-# Numpy : Pour les opérations numériques
 import numpy as np
-
-# Pandas : Pour la manipulation des DataFrames
 import pandas as pd
 import plotly.graph_objects as go
 
+# -----------------------------------------------------------------------------
+# 1. VARIABLES & CLASSES
+# -----------------------------------------------------------------------------
 # Variables : années exclues, stations étrangères, classes utilisées, metriques, etc...
 from .classDF import (
     EXCLUDED_YEARS,
     FOREIGN_STATIONS,
-    METRICS,
     PROJECT_ROOT,
     ConfigurationICP,
     DataError,

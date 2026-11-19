@@ -1,7 +1,8 @@
-"""Six onglets simples pour étudier le potentiel taxi/VTC des gares d'arrivée."""
+"""Sept onglets pour étudier le potentiel taxi/VTC des gares d'arrivée."""
 
 import logging
 import math
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -56,8 +57,8 @@ CAUSES_RETARD = {
 
 
 @st.cache_data(show_spinner=False)
-def load_data(modified_at: int) -> pd.DataFrame:
-    """Mettre en cache la préparation jusqu'à la modification du CSV brut."""
+def load_data(raw_modified_at: int, cleaning_modified_at: int) -> pd.DataFrame:
+    """Invalider le cache si le CSV brut ou le script de nettoyage change."""
     return prepare_data()
 
 
@@ -279,7 +280,7 @@ def show_trend(annual: pd.DataFrame, scores: pd.Series) -> None:
     )
     columns[1].metric(
         "p-value · pente",
-        "—" if pd.isna(summary["regression_pvalue"]) else f"{summary['regression_pvalue']:.3g}",
+        ("—" if pd.isna(summary["regression_pvalue"]) else f"{summary['regression_pvalue']:.3g}"),
     )
     columns[2].metric("Pente β₁", display(summary["beta1"], metric, slope=True))
     columns[3].metric(
@@ -352,11 +353,13 @@ def show_ranking(annual: pd.DataFrame, metric: str, basket_key: str) -> None:
                     format=(
                         "%,.0f"
                         if column == "β₁ (ICP/an)"
-                        else "%.5f"
-                        if column == "β₁ (pt/an)"
-                        else "%.3f"
-                        if column == "R²" or "%" in column
-                        else "%,.2f"
+                        else (
+                            "%.5f"
+                            if column == "β₁ (pt/an)"
+                            else "%.3f"
+                            if column == "R²" or "%" in column
+                            else "%,.2f"
+                        )
                     ),
                 )
                 for column in table.select_dtypes("number")
@@ -539,8 +542,7 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
 
 
 def boxhistplot_bundle_figure(data: pd.DataFrame, datacols: list, ncols: int) -> go.Figure:
-    """Créer une figure Plotly de boxplots et d'histogrammes pour les colonnes choisies."""
-
+    """Construire une figure combinant boxplot et histogramme pour chaque colonne."""
     datacols = [col for col in datacols for _ in range(2)]
 
     nrows = math.ceil(len(datacols) / ncols)
@@ -568,7 +570,7 @@ def boxhistplot_bundle_figure(data: pd.DataFrame, datacols: list, ncols: int) ->
 
 
 def boxhistplot_bundle(data: pd.DataFrame, datacols: list, ncols: int) -> None:
-    """Afficher dans Streamlit les boxplots et histogrammes des colonnes choisies."""
+    """Afficher dans Streamlit la figure boxplot + histogramme des colonnes choisies."""
     st.plotly_chart(boxhistplot_bundle_figure(data, datacols, ncols))
 
 
@@ -584,7 +586,10 @@ def main() -> None:
         "Projet mené par Jean-Baptiste Clavier, Jean-Baptiste Garel, Marin Lemesre, Xingshi Liu et Jonathan Ozden"
     )
     try:
-        data = load_data(RAW_DATA_PATH.stat().st_mtime_ns)
+        data = load_data(
+            RAW_DATA_PATH.stat().st_mtime_ns,
+            (Path(__file__).parent / "my_package" / "triDF.py").stat().st_mtime_ns,
+        )
     except (OSError, DataError) as exc:
         LOGGER.exception("Lecture impossible")
         st.error(str(exc))
@@ -761,7 +766,7 @@ def main() -> None:
         if not selected:
             st.info("Cochez au moins un indicateur pour afficher une carte.")
         else:
-            for container, metric in zip(st.columns(len(selected)), selected):
+            for container, metric in zip(st.columns(len(selected)), selected, strict=True):
                 with container:
                     st.markdown(
                         "**ICP absolu · courses/mois**"
@@ -788,8 +793,18 @@ def main() -> None:
         show_conclusion(annual, scores)
     with tabs[6]:
         st.subheader("Statistiques post data cleansing")
-
-        data_num_cols = [c for c in data.select_dtypes("number").columns]
+        annex_data = scope.loc[scope["eligible"]].merge(
+            annual[["gare_arrivee", "annee"]],
+            on=["gare_arrivee", "annee"],
+            how="inner",
+            validate="many_to_one",
+        )
+        st.caption(
+            f"Période {start}–{end} · liaisons nationales · "
+            f"{len(annex_data):,} observations. Mêmes gares et années complètes que "
+            "les classements, après application du minimum de trains."
+        )
+        data_num_cols = list(annex_data.select_dtypes("number").columns)
 
         # for i, col in enumerate(data_num_cols):
         #     print(i, col)
@@ -806,7 +821,7 @@ def main() -> None:
             or "arrivée" in i
             or "Retard moyen trains en retard > 15" in i
         ]
-        boxhistplot_bundle(data, data_num_bundle, 4)
+        boxhistplot_bundle(annex_data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # Boxplots des causes de retards en pourcentage
@@ -814,13 +829,13 @@ def main() -> None:
             "Analyse des causes de retards en pourcentage - Sur base mensuelle et par ligne, les retards ont souvent des causes diversifiées sauf rarement (outliers) où une cause peut justifier la majorité des retards"
         )
         data_num_bundle = [i for i in data_num_cols if i.startswith("p_")]
-        boxhistplot_bundle(data, data_num_bundle, 4)
+        boxhistplot_bundle(annex_data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # Boxplots autres colonnes numériques
         st.write("Boxplots autres colonnes numériques")
         data_num_bundle = [i for i in data_num_cols if i != "annee"]
-        boxhistplot_bundle(data, data_num_bundle, 4)
+        boxhistplot_bundle(annex_data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # for i, col in enumerate(data_num_cols):

@@ -8,5 +8,6 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+docs/_build/
 tmp/
 docs/_build/

@@ -1,15 +1,31 @@
 """Vérifier le lien entre l'interface et le score de causes après refactorisation."""
 
+import base64
 import importlib
 import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
 from src.core import load_data
+
+
+def _assert_annexes_use_icp_observations(app, scope, annual):
+    """Comparer les valeurs réellement envoyées au graphique au périmètre de l'ICP."""
+    chart = app.tabs[6].get("plotly_chart")[0]
+    trace = json.loads(chart.proto.spec)["data"][0]
+    assert trace["name"] == "nb_retard_arrivee"
+    values = trace["y"]
+    if isinstance(values, dict):
+        values = np.frombuffer(base64.b64decode(values["bdata"]), dtype=values["dtype"])
+    keys = ["gare_arrivee", "annee"]
+    included = pd.MultiIndex.from_frame(scope[keys]).isin(pd.MultiIndex.from_frame(annual[keys]))
+    expected = scope.loc[scope.eligible & included, "nb_retard_arrivee"]
+    np.testing.assert_array_equal(np.sort(values), np.sort(expected.to_numpy()))
 
 
 @pytest.mark.parametrize(
@@ -186,18 +202,35 @@ def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch, prepared_
         assert len(app.dataframe) == 2
         assert len(app.tabs[2].get("plotly_chart")) == 1
         assert "service" not in {widget.key for widget in app.selectbox}
-        _, expected_annual = core.analyze_data(data, 2018, 2025, service="National", minimum=1000)
+        expected_scope, expected_annual = core.analyze_data(
+            data, 2018, 2025, service="National", minimum=1000
+        )
         expected = core.prepare_ranking_display(expected_annual, "ICP_abs", "ICP", 25.0)
         pd.testing.assert_series_equal(
             app.dataframe[0].value["ICP absolu / mois"],
             expected["ICP_abs"],
             check_names=False,
         )
+        _assert_annexes_use_icp_observations(app, expected_scope, expected_annual)
+        annex_before = app.tabs[6].get("plotly_chart")[0].proto.spec
 
         app.select_slider(key="period").set_range(2022, 2023).run()
         assert not app.exception
         assert len(app.tabs[2].get("plotly_chart")) == 1
         assert app.dataframe[0].value["Prévision 2026"].isna().all()
+        assert app.tabs[6].get("plotly_chart")[0].proto.spec != annex_before
+        expected_scope, expected_annual = core.analyze_data(
+            data, 2022, 2023, service="National", minimum=1000
+        )
+        _assert_annexes_use_icp_observations(app, expected_scope, expected_annual)
+
+        app.number_input(key="minimum").set_value(50_000).run()
+        assert not app.exception
+        filtered_scope, filtered_annual = core.analyze_data(
+            data, 2022, 2023, service="National", minimum=50_000
+        )
+        assert filtered_annual.gare_arrivee.nunique() < expected_annual.gare_arrivee.nunique()
+        _assert_annexes_use_icp_observations(app, filtered_scope, filtered_annual)
 
         app.number_input(key="minimum").set_value(1_000_000_000).run()
         assert not app.exception

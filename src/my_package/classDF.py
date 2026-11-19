@@ -1,30 +1,21 @@
 """Ce script contient les classes pour le traitement des données SNCF du projet SNCF - IADATA700
 Il inclut la configuration du modèle, le chargement des données nettoyées, ainsi que la gestion des erreurs.
 Aussi, il fournit des outils pour la visualisation et l'analyse statistique des données.
-Enfin, il permet de calculer des scores et des indicateurs de performance basés sur les données traitées."""
+Enfin, il permet de calculer des scores et des indicateurs de performance basés sur les données traitées.
+"""
 
-# -----------------------------------------------------------------------------
-# 1. LIBRAIRIES & VARIABLES & GESTION DES ERREURS DE DONNEES
-# -----------------------------------------------------------------------------
-
-""" Importation des librairies nécessaires """
-
-# Pandas : Pour la manipulation des DataFrames
-# Dataclasses : Pour la définition de classes de configuration
 from dataclasses import dataclass, field
-
-# Path : Pour la lecture du répertoire
 from pathlib import Path
 
-# Numpy : Pour les opérations numériques
 import numpy as np
 import pandas as pd
-
-# Scipy : Pour les statistiques
 from scipy.stats import linregress, spearmanr
-
-# Sklearn : Pour les modèles de régression linéaire
 from sklearn.linear_model import LinearRegression
+
+# -----------------------------------------------------------------------------
+# 1.VARIABLES & GESTION DES ERREURS DE DONNEES
+# -----------------------------------------------------------------------------
+
 
 # Variables : racine, répertoire, années exclues, noms des colonnes, métriques...
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -46,7 +37,7 @@ METRICS = {"ICP_abs": "ICP absolu", "ICP_rel": "ICP relatif"}
 
 # Classe pour la gestion des erreurs de données
 class DataError(ValueError):
-    """Erreur lors de la lecture ou du traitement des données SNCF."""
+    """Erreur levée lorsque les données ne peuvent pas être lues ou sont invalides."""
 
 
 # -----------------------------------------------------------------------------
@@ -94,11 +85,7 @@ class DataLoader:
 
     # On charge et renvoie le fichier
     def load(self) -> pd.DataFrame:
-        """Lire le CSV préparé et retourner son DataFrame.
-
-        Raises:
-            DataError: Si le fichier ne peut pas être lu.
-        """
+        """Charger le fichier CSV et renvoyer le DataFrame correspondant."""
         try:
             data = pd.read_csv(self.path, sep=";")
         except (
@@ -118,21 +105,18 @@ class DataLoader:
 
 
 class ICPCalculator:
-    """Calcul de l'ICP (absolu et relatif) (Indicateur de Consommation de Performance)"""
+    """Calculer l'Indice de Consommation Potentielle absolu et relatif."""
 
     # On récupère la configuration du modèle
     def __init__(self, config: ConfigurationICP):
-        """Initialiser le calculateur avec les hypothèses ICP fournies."""
+        """Initialiser le calculateur avec la configuration du modèle."""
         self.config = config
 
     # Calcul le taux de recours selon le retard en minutes : @staticmethod car pas d'utilisation
     # de self
     @staticmethod
     def taux_conso(retard_min: float) -> float:
-        """Retourner le taux de recours de référence pour un retard en minutes.
-
-        Le taux est interpolé entre les seuils définis et plafonné au-delà de 60 minutes.
-        """
+        """Calculer le taux de recours au taxi selon le retard en minutes."""
         minutes = [0, 1, 15, 30, 60]
         taux = [0.0, 0.01, 0.01, 0.10, 0.25]
         return float(np.interp(retard_min, minutes, taux))

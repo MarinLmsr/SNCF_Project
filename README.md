@@ -27,7 +27,8 @@ Après une mise à jour des dépendances, redémarrer le serveur Streamlit.
 Au chargement, `core.load_data()` appelle `triDF()` pour créer
 **`data/regularite_tgv_clean.csv`** depuis
 `data/regularite-mensuelle-tgv-aqst.csv`, puis `DataLoader.load()` lit le résultat.
-Le CSV exporté exclut déjà 2020 et 2021 et ne conserve que les colonnes utiles aux
+Le CSV exporté ne conserve que le service `National`, exclut 2020 et 2021,
+et ne conserve que les colonnes utiles aux
 calculs et à l'application : date, service, gare d'arrivée, circulations prévues,
 nombre et retard moyen des trains en retard à l'arrivée, causes disponibles,
 année et `eligible`.
@@ -35,7 +36,8 @@ La gare de départ, les annulations et la durée du trajet restent utilisées
 pendant les contrôles de qualité, mais ne sont pas exportées.
 Les colonnes sont renommées et les dates normalisées.
 Streamlit met cette préparation en cache et la relance
-si le CSV brut change ; les interactions ordinaires ne réécrivent pas le fichier.
+si le CSV brut ou le script `triDF.py` change ; les interactions ordinaires
+ne réécrivent pas le fichier.
 La source brute n'est jamais modifiée.
 
 ## Les sept onglets
@@ -48,12 +50,16 @@ La source brute n'est jamais modifiée.
 | 3 · ICP absolu | Tableau triable par ICP, β₁ ou R², extrapolations 2026 et 2027, CA potentiel |
 | 4 · ICP relatif | Même tableau, avec taux en pourcentage et pente en points par an |
 | 5 · Conclusion | Synthèse des classements, de leurs tendances et des limites de l'étude |
-| 6 · Annexes | Boxplots et histogrammes des données après nettoyage |
+| 6 · Annexes | Boxplots et histogrammes des observations retenues pour les mêmes gares et années que les classements |
 
 Les filtres de période et de minimum de trains sont communs aux onglets.
 L'application utilise uniquement les liaisons de service `National` vers les
 gares d'arrivée françaises. Les huit libellés étrangers du fichier AQST sont
 explicitement exclus.
+
+Les Annexes suivent aussi la période, le minimum de trains et les années
+complètes retenues pour les classements. Elles ne représentent pas l'ensemble
+du CSV nettoyé.
 
 Dans l'onglet 2, le curseur règle le recours au taxi pour un retard d'au moins
 60 minutes. Il proportionne toute la courbe : à 25 %, les taux sont 1 % à 1–15 min,
@@ -80,7 +86,8 @@ correspondant, pas avec un pourcentage multiplié par un prix.
   gare d'arrivée. Les ratios sont des rapports de sommes.
 - L'ICP absolu désigne des courses simulées **par mois observé** ; l'ICP relatif
   les rapporte aux voyageurs prévus de la même période.
-- `triDF()` exclut 2020–2021 avant le calcul des références par liaison, corrige les
+- `triDF()` conserve d'abord le service `National`, puis exclut 2020–2021 avant
+  le calcul des références par liaison, corrige les
   tranches de retard et supprime les lignes aberrantes selon les règles historiques.
   Les colonnes utilisées uniquement pour le nettoyage sont retirées avant l'export.
   Les observations restantes conservent `eligible`, mais pas le diagnostic
@@ -144,7 +151,22 @@ persistance et quadrants) ont été retirés. Le prix de la course intervient
 uniquement dans la préparation des montants affichés, pas dans le calcul des ICP.
 
 ```bash
-uv run pytest tests/
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+uv run --locked pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=90
 ```
 
 Les journaux de l'application sont dans `logs/debug.log` et `logs/errors.log`.
+
+## Documentation Sphinx
+
+La documentation décrit l'installation, les sept onglets, les formules, les
+limites du modèle et l'API Python. Pour générer la version HTML :
+
+```bash
+uv run --locked sphinx-build -b html -W --keep-going docs docs/_build/html
+```
+
+Ouvrez ensuite `docs/_build/html/index.html`. GitHub Actions contrôle le code,
+la présence des docstrings, le format, les tests, une couverture minimale de
+90 % et la construction de cette documentation.
