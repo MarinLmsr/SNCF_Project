@@ -16,6 +16,13 @@ de nous projeter dans ce projet en créant un storytelling autour de l'analyse d
 Le fichier [cadre.txt](cadre.txt) a servi de guide pour la réalisation du projet.
 Il présente aussi des pistes de réflexion qui n'ont pas pu être implémentées.
 
+## Application en ligne
+
+**[Ouvrir RailInsight](https://sncfproject-nttqokh8ozmzqyszuwfy4v.streamlit.app/)**
+
+L'application est hébergée sur Streamlit Community Cloud. Les fichiers de
+données nécessaires sont fournis dans le dépôt ; aucune clé API n'est requise.
+
 ## Lancer l'application
 
 Prérequis : Python 3.12 ou plus récent et [uv](https://docs.astral.sh/uv/).
@@ -166,8 +173,6 @@ uv run --locked ruff format --check .
 uv run --locked pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=90
 ```
 
-Les journaux de l'application sont dans `logs/debug.log` et `logs/errors.log`.
-
 ## Documentation Sphinx
 
 La documentation décrit l'installation, les sept onglets, les formules, les
@@ -180,6 +185,20 @@ uv run --locked sphinx-build -b html -W --keep-going docs docs/_build/html
 Ouvrez ensuite `docs/_build/html/index.html`. GitHub Actions contrôle le code,
 la présence des docstrings, le format, les tests, une couverture minimale de
 90 % et la construction de cette documentation.
+
+### Récupérer la documentation générée pour la remise
+
+Après une exécution réussie du workflow **Tests**, la documentation HTML est
+disponible dans **Actions → Tests → exécution réussie → Artifacts →
+railinsight-sphinx-html**. Télécharger l'archive, la décompresser, puis ouvrir
+`index.html` dans un navigateur en conservant les dossiers `_static` et `_sources`.
+Le téléchargement nécessite une connexion à GitHub ; l'archive est conservée
+90 jours, dans la limite des règles du dépôt.
+
+Cette archive contient la **documentation générée avec Sphinx**, prête à être
+jointe à la remise. Les sources `.rst` et `conf.py` restent versionnées dans
+`docs/`. Le répertoire `docs/_build/` est généré localement ou par la CI et
+reste ignoré par Git.
 
 ## Utilisation de LLM
 

@@ -61,16 +61,36 @@ Vérifier le projet
 La documentation produite s'ouvre dans ``docs/_build/html/index.html``.
 GitHub Actions exécute les contrôles de code, de docstrings, de format,
 les tests avec une couverture minimale de 90 %, et la construction Sphinx.
-Les journaux de l'application se trouvent dans ``logs/debug.log`` et
-``logs/errors.log``.
+Les logs se trouvent dans ``logs/debug.log`` et ``logs/errors.log``. 
+Le premier reçoit DEBUG et les niveaux supérieurs,
+le second uniquement ERROR et CRITICAL.
+
+
+Remettre la documentation générée
+----------------------------------------
+
+Après une exécution réussie du workflow **Tests** sur GitHub, ouvrir la page
+de cette exécution et télécharger l'artefact **railinsight-sphinx-html** dans
+la section **Artifacts**. Une connexion à GitHub est nécessaire. L'archive
+est conservée 90 jours, dans la limite de la politique du dépôt.
+
+Décompresser toute l'archive et ouvrir ``index.html`` dans un navigateur.
+Conserver les dossiers ``_static`` et ``_sources`` avec les pages HTML.
+Cette archive constitue un livrable de documentation générée avec Sphinx,
+distinct des sources ``.rst`` et ``conf.py`` conservées dans Git.
 
 Publication
 -----------
 
-Le point d'entrée à utiliser pour héberger l'application est ``src/app.py``.
+L'application en ligne est accessible à l'adresse
+https://sncfproject-nttqokh8ozmzqyszuwfy4v.streamlit.app/.
+
+Pour reproduire le déploiement sur Streamlit Community Cloud, sélectionner
+le dépôt ``MarinLmsr/SNCF_Project``, la branche ``main`` et le fichier d'entrée
+``src/app.py``. Python 3.14 correspond à la version utilisée par la CI.
 L'environnement doit être installé depuis ``pyproject.toml`` et ``uv.lock``.
 Le service a besoin d'un accès en lecture aux fichiers de ``data/`` et en
-écriture au CSV nettoyé et au répertoire de journaux. Le lien public doit
-être renseigné dans le README après validation du déploiement.
+écriture au CSV nettoyé et au répertoire de journaux. Le README contient
+le lien public et les étapes de déploiement.
 Le workflow actuel vérifie le projet ; il ne publie pas l'application.
 

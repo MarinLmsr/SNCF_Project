@@ -19,6 +19,13 @@ jobs:
       - run: uv run --locked ruff format --check .
       - name: Construire la documentation Sphinx
         run: uv run --locked sphinx-build -b html -W --keep-going docs docs/_build/html
+      - name: Conserver la documentation HTML générée
+        uses: actions/upload-artifact@v7
+        with:
+          name: railinsight-sphinx-html
+          path: docs/_build/html/
+          if-no-files-found: error
+          retention-days: 90
 
   tests:
     runs-on: ubuntu-latest
