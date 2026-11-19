@@ -181,6 +181,20 @@ Ouvrez ensuite `docs/_build/html/index.html`. GitHub Actions contrôle le code,
 la présence des docstrings, le format, les tests, une couverture minimale de
 90 % et la construction de cette documentation.
 
+### Récupérer la documentation générée pour la remise
+
+Après une exécution réussie du workflow **Tests**, la documentation HTML est
+disponible dans **Actions → Tests → exécution réussie → Artifacts →
+railinsight-sphinx-html**. Télécharger l'archive, la décompresser, puis ouvrir
+`index.html` dans un navigateur en conservant les dossiers `_static` et `_sources`.
+Le téléchargement nécessite une connexion à GitHub ; l'archive est conservée
+90 jours, dans la limite des règles du dépôt.
+
+Cette archive contient la **documentation générée avec Sphinx**, prête à être
+jointe à la remise. Les sources `.rst` et `conf.py` restent versionnées dans
+`docs/`. Le répertoire `docs/_build/` est généré localement ou par la CI et
+reste ignoré par Git.
+
 ## Utilisation de LLM
 
 A des fins de transparence, il est important de mentionner l'usage de LLM 

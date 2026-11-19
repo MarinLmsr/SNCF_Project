@@ -64,6 +64,19 @@ les tests avec une couverture minimale de 90 %, et la construction Sphinx.
 Les journaux de l'application se trouvent dans ``logs/debug.log`` et
 ``logs/errors.log``.
 
+Remettre la documentation générée
+----------------------------------------
+
+Après une exécution réussie du workflow **Tests** sur GitHub, ouvrir la page
+de cette exécution et télécharger l'artefact **railinsight-sphinx-html** dans
+la section **Artifacts**. Une connexion à GitHub est nécessaire. L'archive
+est conservée 90 jours, dans la limite de la politique du dépôt.
+
+Décompresser toute l'archive et ouvrir ``index.html`` dans un navigateur.
+Conserver les dossiers ``_static`` et ``_sources`` avec les pages HTML.
+Cette archive constitue un livrable de documentation générée avec Sphinx,
+distinct des sources ``.rst`` et ``conf.py`` conservées dans Git.
+
 Publication
 -----------
 
