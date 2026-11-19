@@ -32,7 +32,6 @@ from core import (
 LOGGER = logging.getLogger("railinsight")
 BASKET_KEYS = ("basket_trend", "basket_absolute", "basket_relative")
 MAP_RADIUS_PIXELS = 55
-TREND_R2_MIN = 0.5  # en dessous, la droite décrit mal l'évolution de l'ICP
 CV_MAX = 0.30  # au-dessus, l'opportunité est jugée irrégulière
 SEUIL_SIGNIFICATIVITE = 0.05
 
@@ -806,21 +805,11 @@ def main() -> None:
         )
         data_num_cols = list(annex_data.select_dtypes("number").columns)
 
-        # for i, col in enumerate(data_num_cols):
-        #     print(i, col)
-
         # Boxplots des retards à l'arrivée
         st.write(
             "Analyse des retards à l'arrivée - Distribution typique de retards avec peu d'outliers avec des valeurs extrêmes"
         )
-        data_num_bundle = [
-            i
-            for i in data_num_cols
-            if i.startswith("Nombre trains")
-            or "arrivee" in i
-            or "arrivée" in i
-            or "Retard moyen trains en retard > 15" in i
-        ]
+        data_num_bundle = [col for col in data_num_cols if "arrivee" in col]
         boxhistplot_bundle(annex_data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
@@ -836,10 +825,6 @@ def main() -> None:
         st.write("Boxplots autres colonnes numériques")
         data_num_bundle = [i for i in data_num_cols if i != "annee"]
         boxhistplot_bundle(annex_data, data_num_bundle, 4)
-        data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
-
-        # for i, col in enumerate(data_num_cols):
-        #     print(i, col)
 
 
 if __name__ == "__main__":
