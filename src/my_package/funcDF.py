@@ -2,8 +2,8 @@
 
 import json
 import logging
-from pathlib import Path
 
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 # -----------------------------------------------------------------------------
 # 1. VARIABLES & CLASSES
 # -----------------------------------------------------------------------------
+
 # Variables : années exclues, stations étrangères, classes utilisées, metriques, etc...
 from .classDF import (
     EXCLUDED_YEARS,
@@ -30,8 +31,11 @@ from .classDF import (
 def filter_data(data: pd.DataFrame, start: int, end: int, service: str = "Tous") -> pd.DataFrame:
     """Sélectionner la période historique, les gares françaises et le service."""
 
+    # Dans le cas où la date de départ est supérieur à la date finale, alors ValueError
     if start > end:
         raise ValueError("Période inversée.")
+
+    # Création d'un mask qui barge que les données entre ces dates, et excluses les années COVID-19
     mask = data["annee"].between(start, end) & ~data["annee"].isin(EXCLUDED_YEARS)
     mask &= ~data["gare_arrivee"].isin(FOREIGN_STATIONS)
     if service != "Tous":
@@ -82,6 +86,7 @@ def ranking_table(annual: pd.DataFrame, metric: str, sort_by: str = "ICP") -> pd
         "n_years",
     ]
 
+    # Création d'un dataFrame à partir des colonnes calculées et des lignes observées
     table = pd.DataFrame(lignes, columns=colonnes)
 
     # Tri décroissant sur le critère choisi (les NaN en dernier), puis par nom de gare
@@ -129,6 +134,7 @@ def configure_logging() -> None:
     if logger.handlers:
         return
 
+    # Création d'un dossier logs, si innexistant
     dossier = PROJECT_ROOT / "logs"
     dossier.mkdir(exist_ok=True)
     logger.setLevel(logging.INFO)
@@ -231,12 +237,16 @@ def prepare_ranking_display(
         table[[metric, "beta1", "prediction_2026", "prediction_2027"]] *= 100
     return table
 
+# -----------------------------------------------------------------------------
+# 10. Calcul du score de volatilité, en fonction des poids de chaque cause - score_volatilite()
+# -----------------------------------------------------------------------------
 
 def score_volatilite(
     df: pd.DataFrame,
     poids: dict[str, float],
     min_minutes: float = 1000.0,
 ) -> pd.Series:
+    
     """Pondérer l'imprévisibilité des causes par les minutes de retard, sur 10."""
     data = df.copy()
     parts = data.reindex(columns=list(poids), fill_value=0.0).fillna(0.0)
@@ -249,6 +259,9 @@ def score_volatilite(
     grouped = grouped.loc[grouped["minutes"].ge(min_minutes) & grouped["minutes"].gt(0)]
     return (10 * grouped["produit"] / grouped["minutes"]).rename("score_volatilite")
 
+# -----------------------------------------------------------------------------
+# 11. Création d'un compteur pour la volatilité (affichage) - compteur_volatilite()
+# -----------------------------------------------------------------------------
 
 def compteur_volatilite(valeur: float, mediane: float) -> go.Figure:
     """Afficher le score de causes sur 10 et la médiane des gares étudiées."""

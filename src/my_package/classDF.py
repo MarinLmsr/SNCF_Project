@@ -1,7 +1,6 @@
 """Ce script contient les classes pour le traitement des données SNCF du projet SNCF - IADATA700
-Il inclut la configuration du modèle, le chargement des données nettoyées, ainsi que la gestion des erreurs.
-Aussi, il fournit des outils pour la visualisation et l'analyse statistique des données.
-Enfin, il permet de calculer des scores et des indicateurs de performance basés sur les données traitées.
+Il inclut la configuration du modèle, le chargement des données nettoyées.
+Aussi, il inclut le calcul de l'ICP et l'analyse des données (tendances, metriques, etc...)
 """
 
 from dataclasses import dataclass, field
@@ -15,7 +14,6 @@ from sklearn.linear_model import LinearRegression
 # -----------------------------------------------------------------------------
 # 1.VARIABLES & GESTION DES ERREURS DE DONNEES
 # -----------------------------------------------------------------------------
-
 
 # Variables : racine, répertoire, années exclues, noms des colonnes, métriques...
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -38,6 +36,7 @@ METRICS = {"ICP_abs": "ICP absolu", "ICP_rel": "ICP relatif"}
 # Classe pour la gestion des erreurs de données
 class DataError(ValueError):
     """Signaler une erreur de lecture, d'export ou de structure des données."""
+    pass
 
 
 # -----------------------------------------------------------------------------
@@ -49,7 +48,7 @@ class DataError(ValueError):
 class ConfigurationICP:
     """Configuration du modèle en regroupant les différentes hypothèses : à adapter"""
 
-    # Poids des causes (neutre)
+    # Poids des causes (neutre par défaut)
     poids_causes: dict[str, float] = field(
         default_factory=lambda: {
             "externes": 1.0,
@@ -70,13 +69,14 @@ class ConfigurationICP:
     # Taux de recours au taxi
     taux_recours_60min: float = 0.25
 
+    # Le seuil minimal, le taux de recours et les poids des causes sont ajustables dans streamlit
 
 # -----------------------------------------------------------------------------
 # 3. CHARGEMENT DES DONNÉES NETTOYÉES - DataLoader
 # -----------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)  # frozen = true --> instances immuables
+@dataclass(frozen=True)  # frozen = true --> instances immuables : ne changent pas
 class DataLoader:
     """Lecture du fichier CSV préparé par triDF()"""
 
@@ -96,6 +96,8 @@ class DataLoader:
             ValueError,
         ) as exc:
             raise DataError(f"Impossible de lire {self.path}.") from exc
+
+        # Renvoie le fichier csv sous forme de dataFrame
         return data
 
 
@@ -107,15 +109,16 @@ class DataLoader:
 class ICPCalculator:
     """Calculer l'Indice de Consommation Potentielle absolu et relatif."""
 
-    # On récupère la configuration du modèle
+    # On récupère la configuration du modèle par défaut grâce à la classe ConfigurationICP
     def __init__(self, config: ConfigurationICP):
         """Conserver les hypothèses de voyageurs, de recours et de poids des causes."""
         self.config = config
 
-    # Calcul le taux de recours selon le retard en minutes : @staticmethod car pas d'utilisation de self
+    # Calcul le taux de recours selon le retard en minutes
+    # @staticmethod car pas d'utilisation de self
     @staticmethod
     def taux_conso(retard_min: float) -> float:
-        """Interpoler le recours de référence, plafonné à 25 % dès 60 minutes."""
+        """On interpole le recours de reference grâce à np.interp(), plafonné à 25 % dès 60 minutes."""
         minutes = [0, 1, 15, 30, 60]
         taux = [0.0, 0.01, 0.01, 0.10, 0.25]
         return float(np.interp(retard_min, minutes, taux))
@@ -127,6 +130,8 @@ class ICPCalculator:
         df = df.copy()
 
         # Adapte la courbe de référence (25 % à 60 min) au taux choisi
+        # Si le taux de référence choisi est différent de 25%, alors il faut décaler chaque valeur d'interpolation
+        # On multiplie donc par le facteur self.config.taux_recours_60min / 0.25
         if "retard_moyen_arrivee" in df.columns:
             taux = df["retard_moyen_arrivee"].apply(self.taux_conso)
             df["taux_conso_retard"] = taux * self.config.taux_recours_60min / 0.25
@@ -137,6 +142,7 @@ class ICPCalculator:
         somme = pd.Series(0.0, index=df.index)
         total = pd.Series(0.0, index=df.index)
 
+        # Boucle sur chaque cause et son poids associé
         for cause, poids in self.config.poids_causes.items():
             colonne = f"p_{cause}"
             if colonne in df.columns:
@@ -144,14 +150,17 @@ class ICPCalculator:
                 somme += pct * poids
                 total += pct
 
+        # On crée une colonne w_cause qui prend la somme pondérée de chaque cause de retard
         df["w_cause"] = (somme / total).fillna(1.0)
 
         # Calcul de la conso - qui désigne ici des courses de taxi potentielles
+        # conso_totale = retards * nombre de passagers * taux de consommation * some pondérée de chaque cause
         retards = df.get("nb_retard_arrivee", 0)
         df["conso_totale"] = (
             retards * self.config.pax_defaut * df["taux_conso_retard"] * df["w_cause"]
         )
 
+        # Renvoie le dataFrame avec les colonnes supplémentaires
         return df
 
     def calculer_par_gare(self, df_lignes: pd.DataFrame) -> pd.DataFrame:
@@ -167,7 +176,7 @@ class ICPCalculator:
         pax = self.config.pax_defaut
         df_lignes["produit_circ_pax"] = df_lignes["nb_circulations_prevues"] * pax
 
-        # Additionner les volumes avant de calculer les ratios
+        # On additionne les volumes avant de calculer les ratios
         grouped = df_lignes.groupby(["gare_arrivee", "annee"], as_index=False).agg(
             conso_totale_sum=("conso_totale", "sum"),
             circ_pax_sum=("produit_circ_pax", "sum"),
@@ -179,9 +188,7 @@ class ICPCalculator:
         grouped["ICP_abs"] = grouped["conso_totale_sum"] / grouped["nb_mois"].replace(0, np.nan)
 
         # ICP relatif : courses potentielles rapportées au nombre de voyageurs prévus.
-        grouped["ICP_rel"] = grouped["conso_totale_sum"] / grouped["circ_pax_sum"].replace(
-            0, np.nan
-        )
+        grouped["ICP_rel"] = grouped["conso_totale_sum"] / grouped["circ_pax_sum"].replace(0, np.nan)
 
         return grouped.sort_values(["annee", "ICP_abs"], ascending=[True, False])
 
@@ -206,7 +213,7 @@ class TrendAnalyzer:
         ok = np.isfinite(years) & np.isfinite(values) & (years < 2026)
         x, y = years[ok], values[ok]
 
-        # Tout est indéfini (NaN) tant qu'on n'a pas pu calculer
+        # Tout est indéfini (NaN) tant qu'on n'a pas pu calculer chaque métrique
         cles = [
             "beta1",
             "intercept",
@@ -221,7 +228,7 @@ class TrendAnalyzer:
         result = dict.fromkeys(cles, np.nan)
         result["n_years"] = len(x)
 
-        # Pas assez d'années pour estimer une tendance
+        # Si le nombre d'année < 3 : On estime que l'on a pas assez d'années pour estimer une tendance
         if len(np.unique(x)) < 3:
             return result
 
@@ -229,7 +236,8 @@ class TrendAnalyzer:
         if y.mean() > 0:
             result["cv"] = float(y.std(ddof=1) / y.mean())
 
-        # Série constante : pente nulle, R² et Spearman restent indéfinis
+        # Dans le cas d'une série constante : pente nulle, R² et Spearman restent indéfinis
+        # Sinon, on calcule chaque métrique en utilisant une régression linéaire avec LinearRegression()
         if y.max() == y.min():
             slope, intercept = 0.0, float(y[0])
         else:
