@@ -2,8 +2,8 @@
 
 import json
 import logging
-
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -11,7 +11,6 @@ import plotly.graph_objects as go
 # -----------------------------------------------------------------------------
 # 1. VARIABLES & CLASSES
 # -----------------------------------------------------------------------------
-
 # Variables : années exclues, stations étrangères, classes utilisées, metriques, etc...
 from .classDF import (
     EXCLUDED_YEARS,
@@ -237,9 +236,11 @@ def prepare_ranking_display(
         table[[metric, "beta1", "prediction_2026", "prediction_2027"]] *= 100
     return table
 
+
 # -----------------------------------------------------------------------------
 # 10. Calcul du score de volatilité, en fonction des poids de chaque cause - score_volatilite()
 # -----------------------------------------------------------------------------
+
 
 def score_volatilite(
     df: pd.DataFrame,
@@ -248,7 +249,6 @@ def score_volatilite(
     ],  # ici, on implémente le dictionnaire des poids, cf. app.py POIDS_IMPREVISIBILITE
     min_minutes: float = 1000.0,  # les gares à 1000 minutes de retard ou moins ne sont pas retenues
 ) -> pd.Series:
-    
     """Pondérer l'imprévisibilité des causes par les minutes de retard, sur 10."""
     # extraction df (si on remonte à app.py, on remaque que le df est déjà nettoyé)
     data = df.copy()
@@ -272,9 +272,11 @@ def score_volatilite(
     grouped = grouped.loc[grouped["minutes"].ge(min_minutes) & grouped["minutes"].gt(0)]
     return (10 * grouped["produit"] / grouped["minutes"]).rename("score_volatilite")
 
+
 # -----------------------------------------------------------------------------
 # 11. Création d'un compteur pour la volatilité (affichage) - compteur_volatilite()
 # -----------------------------------------------------------------------------
+
 
 def compteur_volatilite(valeur: float, mediane: float) -> go.Figure:  # affichage de la jauge
     """Afficher le score de causes sur 10 et la médiane des gares étudiées."""
