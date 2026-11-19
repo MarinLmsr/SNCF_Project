@@ -73,7 +73,7 @@ sans faire une moyenne simple des ratios par liaison.
    = \mathrm{ICP}_{\mathrm{abs}}\times\text{prix moyen d'une course}
 
 Ce montant représente un chiffre d'affaires potentiel pour l'ensemble de
-l'offre taxi/VTC de la gare, pas un bénéfice ni le revenu d'un seul chauffeur.
+l'offre taxi/VTC de la gare.
 
 Tendances et limites
 --------------------
@@ -83,7 +83,7 @@ complètes antérieures à 2026. La pente beta1 mesure l'évolution par an ;
 pour l'ICP relatif, son affichage est en points de pourcentage par an.
 R² est le coefficient de détermination. Spearman décrit une association
 monotone entre l'année et l'ICP. La p-value affichée est celle de la pente
-linéaire, pas celle de Spearman. Elle est calculée gare par gare, sans
+linéaire. Elle est calculée gare par gare, sans
 correction pour comparaisons multiples.
 
 Le coefficient de variation décrit les fluctuations annuelles. La jauge

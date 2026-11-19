@@ -421,7 +421,7 @@ def station_profile(row: pd.Series, scores: pd.Series) -> str:
 
 
 def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
-    """Rédiger la conclusion à partir du périmètre et des hypothèses affichés."""
+    """Conclusion et limites du calcul de l'ICP"""
     absolute = ranking_table(annual, "ICP_abs")
     relative = ranking_table(annual, "ICP_rel")
     if absolute.ICP_abs.max() == 0:
@@ -438,16 +438,21 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
     first, intense = absolute.iloc[0], relative.iloc[0]
 
     st.write(
-        f"Notre étude cherchait à repérer les gares d'arrivée où les retards de TGV "
-        f"créent le plus de demande de taxis et de VTC, et à savoir si cette "
-        f"opportunité est durable. Les résultats ci-dessous portent sur "
+        "Les trois questions posées en début de notre étude étaient : \n"
+        "- L'ICP augmente-t-il avec le temps ? \n"
+        "- L'opportunité est-elle régulière d'une année à l'autre ? \n"
+        "- Peut-on prévoir les ICP des prochaines années ? \n"
+        " In fine, le but recherché est de trouver la meilleure opportunité d'investissement "
+        "dans une compagnie de taxi/VTC dans une gare (d'arrivée)"
+    )
+    st.write(
+        "Les résultats ci-dessous portent sur "
         f"**{n_stations} gares** et **{n_years} années complètes**, avec un recours "
         f"supposé de **{percentage} %** pour un retard d'au moins une heure et une "
         f"course à **{fr(f'{basket:.0f}')} €**."
     )
 
-    # --- Où se trouve l'opportunité ? ---
-    st.markdown("#### Où se trouve l'opportunité ?")
+    st.markdown("#### Quelles gares ont le plus grand ICP absolu et relatif ?")
     top = ", ".join(
         f"**{r.gare_arrivee.title()}** ({fr(display(r.ICP_abs, 'ICP_abs'))})"
         for r in absolute.head(4).itertuples()
@@ -462,7 +467,7 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
     paris = int(absolute.head(10).gare_arrivee.str.upper().str.startswith("PARIS").sum())
     if paris >= 2:
         st.write(
-            f"Ce classement mesure surtout la taille du trafic : **{paris} des dix "
+            f"Il est intéressant de constater le rôle de hub de la plaque parisienne : **{paris} des dix "
             f"premières gares sont parisiennes**."
         )
     if intense.gare_arrivee == first.gare_arrivee:
@@ -473,34 +478,51 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
         )
     else:
         st.write(
-            f"En intensité, **{intense.gare_arrivee.title()}** arrive en tête, avec "
-            f"**{fr(display(intense.ICP_rel, 'ICP_rel'))}** des voyageurs prévus. "
-            f"Une gare très touchée par les retards n'est donc pas forcément celle où "
-            f"l'opportunité est la plus grande, et inversement."
+            f"En termes d'ICP relatif, **{intense.gare_arrivee.title()}** arrive en tête, avec "
+            f"**{fr(display(intense.ICP_rel, 'ICP_rel'))}**. "
+            "Aussi, si cette gare avait le même trafic que certaines gares parisiennes, l'opportunité serait immense. "
+            "Par ailleurs, une gare de province peut représenter une opportunité puisque les coûts seront "
+            "très certainement inférieurs à ceux de Paris (assurance, droits de stationnement taxi, licences taxi,etc.)"
         )
 
-    # --- L'opportunité est-elle durable ? ---
-    st.markdown("#### L'opportunité est-elle durable ?")
+    st.markdown("#### Comment évolue l'ICP avec le temps ?")
     reliable = relative[(relative.n_years >= 3) & relative.beta1.notna()]
     if not reliable.empty:
         rising = (reliable.beta1 > 0).mean()
         st.write(
             f"Sur les {len(reliable)} gares ayant au moins trois années complètes, "
             f"**{rising:.0%}** ont une pente estimée positive de l'ICP relatif. "
-            f"Ce pourcentage décrit le signe des pentes, sans test de significativité. "
-            f"L'ICP relatif rapporte le potentiel au nombre de voyageurs prévus ; "
-            f"il ne supprime pas nécessairement les effets communs au réseau."
+            f"Ce pourcentage décrit le signe des pentes (sans test de significativité). "
+            f"L'ICP relatif rapporte le potentiel au nombre de voyageurs prévus."
         )
     st.write("Voici le profil des trois gares en tête du classement en volume :")
     for _, row in absolute.head(3).iterrows():
         st.markdown(f"- {station_profile(row, scores)}")
     st.caption(
         f"Une gare est jugée régulière si la variabilité annuelle de son ICP reste "
-        f"sous {CV_MAX:.0%}. Le score des causes indique une exposition relative "
-        f"aux causes considérées comme imprévisibles, pas la variabilité de l'ICP."
+        f"sous {CV_MAX:.0%}."
     )
 
-    # --- Ce qu'il faut en retenir ---
+    st.markdown("#### Prédictions de l'ICP et limites du modèle")
+    st.write(
+        "Des prédictions de l'ICP ont été réalisées pour 2026 (année incomplète) "
+        "et 2027. Ces prédictions n'ont pas de sens sans un intervalle de prédiction "
+        "et sans exposer les critères de sélection de l'intervalle.\n"
+        "Ce choix s'explique par le trop faible nombre d'années jugées complètes. "
+        "Une réelle étude à des visées d'investissement reposerait sur un recul peut-être "
+        "plus grand et avec des outils plus puissants. "
+        "Ces prédictions permettent donc simplement de visualiser une projection "
+        "à l'instar d'un vrai outil de simulation. "
+    )
+    st.write(
+        "Par ailleurs, la devise à appliquer ici est connue : "
+        "investir comporte des risques de perte en capital... "
+        "à vos risques et périls donc ! "
+    )
+    st.write(
+        "Le dernier onglet 'Annexes' vise à confirmer la validité de notre étude.\n "
+        "N'hésitez pas à jeter un coup d'oeil !"
+    )
     st.markdown("#### Ce qu'il faut en retenir")
     both = set(absolute.head(10).gare_arrivee) & set(relative.head(10).gare_arrivee)
     candidates = absolute[absolute.gare_arrivee.isin(both)]
@@ -528,15 +550,10 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
             st.markdown(f"- {station_profile(row, scores)}")
 
     # --- Limites ---
-    st.markdown("#### Ce que cette étude ne dit pas")
+    st.markdown("#### Nous faire parvenir votre retour ?")
     st.write(
-        "Notre étude fournit une piste, pas une décision. Nous n'observons ni les "
-        "courses réellement réservées, ni le remplissage des trains, ni la qualité "
-        "des transports en commun autour de chaque gare, ni les coûts d'exploitation. "
-        "La courbe de recours au taxi est une hypothèse appliquée à un retard moyen "
-        "mensuel, et les montants affichés représentent un chiffre d'affaires "
-        "potentiel, jamais un bénéfice. Avant tout engagement, ces hypothèses devraient "
-        "être validées avec des données de terrain."
+        "Si notre article et nos outils vous ont intéressés, n'hésitez pas à nous faire parvenir un "
+        "feedback via nos adresses mail telecom-paris.fr !"
     )
 
 
