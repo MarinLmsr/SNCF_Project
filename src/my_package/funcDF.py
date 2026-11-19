@@ -243,18 +243,31 @@ def prepare_ranking_display(
 
 def score_volatilite(
     df: pd.DataFrame,
-    poids: dict[str, float],
-    min_minutes: float = 1000.0,
+    poids: dict[
+        str, float
+    ],  # ici, on implémente le dictionnaire des poids, cf. app.py POIDS_IMPREVISIBILITE
+    min_minutes: float = 1000.0,  # les gares à 1000 minutes de retard ou moins ne sont pas retenues
 ) -> pd.Series:
     
     """Pondérer l'imprévisibilité des causes par les minutes de retard, sur 10."""
+    # extraction df (si on remonte à app.py, on remaque que le df est déjà nettoyé)
     data = df.copy()
+
+    # extraction des pourcentages des causes de retard puis comble les cases éventuellement NaN par 0
     parts = data.reindex(columns=list(poids), fill_value=0.0).fillna(0.0)
+
+    # par sécurité, on normalise à 1 si faille dans le nettoyage de triDF()
     total = parts.sum(axis=1).replace(0, np.nan)
     parts = parts.div(total, axis=0)
+
+    # on a noté que les causes imprévisibles ont un poids de 1 (cf. app.py)
     data["imprevisible"] = (parts * pd.Series(poids)).sum(axis=1)
+
+    # calcul de la moyenne pondérée selon les poids (ici 0, 0.5 ou 1 mais pourrait être plus complexe selon modèle)
     data["minutes"] = data["nb_retard_arrivee"].fillna(0) * data["retard_moyen_arrivee"].fillna(0)
     data["produit"] = data["imprevisible"] * data["minutes"]
+
+    # calcul de la quantité de minutes de retard pour chaque gare et médiane
     grouped = data.groupby("gare_arrivee")[["produit", "minutes"]].sum()
     grouped = grouped.loc[grouped["minutes"].ge(min_minutes) & grouped["minutes"].gt(0)]
     return (10 * grouped["produit"] / grouped["minutes"]).rename("score_volatilite")
@@ -263,12 +276,14 @@ def score_volatilite(
 # 11. Création d'un compteur pour la volatilité (affichage) - compteur_volatilite()
 # -----------------------------------------------------------------------------
 
-def compteur_volatilite(valeur: float, mediane: float) -> go.Figure:
+def compteur_volatilite(valeur: float, mediane: float) -> go.Figure:  # affichage de la jauge
     """Afficher le score de causes sur 10 et la médiane des gares étudiées."""
+    # construction d'une jauge grâce à la bibliothèque Plotly
     figure = go.Figure(
         go.Indicator(
+            # on construit la jauge, le nombre (score) et le delta à la médiane
             mode="gauge+number+delta",
-            value=round(valeur, 1),
+            value=round(valeur, 1),  # arrondi à 1 décimale
             number={"suffix": " / 10"},
             delta={
                 "reference": round(mediane, 1),
@@ -279,12 +294,12 @@ def compteur_volatilite(valeur: float, mediane: float) -> go.Figure:
             gauge={
                 "axis": {"range": [0, 10], "tickmode": "linear", "dtick": 1},
                 "bar": {"color": "#2c3e50"},
-                "steps": [
+                "steps": [  # 3 niveaux de score
                     {"range": [0, 3.33], "color": "#d5f5e3"},
                     {"range": [3.33, 6.67], "color": "#fdebd0"},
                     {"range": [6.67, 10], "color": "#f5b7b1"},
                 ],
-                "threshold": {
+                "threshold": {  # tracé du trait pour la médiane
                     "line": {"color": "black", "width": 3},
                     "value": mediane,
                 },

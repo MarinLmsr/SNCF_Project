@@ -16,7 +16,7 @@ from pathlib import Path
 # Pandas : Pour la manipulation des DataFrames
 import pandas as pd
 
-# Packages
+# import des modules dans package
 if __package__:
     from .my_package import classDF, funcDF
     from .my_package.triDF import triDF
@@ -25,15 +25,21 @@ else:
     from my_package.triDF import triDF
 
 # Variables & Fonctions & Classes
-RAW_DATA_PATH = classDF.RAW_DATA_PATH
-DataError = classDF.DataError
-ConfigurationICP = classDF.ConfigurationICP
-ranking_table = funcDF.ranking_table
-configure_logging = funcDF.configure_logging
-available_years = funcDF.available_years
-map_points = funcDF.map_points
-trend_data = funcDF.trend_data
-prepare_ranking_display = funcDF.prepare_ranking_display
+RAW_DATA_PATH = classDF.RAW_DATA_PATH  # on importe le dataframe qu'on va appliquer à triDF()
+DataError = classDF.DataError  # classe d'erreur
+ConfigurationICP = classDF.ConfigurationICP  # import de la classe associée au calcul de l'ICP
+ranking_table = (
+    funcDF.ranking_table
+)  # import de la fonction triant les gares selon les métriques choisies
+configure_logging = funcDF.configure_logging  # journalisation
+available_years = funcDF.available_years  # fct renvoyant les années valides
+map_points = funcDF.map_points  # fct renvoyant les coordonnées des gares
+trend_data = (
+    funcDF.trend_data
+)  # pour une gare donnée, renvoie les infos utiles telles que coeff regression
+prepare_ranking_display = (
+    funcDF.prepare_ranking_display
+)  # renvoie les données utiles pour le classement des gares
 score_volatilite = funcDF.score_volatilite
 compteur_volatilite = funcDF.compteur_volatilite
 
