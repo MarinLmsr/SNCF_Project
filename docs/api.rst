@@ -29,8 +29,10 @@ Nettoyage
 
 ``triDF()`` renvoie cinq éléments : le DataFrame brut, le DataFrame nettoyé,
 les colonnes retirées, les indices de toutes les lignes retirées, et les
-indices des lignes des années exclues. Cette dernière liste est incluse
-dans la précédente : ne pas additionner leurs longueurs.
+indices des observations National des années exclues. Les retraits totaux
+comprennent les services autres que National, les années exclues et les
+anomalies, sans double comptage. La dernière liste est incluse dans les
+retraits totaux : ne pas additionner leurs longueurs.
 
 Interface
 ---------

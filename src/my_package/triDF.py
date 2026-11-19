@@ -1,6 +1,6 @@
 """Nettoyage et contrôle qualité des données de régularité des trains TGV.
 
-Ce module charge les données brutes SNCF, filtre les années exclues et les
+Ce module charge les données brutes SNCF, conserve le service National, filtre les années exclues et les
 observations aberrantes, vérifie des règles de cohérence métier et exporte
 le jeu de données nettoyé.
 """
@@ -61,7 +61,8 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
 
     Returns:
         tuple: Données brutes, données nettoyées, colonnes retirées, indices de
-        toutes les lignes retirées et indices des lignes de 2020-2021.
+        toutes les lignes retirées (services, années et anomalies) et indices
+        des observations National exclues pour 2020-2021.
         Les indices des années exclues sont déjà inclus dans les lignes retirées.
 
     Raises:
@@ -101,9 +102,10 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
     if missing:
         raise DataError("Colonnes manquantes : " + ", ".join(sorted(missing)))
 
-    # Création d'une copie de travail pour préserver df_raw
-
-    df = df_raw.copy()
+    # Conserver National avant les références par liaison, sans modifier df_raw.
+    national = df_raw["Service"].astype("string").str.strip().eq("National").fillna(False)
+    indices_services_exclus = df_raw.index[~national].tolist()
+    df = df_raw.loc[national].copy()
 
     # Conversion des dates et exclusion des années COVID (EXCLUDED_YEARS)
 
@@ -176,6 +178,7 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
         .rename(columns=COLUMNS)
     )
     indices_a_supprimer.extend(indices_annees_exclues)
+    indices_a_supprimer.extend(indices_services_exclus)
 
     # Extraction de l'année et nettoyage des espaces dans les noms de gares/services
 
@@ -264,6 +267,10 @@ if __name__ == "__main__":
     print(f"• Nombre de lignes initiales : {df_raw.shape[0]}")
     print(f"• Colonnes supprimées (vides) : {len(cols_vides)}")
     print(f"• Lignes supprimées au total : {len(indices_a_supprimer)}")
+    nb_services_exclus = (
+        ~df_raw["Service"].astype("string").str.strip().eq("National").fillna(False)
+    ).sum()
+    print(f"• Dont lignes hors service National : {nb_services_exclus}")
     print(f"• Dont lignes supprimées dues aux années exclues : {len(indices_annees_exclues)}")
     print(
         f"• Dimensions finales du jeu de données : {df_final.shape[0]} lignes x {df_final.shape[1]} colonnes"
