@@ -1,8 +1,15 @@
 """Nettoyage et contrôle qualité des données de régularité des trains TGV.
 
-Ce module charge les données brutes SNCF, conserve le service National,
-filtre les années exclues et les observations aberrantes, vérifie des règles
-de cohérence métier et exporte le jeu de données nettoyé.
+Par étape :
+- importation de variables et classes provenant de classDF (voir commentaires plus bas);
+- définition de la fonction triDF() qui sera reprise dans core.py
+
+La fonction triDF() réalise les vérifications et suivantes :
+- vérification de la présence de colonnes obligatoires (liées à la durée moyenne du trajet et au retard à l'arrivée) ;
+- ne garde que les lignes avec service = National (on exclut donc les gares étrangères) ;
+- supprime les années 2020 et 2021 car elles sont marquées par l'impact du COVID et faussent nos régressions linéaires ;
+- supprime les données incohérentes (e.g. somme des pourcentages des causes de retard != 1) ;
+- exportation du DF nettoyé.
 """
 
 from pathlib import Path
@@ -19,7 +26,13 @@ if __package__:
 else:
     from classDF import DEFAULT_DATA_PATH, EXCLUDED_YEARS, RAW_DATA_PATH, DataError
 
-# Renommage des colonnes.
+# DEFAULT_DATA_PATH : chemin relatif du fichier csv nettoyé
+# RAW_DATA_PATH : chemin relatif de notre fichier csv contenant les données SNCF
+# EXLUDED_YEARS : 2020 et 2021 dans notre cas
+# DataError : classe relevant une erreur de type ValueError
+
+
+# Modification du nom des colonnes, mises en minuscule pour faciliter le traitement
 COLUMNS = {
     "Date": "date",
     "Service": "service",
@@ -53,28 +66,14 @@ COLUMNS = {
 
 
 def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH):
-    """Nettoie, renomme et contrôle les observations TGV avant leur export CSV.
-
-    Args:
-        file_path: Chemin vers le fichier CSV brut.
-        output_path: Chemin de destination du fichier CSV nettoyé.
-
-    Returns:
-        tuple: Données brutes, données nettoyées, colonnes retirées, indices de
-        toutes les lignes retirées (services, années et anomalies) et indices
-        des observations National exclues pour 2020-2021.
-        Les indices des années exclues sont déjà inclus dans les lignes retirées.
-
-    Raises:
-        DataError: Si le fichier source est écrasé, illisible ou si des colonnes manquent.
-    """
+    """Nettoyer, renommer et contrôler les observations avant leur export CSV."""
 
     file_path, output_path = Path(file_path), Path(output_path)
     if file_path.resolve() == output_path.resolve():
         raise DataError("Le fichier nettoyé ne doit pas écraser la source brute.")
 
     # A) CHARGEMENT ET PRÉPARATION DES DONNÉES
-    # -------------------------------------------------------------------------
+
     # Lecture du fichier CSV brut
 
     try:
@@ -119,8 +118,7 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
     for column in (set(COLUMNS) & set(df.columns)) - set(list(COLUMNS)[:4]):
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
-    # B) SUPPRESSION DES COLONNES VIDES ET HARMONISATION DES RETARDS
-    # -------------------------------------------------------------------------
+    # B) SUPPRESSION DES COLONNES VIDES, IMPUTATION DES RETARDS, SUPPRESSION DES LIGNES ABERANTES
 
     # Identification et suppression des colonnes contenant >= 90 % de valeurs manquantes
 
@@ -141,9 +139,8 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
     )
 
     # C) FILTRAGE DES LIGNES ABERRANTES
-    # -------------------------------------------------------------------------
 
-    # Calcul de la durée médiane de référence par liaison (hors durées nulles), valable car on ne parle que de ligne GV
+    # Calcul de la durée médiane de référence par liaison (hors durées nulles)
 
     df_clean["duree_reference"] = df_clean.groupby(["Gare de départ", "Gare d'arrivée"])[
         "Durée moyenne du trajet"
@@ -167,7 +164,6 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
     indices_a_supprimer = df_clean.index[masque_aberrant].tolist()
 
     # D) HARMONISATION ET CONTRÔLE QUALITÉ DES OBSERVATIONS
-    # -------------------------------------------------------------------------
 
     # Suppression des lignes aberrantes, de la colonne temporaire et renommage des colonnes
 
@@ -187,7 +183,7 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
     for key in ["service", "gare_depart", "gare_arrivee"]:
         df_final[key] = df_final[key].astype("string").str.strip()
 
-    # Vérification de la validité des effectifs (entiers positifs et finis).
+    # Vérification de la validité des effectifs (entiers positifs et finis)
 
     counts = ["nb_circulations_prevues", "nb_annules", "nb_retard_arrivee"]
     numeric = df_final[counts]
@@ -198,7 +194,7 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
         | numeric.mod(1).ne(0).any(axis=1)
     )
 
-    # Définition des règles de contrôle qualité métier.
+    # Définition des règles de contrôle qualité métier
 
     rules = {
         "Mois ou gare manquant": df_final["date"].isna()
@@ -215,7 +211,7 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
         ),
     }
 
-    # Marquage des anomalies détectées et détermination de l'éligibilité.
+    # Marquage des anomalies détectées et détermination de l'éligibilité
 
     df_final["quality_issues"] = ""
     for reason, mask in rules.items():
@@ -240,7 +236,6 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
     df_final = df_final[colonnes_utiles].copy()
 
     # E) EXPORT DU DATAFRAME NETTOYÉ
-    # -------------------------------------------------------------------------
 
     try:
         df_final.to_csv(output_path, sep=";", index=False, date_format="%Y-%m-%d")
@@ -253,6 +248,7 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
 # -----------------------------------------------------------------------------
 # 3. EXÉCUTION DIRECTE ET SYNTHÈSE DU NETTOYAGE
 # -----------------------------------------------------------------------------
+
 
 if __name__ == "__main__":
     df_raw, df_final, cols_vides, indices_a_supprimer, indices_annees_exclues = triDF()
