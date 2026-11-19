@@ -64,7 +64,7 @@ def analyze_data(
     minimum: int = 0,
     config: ConfigurationICP | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Orchestrer le périmètre et les ICP annuels communs aux six onglets."""
+    """Orchestrer le périmètre et les ICP annuels communs aux sept onglets."""
     if config is None:
         config = ConfigurationICP()
     scope = funcDF.filter_data(data, start, end, service)
