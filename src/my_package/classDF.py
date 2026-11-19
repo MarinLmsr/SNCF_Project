@@ -37,7 +37,7 @@ METRICS = {"ICP_abs": "ICP absolu", "ICP_rel": "ICP relatif"}
 
 # Classe pour la gestion des erreurs de données
 class DataError(ValueError):
-    pass
+    """Signaler une erreur de lecture, d'export ou de structure des données."""
 
 
 # -----------------------------------------------------------------------------
@@ -85,6 +85,7 @@ class DataLoader:
 
     # On charge et renvoie le fichier
     def load(self) -> pd.DataFrame:
+        """Lire le CSV nettoyé sans le modifier et convertir les erreurs en DataError."""
         try:
             data = pd.read_csv(self.path, sep=";")
         except (
@@ -104,15 +105,17 @@ class DataLoader:
 
 
 class ICPCalculator:
-    """Calcul de l'ICP (absolu et relatif) (Indicateur de Consommation de Performance)"""
+    """Calculer l'Indice de Consommation Potentielle absolu et relatif."""
 
     # On récupère la configuration du modèle
     def __init__(self, config: ConfigurationICP):
+        """Conserver les hypothèses de voyageurs, de recours et de poids des causes."""
         self.config = config
 
     # Calcul le taux de recours selon le retard en minutes : @staticmethod car pas d'utilisation de self
     @staticmethod
     def taux_conso(retard_min: float) -> float:
+        """Interpoler le recours de référence, plafonné à 25 % dès 60 minutes."""
         minutes = [0, 1, 15, 30, 60]
         taux = [0.0, 0.01, 0.01, 0.10, 0.25]
         return float(np.interp(retard_min, minutes, taux))

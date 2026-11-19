@@ -5,7 +5,6 @@ observations aberrantes, vérifie des règles de cohérence métier et exporte
 le jeu de données nettoyé.
 """
 
-
 from pathlib import Path
 
 import numpy as np
@@ -52,15 +51,18 @@ COLUMNS = {
 # 2. FONCTION PRINCIPALE DE NETTOYAGE
 # -----------------------------------------------------------------------------
 
+
 def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH):
     """Nettoie, renomme et contrôle les observations TGV avant leur export CSV.
 
     Args:
-        file_path: Chemin vers le fichier CSV b.
+        file_path: Chemin vers le fichier CSV brut.
         output_path: Chemin de destination du fichier CSV nettoyé.
 
     Returns:
-        tuple: (df_raw, df_final, cols_vides, indices_a_supprimer, indices_annees_exclues)
+        tuple: Données brutes, données nettoyées, colonnes retirées, indices de
+        toutes les lignes retirées et indices des lignes de 2020-2021.
+        Les indices des années exclues sont déjà inclus dans les lignes retirées.
 
     Raises:
         DataError: Si le fichier source est écrasé, illisible ou si des colonnes manquent.
@@ -139,7 +141,6 @@ def triDF(file_path: Path = RAW_DATA_PATH, output_path: Path = DEFAULT_DATA_PATH
 
     # C) FILTRAGE DES LIGNES ABERRANTES
     # -------------------------------------------------------------------------
-
 
     # Calcul de la durée médiane de référence par liaison (hors durées nulles), valable car on ne parle que de ligne GV
 
@@ -264,9 +265,10 @@ if __name__ == "__main__":
     print(f"• Colonnes supprimées (vides) : {len(cols_vides)}")
     print(f"• Lignes supprimées au total : {len(indices_a_supprimer)}")
     print(f"• Dont lignes supprimées dues aux années exclues : {len(indices_annees_exclues)}")
-    print(f"• Dimensions finales du jeu de données : {df_final.shape[0]} lignes x {df_final.shape[1]} colonnes")
+    print(
+        f"• Dimensions finales du jeu de données : {df_final.shape[0]} lignes x {df_final.shape[1]} colonnes"
+    )
     print(f"• Lignes à investiguer (règles 'métier') : {(~df_final['eligible']).sum()}")
-
 
     #   Partie du code permettant de déceler un maximum d'anomalies, de regarder si une suppression de ligne est justifiée. A n'utiliser qu'en cas de modification du DF initial
     # C) DÉTECTION ET DIAGNOSTIC INDEX PAR INDEX

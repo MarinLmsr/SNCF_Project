@@ -28,7 +28,7 @@ def test_export_sans_annees_exclues_et_colonnes_inutiles(tmp_path):
     pd.DataFrame(rows).to_csv(source, sep=";", index=False)
     original = source.read_bytes()
 
-    raw, clean, _, removed = triDF(source, output)
+    raw, clean, _, removed, excluded_years = triDF(source, output)
     exported = pd.read_csv(output, sep=";")
 
     expected_columns = [
@@ -51,6 +51,8 @@ def test_export_sans_annees_exclues_et_colonnes_inutiles(tmp_path):
     assert exported["annee"].tolist() == [2019, 2022]
     assert clean["annee"].tolist() == [2019, 2022]
     assert set(removed) == {1, 2, 4}
+    assert set(excluded_years) == {1, 2}
+    assert set(excluded_years).issubset(removed)
     assert len(raw) == 5
     assert source.read_bytes() == original
     assert exported["eligible"].all()

@@ -1,4 +1,4 @@
-"""Six onglets simples pour étudier le potentiel taxi/VTC des gares d'arrivée."""
+"""Sept onglets pour étudier le potentiel taxi/VTC des gares d'arrivée."""
 
 import logging
 import math
@@ -540,8 +540,8 @@ def show_conclusion(annual: pd.DataFrame, scores: pd.Series) -> None:
     )
 
 
-def boxhistplot_bundle_figure(data: pd.DataFrame, datacols: list, ncols: int) -> go.Figure:
-
+def boxhistplot_bundle_figure(data: pd.DataFrame, datacols: list[str], ncols: int) -> go.Figure:
+    """Construire une boîte à moustaches et un histogramme par variable numérique."""
     datacols = [col for col in datacols for _ in range(2)]
 
     nrows = math.ceil(len(datacols) / ncols)
@@ -568,12 +568,13 @@ def boxhistplot_bundle_figure(data: pd.DataFrame, datacols: list, ncols: int) ->
     return fig
 
 
-def boxhistplot_bundle(data: pd.DataFrame, datacols: list, ncols: int) -> None:
+def boxhistplot_bundle(data: pd.DataFrame, datacols: list[str], ncols: int) -> None:
+    """Afficher les distributions des observations du périmètre sélectionné."""
     st.plotly_chart(boxhistplot_bundle_figure(data, datacols, ncols))
 
 
 def main() -> None:
-    """Relier les six onglets à une seule source et à des hypothèses communes."""
+    """Relier les sept onglets à une seule source et à des hypothèses communes."""
     st.set_page_config(page_title="RailInsight · Taxis en gare", page_icon="🚉", layout="wide")
     configure_logging()
     st.title("RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire")
@@ -788,8 +789,18 @@ def main() -> None:
         show_conclusion(annual, scores)
     with tabs[6]:
         st.subheader("Statistiques post data cleansing")
-
-        data_num_cols = [c for c in data.select_dtypes("number").columns]
+        annex_data = scope.loc[scope["eligible"]].merge(
+            annual[["gare_arrivee", "annee"]],
+            on=["gare_arrivee", "annee"],
+            how="inner",
+            validate="many_to_one",
+        )
+        st.caption(
+            f"Période {start}–{end} · liaisons nationales · "
+            f"{len(annex_data):,} observations. Mêmes gares et années complètes que "
+            "les classements, après application du minimum de trains."
+        )
+        data_num_cols = list(annex_data.select_dtypes("number").columns)
 
         # for i, col in enumerate(data_num_cols):
         #     print(i, col)
@@ -806,7 +817,7 @@ def main() -> None:
             or "arrivée" in i
             or "Retard moyen trains en retard > 15" in i
         ]
-        boxhistplot_bundle(data, data_num_bundle, 4)
+        boxhistplot_bundle(annex_data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # Boxplots des causes de retards en pourcentage
@@ -814,13 +825,13 @@ def main() -> None:
             "Analyse des causes de retards en pourcentage - Sur base mensuelle et par ligne, les retards ont souvent des causes diversifiées sauf rarement (outliers) où une cause peut justifier la majorité des retards"
         )
         data_num_bundle = [i for i in data_num_cols if i.startswith("p_")]
-        boxhistplot_bundle(data, data_num_bundle, 4)
+        boxhistplot_bundle(annex_data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # Boxplots autres colonnes numériques
         st.write("Boxplots autres colonnes numériques")
         data_num_bundle = [i for i in data_num_cols if i != "annee"]
-        boxhistplot_bundle(data, data_num_bundle, 4)
+        boxhistplot_bundle(annex_data, data_num_bundle, 4)
         data_num_cols = [i for i in data_num_cols if i not in data_num_bundle]
 
         # for i, col in enumerate(data_num_cols):
