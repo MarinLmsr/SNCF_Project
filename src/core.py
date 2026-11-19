@@ -73,16 +73,31 @@ def analyze_data(
     """Orchestrer le périmètre et les ICP annuels communs aux sept onglets."""
     if config is None:
         config = ConfigurationICP()
+    logger = logging.getLogger("railinsight")
+    logger.debug(
+        "Début analyse : %d observations, période=%s-%s, service=%s",
+        len(data),
+        start,
+        end,
+        service,
+    )
+    logger.debug("Hypothèses ICP : PAX=%s, poids=%s", config.pax_defaut, config.poids_causes)
     scope = funcDF.filter_data(data, start, end, service)
     annual = funcDF.annual_icp(scope, config)
     volumes = annual.groupby("gare_arrivee").nb_circulations_prevues.sum()
     annual = annual.loc[annual.gare_arrivee.isin(volumes[volumes.ge(minimum)].index)]
-    logging.getLogger("railinsight").info(
+    logger.info(
         "Analyse arrivée : %s-%s, service=%s, recours=%s, seuil=%s",
         start,
         end,
         service,
         config.taux_recours_60min * 100,
         minimum,
+    )
+    logger.debug(
+        "Résultat analyse : %d observations filtrées, %d groupes gare/année, %d gares",
+        len(scope),
+        len(annual),
+        annual.gare_arrivee.nunique(),
     )
     return scope, annual

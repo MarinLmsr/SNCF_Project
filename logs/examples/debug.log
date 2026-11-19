@@ -1,0 +1,10 @@
+2026-11-20 00:27:27,581 INFO Démonstration de journalisation : analyse réelle et erreur contrôlée.
+2026-11-20 00:27:27,615 DEBUG Début analyse : 8445 observations, période=2018-2025, service=National
+2026-11-20 00:27:27,615 DEBUG Hypothèses ICP : PAX=550.0, poids={'externes': 1.0, 'infrastructure': 1.0, 'gestion_trafic': 1.0, 'materiel_roulant': 1.0, 'gestion_gare': 1.0, 'prise_en_compte_voyageurs': 1.0}
+2026-11-20 00:27:27,688 INFO Analyse arrivée : 2018-2025, service=National, recours=25.0, seuil=1000
+2026-11-20 00:27:27,688 DEBUG Résultat analyse : 7788 observations filtrées, 301 groupes gare/année, 51 gares
+2026-11-20 00:27:27,688 INFO Analyse terminée : 51 gares retenues.
+2026-11-20 00:27:27,688 DEBUG Début analyse : 8445 observations, période=2025-2018, service=National
+2026-11-20 00:27:27,689 DEBUG Hypothèses ICP : PAX=550.0, poids={'externes': 1.0, 'infrastructure': 1.0, 'gestion_trafic': 1.0, 'materiel_roulant': 1.0, 'gestion_gare': 1.0, 'prise_en_compte_voyageurs': 1.0}
+2026-11-20 00:27:27,689 ERROR Erreur attendue, scénario de démonstration : Période inversée.
+2026-11-20 00:27:27,689 INFO Fin de la démonstration ; l'erreur précédente a été provoquée volontairement.

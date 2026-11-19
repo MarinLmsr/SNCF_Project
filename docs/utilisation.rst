@@ -61,8 +61,10 @@ Vérifier le projet
 La documentation produite s'ouvre dans ``docs/_build/html/index.html``.
 GitHub Actions exécute les contrôles de code, de docstrings, de format,
 les tests avec une couverture minimale de 90 %, et la construction Sphinx.
-Les journaux de l'application se trouvent dans ``logs/debug.log`` et
-``logs/errors.log``.
+Les logs se trouvent dans ``logs/debug.log`` et ``logs/errors.log``. 
+Le premier reçoit DEBUG et les niveaux supérieurs,
+le second uniquement ERROR et CRITICAL.
+
 
 Remettre la documentation générée
 ----------------------------------------

@@ -5,6 +5,8 @@ __pycache__/
 .vscode/
 .DS_Store
 *.log
+!/logs/examples/debug.log
+!/logs/examples/errors.log
 .pytest_cache/
 .coverage
 htmlcov/

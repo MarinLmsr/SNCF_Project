@@ -173,8 +173,6 @@ uv run --locked ruff format --check .
 uv run --locked pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=90
 ```
 
-Les journaux de l'application sont dans `logs/debug.log` et `logs/errors.log`.
-
 ## Documentation Sphinx
 
 La documentation décrit l'installation, les sept onglets, les formules, les

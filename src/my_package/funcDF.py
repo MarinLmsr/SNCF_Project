@@ -124,8 +124,8 @@ def annual_icp(data: pd.DataFrame, config: ConfigurationICP) -> pd.DataFrame:
 # -----------------------------------------------------------------------------
 
 
-def configure_logging() -> None:
-    """Crée deux fichiers de log : debug.log (infos et plus) et errors.log (erreurs seulement)"""
+def configure_logging(log_dir: Path | None = None) -> None:
+    """Configurer les fichiers log."""
 
     logger = logging.getLogger("railinsight")
 
@@ -134,11 +134,11 @@ def configure_logging() -> None:
         return
 
     # Création d'un dossier logs, si innexistant
-    dossier = PROJECT_ROOT / "logs"
-    dossier.mkdir(exist_ok=True)
-    logger.setLevel(logging.INFO)
+    dossier = PROJECT_ROOT / "logs" if log_dir is None else Path(log_dir)
+    dossier.mkdir(parents=True, exist_ok=True)
+    logger.setLevel(logging.DEBUG)
 
-    for fichier, niveau in [("debug.log", logging.INFO), ("errors.log", logging.ERROR)]:
+    for fichier, niveau in [("debug.log", logging.DEBUG), ("errors.log", logging.ERROR)]:
         handler = logging.FileHandler(dossier / fichier, encoding="utf-8")
         handler.setLevel(niveau)
         handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
