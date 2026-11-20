@@ -103,8 +103,8 @@ susceptibles de se tourner vers une solution taxi/VTC est grand)
 $\to$ w : somme des pourcentages des causes de retards avec leurs poids (variables) 
 - $ICP_{absolu}(gare, période) = \sum ICP_{gare, période} $ 
 - $ICP_{relatif}(gare, période) = \frac{\sum ICP_{gare, période}}{NB_{Train} * PAX}  $  
-- Si on multiplie $ l'ICP_{relatif} $ par 1000, on obtient le nombre de consommation 
-pour 1000 passagers
+- Si on multiplie $ICP_{relatif}$ par 1000, on obtient le nombre de consommation 
+pour 1000 passagers dans une gare et sur une période données
 
 - `triDF()` conserve d'abord le service `National`, puis exclut 2020–2021 avant
   le calcul des références par liaison, corrige les
