@@ -2,6 +2,7 @@
 
 import logging
 import math
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -53,6 +54,28 @@ CAUSES_RETARD = {
     "gestion_gare": "Gestion en gare",
     "prise_en_compte_voyageurs": "Prise en compte des voyageurs",
 }
+
+
+def show_documentation_link() -> None:
+    """Publier les pages Sphinx et proposer leur ouverture dans un nouvel onglet."""
+    source = Path(__file__).resolve().parents[1] / "docs" / "html"
+    destination = Path(__file__).resolve().parent / "static" / "documentation"
+    if not (source / "index.html").is_file():
+        st.sidebar.caption("Documentation indisponible.")
+        return
+    try:
+        shutil.copytree(source, destination, dirs_exist_ok=True)
+    except OSError:
+        LOGGER.exception("Publication de la documentation impossible")
+        st.sidebar.caption("Documentation momentanément indisponible.")
+        return
+    base_path = st.get_option("server.baseUrlPath").strip("/")
+    st.sidebar.link_button(
+        "Documentation",
+        url=f"/{base_path + '/' if base_path else ''}app/static/documentation/index.html",
+        icon="📚",
+        width="stretch",
+    )
 
 
 @st.cache_data(show_spinner=False)
@@ -594,6 +617,7 @@ def main() -> None:
     """Relier les sept onglets à une seule source et à des hypothèses communes."""
     st.set_page_config(page_title="RailInsight · Taxis en gare", page_icon="🚉", layout="wide")
     configure_logging()
+    show_documentation_link()
     st.title("RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire")
     st.caption(
         "Étude du potentiel de recours aux taxis et VTC dans les gares d’arrivée, à partir du volume des trains, de la durée des retards et de leurs causes."

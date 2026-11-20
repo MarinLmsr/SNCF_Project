@@ -179,6 +179,9 @@ La documentation décrit l'installation, les sept onglets, les formules, les
 limites du modèle et l'API Python. Elle intègre aussi le cadre initial de l'étude
 et le formulaire de traçabilité des données.
 
+Le bouton **Documentation** dans la barre latérale de l'application ouvre ces
+pages dans un nouvel onglet. 
+
 La version HTML complète est conservée dans Git : ouvrir
 [`docs/html/index.html`](docs/html/index.html) dans un navigateur.
 
