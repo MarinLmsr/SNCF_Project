@@ -94,7 +94,7 @@ Le prix moyen d'une course est modifiable dans les onglets 2, 3 et 4, et les tro
 champs sont synchronisés. Il modifie le chiffre d'affaire (CA) 
 potentiel mais pas les ICP ni leurs
 rangs. Tous les calculs du CA seront réalisés grâce à la formule 
-suivante : **CA = ICP_absolu * panier moyen **
+suivante : CA = ICP_absolu * panier moyen
 
 ## Calcul et mise en garde
 
@@ -104,10 +104,14 @@ suivante : **CA = ICP_absolu * panier moyen **
   gare d'arrivée. Les ratios sont des rapports de sommes.
 - L'ICP absolu désigne des courses simulées **par mois observé** ; l'ICP relatif
   les rapporte aux voyageurs prévus de la même période.
-- $ICP_{ligne} = minutes_retard * NB_{passager} * \tau * w$ 
+- $ICP_{gare, période} = Retard{total de la gare sur sur la période, en min} * NB_{passager} * \tau * w$  
 où $\tau$ est l'interpolation (plus le retard de la ligne est grand, plus le pourcentage de personnes 
 susceptibles de se tourner vers une solution taxi/VTC est grand) ; w : somme des pourcentages des 
-causes de retards avec leurs poids (variables)
+causes de retards avec leurs poids (variables) 
+- $ICP_{absolu}(gare, période) = \sum ICP_{gare, période} $ 
+- $ICP_{relatif}(gare, période) = \frac{\sum ICP_{gare, période}}{NBTrain * PAX}  $  
+- Si on multiplie l'$ICP_{relatif}$ par 1000, on obtient le nombre de consommation 
+pour 1000 passagers
 
 - `triDF()` conserve d'abord le service `National`, puis exclut 2020–2021 avant
   le calcul des références par liaison, corrige les
