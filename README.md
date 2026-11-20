@@ -104,6 +104,11 @@ suivante : **CA = ICP_absolu * panier moyen **
   gare d'arrivée. Les ratios sont des rapports de sommes.
 - L'ICP absolu désigne des courses simulées **par mois observé** ; l'ICP relatif
   les rapporte aux voyageurs prévus de la même période.
+- $ICP_{ligne} = minutes_retard * NB_{passager} * \tau * w$ 
+où $\tau$ est l'interpolation (plus le retard de la ligne est grand, plus le pourcentage de personnes 
+susceptibles de se tourner vers une solution taxi/VTC est grand) ; w : somme des pourcentages des 
+causes de retards avec leurs poids (variables)
+
 - `triDF()` conserve d'abord le service `National`, puis exclut 2020–2021 avant
   le calcul des références par liaison, corrige les
   tranches de retard et supprime les lignes aberrantes.
