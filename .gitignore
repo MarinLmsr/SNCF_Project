@@ -11,4 +11,6 @@ __pycache__/
 .coverage
 htmlcov/
 docs/_build/
+docs/_sphinx/
+docs/html/.buildinfo
 tmp/

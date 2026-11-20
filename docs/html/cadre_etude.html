@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html lang="fr" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Cadre de l&#39;étude &#8212; Documentation RailInsight 0.1.0</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=c22c7077"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/translations.js?v=e6b791cb"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="next" title="Traçabilité et origine des données" href="tracabilite.html" />
+    <link rel="prev" title="Installation et utilisation" href="utilisation.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section class="tex2jax_ignore mathjax_ignore" id="cadre-de-l-etude">
+<h1>Cadre de l'étude<a class="headerlink" href="#cadre-de-l-etude" title="Lien vers cette rubrique">¶</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Le document ci-dessous présente le cadre initial et les pistes de travail de
+l'équipe. Les mentions <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code> et les fonctionnalités proposées ne
+constituent pas une description des fonctionnalités livrées.</p>
+<p>La version actuelle conserve uniquement les liaisons National, utilise un PAX
+fixe de 550 et ne réalise ni imputation KNN ni correction de Benjamini-Hochberg.
+L'ICP absolu est une moyenne mensuelle : la somme des courses potentielles est
+divisée par le nombre de mois observés. Cette division n'apparaît pas dans la
+formule initiale de la section VI.4 reproduite ci-dessous. L'ICP relatif utilise
+les sommes de courses et de voyageurs prévus sur la même période ; le chiffre
+d'affaires mensuel se calcule à partir de l'ICP absolu.</p>
+<p>Consulter <a class="reference internal" href="methode.html"><span class="std std-doc">Données et méthode</span></a> pour les formules effectivement
+appliquées et le <a class="reference internal" href="utilisation.html"><span class="std std-doc">guide d'utilisation</span></a> pour l'application livrée.</p>
+</div>
+<p>Document d'origine : <code class="docutils literal notranslate"><span class="pre">CADRE_DE_L_ETUDE.md</span></code>. Son contenu est reproduit ci-dessous.</p>
+<section id="projet-railinsight-ou-deployer-des-taxis-vtc-en-gare-tgv-darrivee">
+<h2>PROJET RAILINSIGHT : OÙ DÉPLOYER DES TAXIS / VTC EN GARE TGV D’ARRIVÉE ?<a class="headerlink" href="#projet-railinsight-ou-deployer-des-taxis-vtc-en-gare-tgv-darrivee" title="Lien vers cette rubrique">¶</a></h2>
+<blockquote>
+<div><p><strong>Légende :</strong> <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code> = point à trancher en groupe.</p>
+</div></blockquote>
+<hr class="docutils" />
+<section id="concept">
+<h3>1. CONCEPT<a class="headerlink" href="#concept" title="Lien vers cette rubrique">¶</a></h3>
+<p>Nous jouons des consultants <strong>RailInsight</strong> qui préparent une étude pour un quotidien : dans quelle gare d'arrivée TGV faut-il renforcer l'offre de taxis / VTC (stationnements dédiés, nombre de chauffeurs, bornes de réservation) ?</p>
+<ul class="simple">
+<li><p><strong>POSTULAT :</strong> Un voyageur dont le train arrive en retard a plus de risques de rater sa correspondance (TER, bus, tram, métro) ou de se retrouver sans transport en commun adapté. Il se reporte alors sur un taxi ou un VTC. Plus le retard est long, plus la probabilité de prendre un taxi augmente.<br />
+<em>Ce postulat n'est pas vérifiable avec nos données (pas de données de courses ni de réservations) : nous le traitons comme une hypothèse, entièrement paramétrable et testée par des analyses de robustesse.</em></p></li>
+<li><p><strong>POURQUOI LA GARE D’ARRIVÉE ?</strong> Le report vers un taxi se produit à l’arrivée du train. Les données de retard à l’arrivée sont aussi les plus complètes : nombre de trains en retard, retard moyen, tranches <code class="docutils literal notranslate"><span class="pre">&gt;</span> <span class="pre">15</span></code> / <code class="docutils literal notranslate"><span class="pre">30</span></code> / <code class="docutils literal notranslate"><span class="pre">60</span></code> min, et répartition des causes. Les retards et leurs causes décrivent ainsi le même événement, ce qui rend le modèle cohérent.</p></li>
+<li><p><strong>DEUXIÈME MÉCANISME : RATTRAPER SON RETARD.</strong> Un voyageur qui arrive en retard à destination est plus enclin à gagner du temps sur la suite de son trajet : il préfère un transport privé rapide et direct (taxi, VTC) à un transport en commun plus lent ou avec attente. Le taxi sert donc aussi à rattraper le retard déjà subi (rendez-vous, correspondance, engagement), même quand la correspondance n'est pas ratée. Plus le retard est important, plus cette tendance est forte.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="i-construction-de-l-indicateur">
+<h3>I. CONSTRUCTION DE L'INDICATEUR<a class="headerlink" href="#i-construction-de-l-indicateur" title="Lien vers cette rubrique">¶</a></h3>
+<p>Nous construisons l'<strong>Indice de Consommation Potentielle (ICP)</strong> par gare d’arrivée. Ici, la « consommation » désigne le recours supplémentaire à un taxi / VTC causé par un retard : l'ICP est le nombre de courses supplémentaires attendues du fait des perturbations. Il combine :</p>
+<ul class="simple">
+<li><p>Le volume de trains à l’arrivée dans la gare,</p></li>
+<li><p>La durée des retards à l’arrivée (via une courbe de recours au taxi croissante),</p></li>
+<li><p>Une pondération selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, matériel roulant, gestion en gare, prise en compte des voyageurs dont les correspondances).</p></li>
+</ul>
+<blockquote>
+<div><p><strong>Note :</strong> Les annulations ne sont pas intégrées à l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l’arrivée. Elles restent présentes dans le classement de fiabilité. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code></p>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="ii-etude-deux-questions-trois-classements">
+<h3>II. ÉTUDE : DEUX QUESTIONS, TROIS CLASSEMENTS<a class="headerlink" href="#ii-etude-deux-questions-trois-classements" title="Lien vers cette rubrique">¶</a></h3>
+<p><strong>Insight central :</strong> les gares les moins fiables ne sont pas celles où renforcer l'offre de taxis est le plus rentable. Une petite gare avec énormément de retards mais peu de passage ne justifie pas de mobiliser des chauffeurs.</p>
+<p>Nous comparons trois classements (gares d’arrivée) :</p>
+<ol class="arabic simple">
+<li><p><strong>FIABILITÉ</strong></p>
+<ul class="simple">
+<li><p><strong>Mesure :</strong> <span class="math notranslate nohighlight">\(\text{taux de perturbation} = \frac{\text{retards à l’arrivée}}{\text{circulations prévues}}\)</span></p></li>
+<li><p><strong>Ce qu'il montre :</strong> les gares d’arrivée les moins fiables.</p></li>
+</ul>
+</li>
+<li><p><strong>ICP ABSOLU</strong></p>
+<ul class="simple">
+<li><p><strong>Mesure :</strong> somme des courses supplémentaires attendues.</p></li>
+<li><p><strong>Ce qu'il montre :</strong> la taille de l’opportunité (favorise Paris, Lyon, Marseille).</p></li>
+</ul>
+</li>
+<li><p><strong>ICP RELATIF</strong></p>
+<ul class="simple">
+<li><p><strong>Mesure :</strong> <span class="math notranslate nohighlight">\(\frac{\text{ICP absolu}}{\text{circulations} \times \text{PAX}}\)</span></p></li>
+<li><p><strong>Ce qu'il montre :</strong> l’intensité du phénomène, les gares petites mais « avec nombreux retards qui comptent ».</p></li>
+</ul>
+</li>
+</ol>
+<p>Le contraste entre le classement de fiabilité et les deux classements ICP constitue la valeur ajoutée de l'étude.</p>
+<section id="limites">
+<h4>LIMITES<a class="headerlink" href="#limites" title="Lien vers cette rubrique">¶</a></h4>
+<ul class="simple">
+<li><p>Le dataset est mensuel et ne contient pas l'heure d’arrivée : l'effet « arrivée tardive, moins de transports en commun » ne peut pas être mesuré. Seule la durée du retard est utilisée.</p></li>
+<li><p>Le report vers un taxi dépend aussi de la qualité de la desserte locale (métro, tram, TER), qui varie fortement d'une gare à l'autre et qui n'est pas dans les données. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER</span> <span class="pre">:</span> <span class="pre">enrichissement</span> <span class="pre">possible</span> <span class="pre">avec</span> <span class="pre">des</span> <span class="pre">données</span> <span class="pre">ouvertes</span> <span class="pre">sur</span> <span class="pre">les</span> <span class="pre">transports</span> <span class="pre">en</span> <span class="pre">commun]</span></code></p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="iii-application-streamlit">
+<h3>III. APPLICATION STREAMLIT<a class="headerlink" href="#iii-application-streamlit" title="Lien vers cette rubrique">¶</a></h3>
+<section id="structure-de-l-app">
+<h4>STRUCTURE DE L'APP<a class="headerlink" href="#structure-de-l-app" title="Lien vers cette rubrique">¶</a></h4>
+<ol class="arabic simple">
+<li><p><strong>Classement :</strong> barres Plotly, avec choix du critère (fiabilité, ICP absolu, ICP relatif) et filtre de périmètre (gares d’arrivée françaises par défaut).</p></li>
+<li><p><strong>Carte :</strong> gares d’arrivée colorées par score, taille proportionnelle au volume (<code class="docutils literal notranslate"><span class="pre">pydeck</span></code> ou <code class="docutils literal notranslate"><span class="pre">Folium</span></code>).</p></li>
+<li><p><strong>Zoom sur une gare :</strong> évolution mensuelle, saisonnalité, répartition des causes.</p></li>
+<li><p><strong>Simulateur :</strong> les sliders recalculent le classement en direct.</p></li>
+<li><p><strong>Conclusion du journaliste :</strong> top 3 des gares et limites de l’étude.</p></li>
+</ol>
+</section>
+<section id="parametres-reglables-dans-le-simulateur">
+<h4>PARAMÈTRES RÉGLABLES DANS LE SIMULATEUR<a class="headerlink" href="#parametres-reglables-dans-le-simulateur" title="Lien vers cette rubrique">¶</a></h4>
+<ul class="simple">
+<li><p>Prix moyen d'une course (euros)</p></li>
+<li><p>Coefficient de chaque cause de retard</p></li>
+<li><p>Points de la courbe de recours au taxi (seuils de retard et taux associés)</p></li>
+<li><p>Seuil minimum de circulations pour figurer au classement</p></li>
+</ul>
+</section>
+<section id="trois-axes-d-analyse">
+<h4>TROIS AXES D'ANALYSE<a class="headerlink" href="#trois-axes-d-analyse" title="Lien vers cette rubrique">¶</a></h4>
+<section id="a-lopportunite-est-elle-durable">
+<h5>A) L’OPPORTUNITÉ EST-ELLE DURABLE ?<a class="headerlink" href="#a-lopportunite-est-elle-durable" title="Lien vers cette rubrique">¶</a></h5>
+<ul class="simple">
+<li><p>Tracer l'ICP relatif de chaque gare d’arrivée par année, puis tester la tendance : régression linéaire sur l’année réelle (2019, 2022, 2023...) et sur la pente relative (<span class="math notranslate nohighlight">\(\frac{\text{pente}}{\text{moyenne de l'ICP}}\)</span>, en % par an).</p></li>
+<li><p>Valider la régression : <span class="math notranslate nohighlight">\(R^2\)</span>, <em>p-value</em> corrigée (Benjamini-Hochberg), nombre de points. Fixer un seuil minimum de <span class="math notranslate nohighlight">\(R^2\)</span> et classer ensuite les pentes relatives les plus fortes.</p></li>
+<li><p>Mesurer la persistance du classement : corrélation de Spearman entre le classement des gares de l’année <span class="math notranslate nohighlight">\(N\)</span> et celui de l’année <span class="math notranslate nohighlight">\(N+1\)</span>, et recouvrement du top 10.</p></li>
+</ul>
+</section>
+<section id="b-retards-structurels-ou-accidentels">
+<h5>B) RETARDS STRUCTURELS OU ACCIDENTELS ?<a class="headerlink" href="#b-retards-structurels-ou-accidentels" title="Lien vers cette rubrique">¶</a></h5>
+<p><strong>Quadrant :</strong></p>
+<ul class="simple">
+<li><p><strong>Axe X :</strong> volatilité (coefficient de variation de l'ICP relatif mensuel), axe inversé pour que « stable » soit à droite.</p></li>
+<li><p><strong>Axe Y :</strong> ICP relatif moyen.</p></li>
+<li><p><strong>Couleur :</strong> part de causes structurelles (infrastructure, matériel roulant, gestion en gare), pondérée par les minutes de retard à l’arrivée.</p></li>
+<li><p><strong>Taille :</strong> volume de trains.</p></li>
+</ul>
+<p><strong>Hypothèse :</strong> les gares dominées par des causes structurelles ont un ICP plus stable (points chauds en haut à droite, points froids en haut à gauche). Renforcer durablement l'offre de taxis se justifie surtout face à des retards récurrents, donc structurels. Si les couleurs sont mélangées, c'est aussi un résultat en soi : la nature des causes ne prédit pas la stabilité.</p>
+<blockquote>
+<div><p><strong>Précaution :</strong> pour éviter la circularité (l'ICP est pondéré par les mêmes causes que la couleur), calculer la volatilité avec des poids neutres ou sur un indicateur non pondéré. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code></p>
+</div></blockquote>
+</section>
+<section id="c-quelles-caracteristiques-de-la-gare-expliquent-lintensite-des-retards">
+<h5>C) QUELLES CARACTÉRISTIQUES DE LA GARE EXPLIQUENT L’INTENSITÉ DES RETARDS ?<a class="headerlink" href="#c-quelles-caracteristiques-de-la-gare-expliquent-lintensite-des-retards" title="Lien vers cette rubrique">¶</a></h5>
+<ul class="simple">
+<li><p><strong>Variables explicatives (par gare d’arrivée) :</strong></p>
+<ul>
+<li><p>Volume de circulations</p></li>
+<li><p>Nombre de gares d'origine desservies (provenances)</p></li>
+<li><p>Durée moyenne des trajets à destination de la gare</p></li>
+</ul>
+</li>
+<li><p><strong>Variable expliquée :</strong> le taux de retard (ou l'ICP relatif). Le taux d'annulation est étudié à part. Les variables explicatives étant probablement corrélées entre elles (volume et provenances), les interpréter avec prudence.</p></li>
+<li><p><strong>Méthode :</strong> Corrélations calculées avec Spearman, au niveau gare.</p></li>
+</ul>
+</section>
+</section>
+</section>
+<hr class="docutils" />
+<section id="iv-traitement-des-donnees">
+<h3>IV. TRAITEMENT DES DONNÉES<a class="headerlink" href="#iv-traitement-des-donnees" title="Lien vers cette rubrique">¶</a></h3>
+<ol class="arabic">
+<li><p><strong>PÉRIODE :</strong><br />
+Exclure 2020 et 2021 (circulations/fréquences perturbées par le COVID, qui faussent les régressions). Exclure aussi 2026 des analyses annuelles, car l’année est incomplète : les moyennes annuelles seraient biaisées par la saisonnalité. Pour les comparaisons à périmètre égal, on peut comparer les mêmes mois d'une année à l'autre.</p></li>
+<li><p><strong>PÉRIMÈTRE :</strong><br />
+Regrouper les données par gare d’arrivée. Ne garder que les gares d’arrivée situées en France. Les liaisons internationales à destination d'une gare française restent-elles incluses (colonne <em>Service</em>) ? <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code><br />
+Imposer un nombre minimum de circulations par gare.</p></li>
+<li><p><strong>NOMBRE DE VOYAGEURS PAR TRAIN (PAX) :</strong><br />
+PAX est déterminé gare par gare et année par année, avec une règle à deux niveaux :</p>
+<ul class="simple">
+<li><p><strong>a) Données SNCF suffisantes :</strong> si la gare est présente dans le dataset open data SNCF de fréquentation des gares, avec une fréquentation renseignée et non nulle pour l’année considérée (et un rapprochement de nom de gare fiable), PAX est estimé à partir de cette fréquentation. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER</span> <span class="pre">:</span> <span class="pre">formule</span> <span class="pre">de</span> <span class="pre">conversion]</span></code></p></li>
+<li><p><strong>b) Données insuffisantes :</strong> PAX est renseigné, soit par une valeur fixe de 550 voyageurs par train (hypothèse arbitraire, valeur par défaut), soit par une méthode KNN : moyenne du PAX des <span class="math notranslate nohighlight">\(k\)</span> gares les plus proches parmi celles du cas a), sur des variables connues pour toutes les gares (nombre de circulations, nombre de provenances, durée moyenne des trajets). Le choix entre 550 et KNN, et la valeur de <span class="math notranslate nohighlight">\(k\)</span>, sont validés par validation croisée <em>leave-one-out</em> sur les gares du cas a). <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code></p></li>
+</ul>
+<p>Chaque valeur de PAX est étiquetée avec sa source (<code class="docutils literal notranslate"><span class="pre">SNCF</span></code> / <code class="docutils literal notranslate"><span class="pre">KNN</span></code> / <code class="docutils literal notranslate"><span class="pre">défaut</span></code>), visible dans l'application, et les gares à PAX imputé (valeur par défaut) sont signalées.<br />
+<em>Conséquence :</em> comme PAX multiplie à la fois le numérateur et le dénominateur de l'ICP relatif d'une même gare, l'ICP relatif ne dépend pas de PAX. Seul l'ICP absolu est affecté par ce choix.</p>
+</li>
+<li><p><strong>CAUSES DE RETARD :</strong><br />
+La répartition des causes fournie par le dataset porte sur les retards à l’arrivée : elle est donc cohérente avec les retards utilisés dans l'ICP (même gare, même événement). Chaque cause a un coefficient propre, réglable depuis Streamlit. Les pourcentages du dataset sont re-normalisés pour sommer à 100 %, et les valeurs manquantes sont traitées explicitement.<br />
+La cause « prise en compte des voyageurs (affluence, PSH, correspondances) » est particulièrement liée au report vers un taxi : suivre son évolution dans le zoom par gare. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER</span> <span class="pre">:</span> <span class="pre">coefficient]</span></code></p></li>
+<li><p><strong>QUALITÉ DES DONNÉES :</strong><br />
+Contrôle des incohérences (<span class="math notranslate nohighlight">\(\text{annulés} &gt; \text{prévus}\)</span>, <span class="math notranslate nohighlight">\(\text{retards à l’arrivée} &gt; \text{circulations}\)</span>, <span class="math notranslate nohighlight">\(N_{30} &gt; N_{15}\)</span>, <span class="math notranslate nohighlight">\(N_{60} &gt; N_{30}\)</span>, somme des causes <span class="math notranslate nohighlight">\(\neq 100\%\)</span>, doublons), avec journalisation de chaque anomalie.</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="v-organisation-du-code">
+<h3>V. ORGANISATION DU CODE<a class="headerlink" href="#v-organisation-du-code" title="Lien vers cette rubrique">¶</a></h3>
+<p>Approche orientée objet :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">DataLoader</span></code> : chargement, nettoyage, validation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ScoreConfig</span></code> : <em>dataclass</em> des hypothèses (courbe, poids), validée à la création</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ICPCalculator</span></code> : calcul de l'ICP par ligne puis par gare d’arrivée</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TrendAnalyzer</span></code>, <code class="docutils literal notranslate"><span class="pre">PersistenceAnalyzer</span></code>, <code class="docutils literal notranslate"><span class="pre">QuadrantClassifier</span></code>, <code class="docutils literal notranslate"><span class="pre">CorrelationAnalyzer</span></code> : une classe par analyse</p></li>
+<li><p><strong>Exceptions personnalisées :</strong> <code class="docutils literal notranslate"><span class="pre">StationNotFoundError</span></code>, <code class="docutils literal notranslate"><span class="pre">InvalidPeriodError</span></code>, <code class="docutils literal notranslate"><span class="pre">InsufficientDataError</span></code>, <code class="docutils literal notranslate"><span class="pre">ConfigError</span></code></p></li>
+</ul>
+<p>Chaque classe se teste avec de petits DataFrames fabriqués à la main, ce qui aide pour atteindre les 90 % de couverture.</p>
+</section>
+<hr class="docutils" />
+<section id="vi-formule-de-l-icp">
+<h3>VI. FORMULE DE L'ICP<a class="headerlink" href="#vi-formule-de-l-icp" title="Lien vers cette rubrique">¶</a></h3>
+<p>Toutes les grandeurs « retard » sont celles de l’arrivée : nombre de trains en retard à l’arrivée et retard moyen des trains en retard à l’arrivée (et non le retard moyen de tous les trains, dilué par les trains à l'heure).</p>
+<section id="ponderation-des-causes-par-ligne-pourcentages-re-normalises">
+<h4>1. Pondération des causes (par ligne, pourcentages re-normalisés)<a class="headerlink" href="#ponderation-des-causes-par-ligne-pourcentages-re-normalises" title="Lien vers cette rubrique">¶</a></h4>
+<div class="math notranslate nohighlight">
+\[w_{\text{cause}} = \sum_{c} (p_c \times w_c)\]</div>
+</section>
+<section id="courbe-de-recours-au-taxi">
+<h4>2. Courbe de recours au taxi<a class="headerlink" href="#courbe-de-recours-au-taxi" title="Lien vers cette rubrique">¶</a></h4>
+<p><em>(Part des voyageurs du train qui prennent un taxi à cause du retard, selon le retard moyen)</em></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">taux_conso</span><span class="p">(</span><span class="n">retard_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="c1"># 0 min : 0 % | 1 à 15 min : 1 % | 30 min : 10 % | 60 min : 25 %</span>
+    <span class="c1"># plafonné au-delà</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">retard_min</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">]))</span>
+</pre></div>
+</div>
+</section>
+<section id="par-ligne-text-liaison-times-text-mois-rattachee-a-sa-gare-d-arrivee">
+<h4>3. Par ligne (<span class="math notranslate nohighlight">\(\text{liaison} \times \text{mois}\)</span>), rattachée à sa gare d'arrivée<a class="headerlink" href="#par-ligne-text-liaison-times-text-mois-rattachee-a-sa-gare-d-arrivee" title="Lien vers cette rubrique">¶</a></h4>
+<div class="math notranslate nohighlight">
+\[\text{conso\_totale} = \text{nb\_retard\_arrivee} \times \text{PAX} \times \text{taux\_conso}(\text{retard\_moyen\_arrivee}) \times w_{\text{cause}}\]</div>
+</section>
+<section id="icp-absolu">
+<h4>4. ICP Absolu<a class="headerlink" href="#icp-absolu" title="Lien vers cette rubrique">¶</a></h4>
+<p><em>(Par gare d’arrivée, en moyenne mensuelle pour comparer des périodes différentes)</em>
+<div class="math notranslate nohighlight">
+\[\text{ICP}_{\text{abs}} = \sum \text{conso\_totale} \quad \text{(sur toutes les liaisons à destination de la gare)}\]</div>
+</p>
+</section>
+<section id="icp-relatif">
+<h4>5. ICP Relatif<a class="headerlink" href="#icp-relatif" title="Lien vers cette rubrique">¶</a></h4>
+<div class="math notranslate nohighlight">
+\[\text{ICP}_{\text{rel}} = \frac{\sum \text{conso\_totale}}{\sum (\text{nb\_circulations\_prevues} \times \text{PAX})}\]</div>
+<blockquote>
+<div><p><strong>RÈGLE ESSENTIELLE :</strong> Sommer d'abord, diviser ensuite. Faire la moyenne des ratios par liaison donnerait autant de poids à une liaison de 5 trains qu'à une de 500 (paradoxe de Simpson).</p>
+</div></blockquote>
+</section>
+<section id="estimation-en-euros">
+<h4>6. Estimation en euros<a class="headerlink" href="#estimation-en-euros" title="Lien vers cette rubrique">¶</a></h4>
+<div class="math notranslate nohighlight">
+\[\text{CA Potentiel (€)} = \text{ICP} \times \text{prix moyen d'une course}\]</div>
+<p><em>(Prix réglable, par exemple 25 €).</em> Ce chiffre est un chiffre d'affaires potentiel pour la filière taxi / VTC de la gare, pas un bénéfice. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER</span> <span class="pre">:</span> <span class="pre">prix</span> <span class="pre">moyen]</span></code></p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="vii-validation-du-modele">
+<h3>VII. VALIDATION DU MODÈLE<a class="headerlink" href="#vii-validation-du-modele" title="Lien vers cette rubrique">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Tests unitaires</strong> sur des valeurs calculées à la main et des invariants (par exemple, <span class="math notranslate nohighlight">\(\text{ICP}_{\text{rel}}\)</span> indépendant de PAX).</p></li>
+<li><p><strong>Tests de la régression</strong> sur des séries synthétiques (pente retrouvée, taux de faux positifs, puissance).</p></li>
+<li><p><strong>Test placebo</strong> sur les vraies données (années mélangées au sein de chaque gare).</p></li>
+<li><p><strong>Robustesse du classement :</strong></p>
+<ul>
+<li><p>Variante par tranches de retard (<code class="docutils literal notranslate"><span class="pre">&gt;</span> <span class="pre">15</span></code>, <code class="docutils literal notranslate"><span class="pre">&gt;</span> <span class="pre">30</span></code>, <code class="docutils literal notranslate"><span class="pre">&gt;</span> <span class="pre">60</span></code> min), qui exploite la distribution fine des retards à l’arrivée au lieu d'une moyenne ;</p></li>
+<li><p>Variante poids neutres (toutes les causes à 1) ;</p></li>
+<li><p>Variation de la courbe de recours au taxi (notamment le seuil à partir duquel le retard fait rater une correspondance) ;</p></li>
+<li><p>Variante « gare de départ » (retards au départ, sans pondération par les causes) comme contrôle de cohérence ;</p></li>
+<li><p>Corrélation de rang (Spearman) et recouvrement du top 10 entre les classements.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">RailInsight</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="utilisation.html">Installation et utilisation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Cadre de l'étude</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#projet-railinsight-ou-deployer-des-taxis-vtc-en-gare-tgv-darrivee">PROJET RAILINSIGHT : OÙ DÉPLOYER DES TAXIS / VTC EN GARE TGV D’ARRIVÉE ?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tracabilite.html">Traçabilité et origine des données</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methode.html">Données et méthode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Référence du code</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="utilisation.html" title="Chapitre précédent">Installation et utilisation</a></li>
+      <li>Next: <a href="tracabilite.html" title="Chapitre suivant">Traçabilité et origine des données</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, équipe RailInsight.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

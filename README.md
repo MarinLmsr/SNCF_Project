@@ -173,32 +173,15 @@ uv run --locked ruff format --check .
 uv run --locked pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=90
 ```
 
-## Documentation Sphinx
+## Documentation
 
 La documentation décrit l'installation, les sept onglets, les formules, les
-limites du modèle et l'API Python. Pour générer la version HTML :
+limites du modèle et l'API Python. Elle intègre aussi le cadre initial de l'étude
+et le formulaire de traçabilité des données.
 
-```bash
-uv run --locked sphinx-build -b html -W --keep-going docs docs/_build/html
-```
+La version HTML complète est conservée dans Git : ouvrir
+[`docs/html/index.html`](docs/html/index.html) dans un navigateur.
 
-Ouvrez ensuite `docs/_build/html/index.html`. GitHub Actions contrôle le code,
-la présence des docstrings, le format, les tests, une couverture minimale de
-90 % et la construction de cette documentation.
-
-### Récupérer la documentation générée pour la remise
-
-Après une exécution réussie du workflow **Tests**, la documentation HTML est
-disponible dans **Actions → Tests → exécution réussie → Artifacts →
-railinsight-sphinx-html**. Télécharger l'archive, la décompresser, puis ouvrir
-`index.html` dans un navigateur en conservant les dossiers `_static` et `_sources`.
-Le téléchargement nécessite une connexion à GitHub ; l'archive est conservée
-90 jours, dans la limite des règles du dépôt.
-
-Cette archive contient la **documentation générée avec Sphinx**, prête à être
-jointe à la remise. Les sources `.rst` et `conf.py` restent versionnées dans
-`docs/`. Le répertoire `docs/_build/` est généré localement ou par la CI et
-reste ignoré par Git.
 
 ## Utilisation de LLM
 

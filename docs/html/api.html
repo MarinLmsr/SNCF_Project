@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+
+<html lang="fr" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Référence du code &#8212; Documentation RailInsight 0.1.0</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=c22c7077"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/translations.js?v=e6b791cb"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="prev" title="Données et méthode" href="methode.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="reference-du-code">
+<h1>Référence du code<a class="headerlink" href="#reference-du-code" title="Lien vers cette rubrique">¶</a></h1>
+<section id="module-core">
+<span id="orchestration"></span><h2>Orchestration<a class="headerlink" href="#module-core" title="Lien vers cette rubrique">¶</a></h2>
+<p>Lien entre l'application et les traitements de my_package.
+Importer ce module ne lance ni nettoyage ni analyse.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="core.analyze_data">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">analyze_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Tous'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.analyze_data" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Orchestrer le périmètre et les ICP annuels communs aux sept onglets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>DataFrame</em>)</p></li>
+<li><p><strong>start</strong> (<em>int</em>)</p></li>
+<li><p><strong>end</strong> (<em>int</em>)</p></li>
+<li><p><strong>service</strong> (<em>str</em>)</p></li>
+<li><p><strong>minimum</strong> (<em>int</em>)</p></li>
+<li><p><strong>config</strong> (<a class="reference internal" href="#my_package.classDF.ConfigurationICP" title="my_package.classDF.ConfigurationICP"><em>ConfigurationICP</em></a><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple[<em>DataFrame</em>, <em>DataFrame</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="core.load_data">
+<span class="sig-prename descclassname"><span class="pre">core.</span></span><span class="sig-name descname"><span class="pre">load_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#core.load_data" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Créer le CSV nettoyé avec triDF, puis le lire avec l'unique DataLoader</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path</strong> (<em>Path</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>output_path</strong> (<em>Path</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>DataFrame</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-my_package.classDF">
+<span id="configuration-chargement-et-calculs"></span><h2>Configuration, chargement et calculs<a class="headerlink" href="#module-my_package.classDF" title="Lien vers cette rubrique">¶</a></h2>
+<p>Ce script contient les classes pour le traitement des données SNCF du projet SNCF - IADATA700
+Il inclut la configuration du modèle, le chargement des données nettoyées.
+Aussi, il inclut le calcul de l'ICP et l'analyse des données (tendances, metriques, etc...)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="my_package.classDF.ConfigurationICP">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">my_package.classDF.</span></span><span class="sig-name descname"><span class="pre">ConfigurationICP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poids_causes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seuil_min_circulations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pax_defaut</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">550.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">taux_recours_60min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.ConfigurationICP" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Bases : <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Configuration du modèle en regroupant les différentes hypothèses : à adapter</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>poids_causes</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>]</em>)</p></li>
+<li><p><strong>seuil_min_circulations</strong> (<em>int</em>)</p></li>
+<li><p><strong>pax_defaut</strong> (<em>float</em>)</p></li>
+<li><p><strong>taux_recours_60min</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="my_package.classDF.ConfigurationICP.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poids_causes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seuil_min_circulations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pax_defaut</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">550.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">taux_recours_60min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.ConfigurationICP.__init__" title="Lien vers cette définition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>poids_causes</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>]</em>)</p></li>
+<li><p><strong>seuil_min_circulations</strong> (<em>int</em>)</p></li>
+<li><p><strong>pax_defaut</strong> (<em>float</em>)</p></li>
+<li><p><strong>taux_recours_60min</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="my_package.classDF.DataError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">my_package.classDF.</span></span><span class="sig-name descname"><span class="pre">DataError</span></span><a class="headerlink" href="#my_package.classDF.DataError" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Bases : <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></p>
+<p>Signaler une erreur de lecture, d'export ou de structure des données.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="my_package.classDF.DataLoader">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">my_package.classDF.</span></span><span class="sig-name descname"><span class="pre">DataLoader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WindowsPath('C:/Users/xings/Documents/Etudes/MS-DATA/AIDATA700_KitBigData/SNCF_Project/data/regularite_tgv_clean.csv')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.DataLoader" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Bases : <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Lecture du fichier CSV préparé par triDF()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>Path</em>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="my_package.classDF.DataLoader.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WindowsPath('C:/Users/xings/Documents/Etudes/MS-DATA/AIDATA700_KitBigData/SNCF_Project/data/regularite_tgv_clean.csv')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.DataLoader.__init__" title="Lien vers cette définition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>Path</em>)</p>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="my_package.classDF.DataLoader.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.DataLoader.load" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Lire le CSV nettoyé sans le modifier et convertir les erreurs en DataError.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>DataFrame</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="my_package.classDF.ICPCalculator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">my_package.classDF.</span></span><span class="sig-name descname"><span class="pre">ICPCalculator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.ICPCalculator" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Bases : <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Calculer l'Indice de Consommation Potentielle absolu et relatif.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference internal" href="#my_package.classDF.ConfigurationICP" title="my_package.classDF.ConfigurationICP"><em>ConfigurationICP</em></a>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="my_package.classDF.ICPCalculator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.ICPCalculator.__init__" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Conserver les hypothèses de voyageurs, de recours et de poids des causes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference internal" href="#my_package.classDF.ConfigurationICP" title="my_package.classDF.ConfigurationICP"><em>ConfigurationICP</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="my_package.classDF.ICPCalculator.calculer_ligne">
+<span class="sig-name descname"><span class="pre">calculer_ligne</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.ICPCalculator.calculer_ligne" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Calculer les courses potentielles par liaison et mois, hors annulations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>DataFrame</em>)</p>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>DataFrame</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="my_package.classDF.ICPCalculator.calculer_par_gare">
+<span class="sig-name descname"><span class="pre">calculer_par_gare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df_lignes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.ICPCalculator.calculer_par_gare" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Sommer par gare et par année avant de calculer les ICP absolu et relatif</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df_lignes</strong> (<em>DataFrame</em>)</p>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>DataFrame</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="my_package.classDF.ICPCalculator.taux_conso">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">taux_conso</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">retard_min</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.ICPCalculator.taux_conso" title="Lien vers cette définition">¶</a></dt>
+<dd><p>On interpole le recours de reference grâce à np.interp(), plafonné à 25 % dès 60 minutes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>retard_min</strong> (<em>float</em>)</p>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="my_package.classDF.TrendAnalyzer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">my_package.classDF.</span></span><span class="sig-name descname"><span class="pre">TrendAnalyzer</span></span><a class="headerlink" href="#my_package.classDF.TrendAnalyzer" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Bases : <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Analyse des tendances des ICP par gare</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="my_package.classDF.TrendAnalyzer.ajuster_tendance">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ajuster_tendance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">years</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.TrendAnalyzer.ajuster_tendance" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Régression linéaire de l'ICP sur les années (au moins 3, 2026 exclue) et prédictions 2026-2027</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>years</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>values</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>metric</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict[str, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-my_package.funcDF">
+<span id="preparation-des-analyses"></span><h2>Préparation des analyses<a class="headerlink" href="#module-my_package.funcDF" title="Lien vers cette rubrique">¶</a></h2>
+<p>Fonctions utilitaires de préparation des données par gare d'arrivée pour les analyses du projet SNCF - RailInsight</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.funcDF.annual_icp">
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">annual_icp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.annual_icp" title="Lien vers cette définition">¶</a></dt>
+<dd><p>ICP annuel par gare, calculé uniquement sur les années complètes (12 mois) avant 2026</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>DataFrame</em>)</p></li>
+<li><p><strong>config</strong> (<a class="reference internal" href="#my_package.classDF.ConfigurationICP" title="my_package.classDF.ConfigurationICP"><em>ConfigurationICP</em></a>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>DataFrame</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.funcDF.available_years">
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">available_years</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.available_years" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Années proposées dans l'interface : avant 2026 et hors années exclues</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>DataFrame</em>)</p>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p>list[int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.funcDF.compteur_volatilite">
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">compteur_volatilite</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">valeur</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mediane</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.compteur_volatilite" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Afficher le score de causes sur 10 et la médiane des gares étudiées.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>valeur</strong> (<em>float</em>)</p></li>
+<li><p><strong>mediane</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Figure</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.funcDF.configure_logging">
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">configure_logging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.configure_logging" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Configurer les fichiers log.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>log_dir</strong> (<em>Path</em><em> | </em><em>None</em>)</p>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.funcDF.filter_data">
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">filter_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Tous'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.filter_data" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Sélectionner la période historique, les gares françaises et le service.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>DataFrame</em>)</p></li>
+<li><p><strong>start</strong> (<em>int</em>)</p></li>
+<li><p><strong>end</strong> (<em>int</em>)</p></li>
+<li><p><strong>service</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>DataFrame</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.funcDF.map_points">
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">map_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WindowsPath('C:/Users/xings/Documents/Etudes/MS-DATA/AIDATA700_KitBigData/SNCF_Project/data/station_coordinates.json')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.map_points" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Ajoute latitude/longitude à chaque gare et renvoie aussi la liste des gares sans coordonnées</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scores</strong> (<em>DataFrame</em>)</p></li>
+<li><p><strong>path</strong> (<em>Path</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple[<em>DataFrame</em>, list[str]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.funcDF.prepare_ranking_display">
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">prepare_ranking_display</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annual</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_by</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basket</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.prepare_ranking_display" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Adapter ranking_table pour l'interface : colonnes, CA potentiel et pourcentages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>annual</strong> (<em>DataFrame</em>)</p></li>
+<li><p><strong>metric</strong> (<em>str</em>)</p></li>
+<li><p><strong>sort_by</strong> (<em>str</em>)</p></li>
+<li><p><strong>basket</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>DataFrame</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.funcDF.ranking_table">
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">ranking_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annual</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ICP'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.ranking_table" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Calculer et trier les ICP et tendances par gare, sans conversion d'unités.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>annual</strong> (<em>DataFrame</em>)</p></li>
+<li><p><strong>metric</strong> (<em>str</em>)</p></li>
+<li><p><strong>sort_by</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>DataFrame</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.funcDF.score_volatilite">
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">score_volatilite</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_minutes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.score_volatilite" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Pondérer l'imprévisibilité des causes par les minutes de retard, sur 10.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>DataFrame</em>)</p></li>
+<li><p><strong>poids</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>]</em>)</p></li>
+<li><p><strong>min_minutes</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>Series</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.funcDF.trend_data">
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">trend_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annual</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">station</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.trend_data" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Prépare la synthèse d'une gare et sa courbe observée/tendance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>annual</strong> (<em>DataFrame</em>)</p></li>
+<li><p><strong>station</strong> (<em>str</em>)</p></li>
+<li><p><strong>metric</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Type renvoyé<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple[<em>Series</em>, <em>DataFrame</em>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-my_package.triDF">
+<span id="nettoyage"></span><h2>Nettoyage<a class="headerlink" href="#module-my_package.triDF" title="Lien vers cette rubrique">¶</a></h2>
+<p>Nettoyage et contrôle qualité des données de régularité des trains TGV.</p>
+<p>Par étape :
+- importation de variables et classes provenant de classDF (voir commentaires plus bas);
+- définition de la fonction triDF() qui sera reprise dans core.py</p>
+<p>La fonction triDF() réalise les vérifications et suivantes :
+- vérification de la présence de colonnes obligatoires (liées à la durée moyenne du trajet et au retard à l'arrivée) ;
+- ne garde que les lignes avec service = National (on exclut donc les gares étrangères) ;
+- supprime les années 2020 et 2021 car elles sont marquées par l'impact du COVID et faussent nos régressions linéaires ;
+- supprime les données incohérentes (e.g. somme des pourcentages des causes de retard != 1) ;
+- exportation du DF nettoyé.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="my_package.triDF.triDF">
+<span class="sig-prename descclassname"><span class="pre">my_package.triDF.</span></span><span class="sig-name descname"><span class="pre">triDF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WindowsPath('C:/Users/xings/Documents/Etudes/MS-DATA/AIDATA700_KitBigData/SNCF_Project/data/regularite-mensuelle-tgv-aqst.csv')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WindowsPath('C:/Users/xings/Documents/Etudes/MS-DATA/AIDATA700_KitBigData/SNCF_Project/data/regularite_tgv_clean.csv')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.triDF.triDF" title="Lien vers cette définition">¶</a></dt>
+<dd><p>Nettoyer, renommer et contrôler les observations avant leur export CSV.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Paramètres<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path</strong> (<em>Path</em>)</p></li>
+<li><p><strong>output_path</strong> (<em>Path</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<p><code class="docutils literal notranslate"><span class="pre">triDF()</span></code> renvoie cinq éléments : le DataFrame brut, le DataFrame nettoyé,
+les colonnes retirées, les indices de toutes les lignes retirées, et les
+indices des observations National des années exclues. Les retraits totaux
+comprennent les services autres que National, les années exclues et les
+anomalies, sans double comptage. La dernière liste est incluse dans les
+retraits totaux : ne pas additionner leurs longueurs.</p>
+</section>
+<section id="interface">
+<h2>Interface<a class="headerlink" href="#interface" title="Lien vers cette rubrique">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">src/app.py</span></code> définit les sept onglets Streamlit. Les calculs d'ICP et de
+régression sont délégués à <code class="docutils literal notranslate"><span class="pre">core</span></code> et <code class="docutils literal notranslate"><span class="pre">my_package</span></code>. Importer ces modules
+ne lance pas de nettoyage ; <code class="docutils literal notranslate"><span class="pre">core.load_data()</span></code> le déclenche explicitement.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">RailInsight</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="utilisation.html">Installation et utilisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cadre_etude.html">Cadre de l'étude</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tracabilite.html">Traçabilité et origine des données</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methode.html">Données et méthode</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Référence du code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-core">Orchestration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-my_package.classDF">Configuration, chargement et calculs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-my_package.funcDF">Préparation des analyses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-my_package.triDF">Nettoyage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interface">Interface</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="methode.html" title="Chapitre précédent">Données et méthode</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, équipe RailInsight.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
