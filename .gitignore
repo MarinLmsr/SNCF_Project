@@ -13,4 +13,5 @@ htmlcov/
 docs/_build/
 docs/_sphinx/
 docs/html/.buildinfo
+src/static/documentation/
 tmp/
