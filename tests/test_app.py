@@ -5,6 +5,7 @@ import importlib
 import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from urllib.parse import urljoin
 
 import numpy as np
 import pandas as pd
@@ -200,7 +201,10 @@ def test_tendance_et_compteur_apres_changement_de_periode(monkeypatch, prepared_
         assert not app.exception
         documentation = app.sidebar.get("link_button")[0]
         assert documentation.proto.label == "Documentation"
-        assert documentation.proto.url == "/app/static/documentation/index.html"
+        for base_url in ("http://localhost:8501/", "https://railinsight.streamlit.app/~/+/"):
+            assert urljoin(base_url, documentation.proto.url) == (
+                base_url + "app/static/documentation/index.html"
+            )
         assert len(app.tabs) == 7
         assert len(app.dataframe) == 2
         assert len(app.tabs[2].get("plotly_chart")) == 1

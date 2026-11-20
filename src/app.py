@@ -69,10 +69,10 @@ def show_documentation_link() -> None:
         LOGGER.exception("Publication de la documentation impossible")
         st.sidebar.caption("Documentation momentanément indisponible.")
         return
-    base_path = st.get_option("server.baseUrlPath").strip("/")
     st.sidebar.link_button(
         "Documentation",
-        url=f"/{base_path + '/' if base_path else ''}app/static/documentation/index.html",
+        # Conserver le préfixe de proxy de Community Cloud (par exemple /~/+/).
+        url="app/static/documentation/index.html",
         icon="📚",
         width="stretch",
     )
