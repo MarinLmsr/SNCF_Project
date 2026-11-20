@@ -104,14 +104,14 @@ suivante : CA = ICP_absolu * panier moyen
   gare d'arrivée. Les ratios sont des rapports de sommes.
 - L'ICP absolu désigne des courses simulées **par mois observé** ; l'ICP relatif
   les rapporte aux voyageurs prévus de la même période.
-- $ICP_{gare, période} = Retard{total de la gare sur sur la période, en min} * NB_{passager} * \tau * w$  
+- $ICP_{gare, période} = Retard_{total,minutes} * NB_{passager} * \tau * w$  
 $\to$ $\tau$ est l'interpolation (plus le retard de la ligne est grand, plus le pourcentage de personnes 
 susceptibles de se tourner vers une solution taxi/VTC est grand)  
 $\to$ w : somme des pourcentages des causes de retards avec leurs poids (variables) 
 - $ICP_{absolu}(gare, période) = \sum ICP_{gare, période} $ 
 - $ICP_{relatif}(gare, période) = \frac{\sum ICP_{gare, période}}{NB_{Train} * PAX}  $  
-- Si on multiplie $ l'ICP_{relatif} $ par 1000, on obtient le nombre de consommation 
-pour 1000 passagers
+- Si on multiplie l'$ICP_{relatif}$ par 1000, on obtient le nombre de consommation 
+pour 1000 passagers dans une gare et sur une période données
 
 - `triDF()` conserve d'abord le service `National`, puis exclut 2020–2021 avant
   le calcul des références par liaison, corrige les
@@ -124,7 +124,7 @@ pour 1000 passagers
 - 2020–2021 sont exclus conformément au cadre. 2026 est une année incomplète du
   CSV et n'est utilisée ni comme année historique comparable ni pour entraîner
   les prédictions 2026/2027.
-- La régression linéaire utilise les **années réelles** et exige au moins trois années
+- La régression linéaire utilise les **années hors COVID** et exige au moins trois années
   complètes. R² est le coefficient de détermination ; Spearman mesure l'association
   monotone entre l'année et l'ICP. 
   La p-value associée est calculée par gare, 
