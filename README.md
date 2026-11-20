@@ -72,10 +72,7 @@ L'application utilise uniquement les liaisons de service `National` vers les
 gares d'arrivée françaises. Les huit libellés étrangers du fichier AQST sont
 explicitement exclus.
 
-Les Annexes suivent aussi la période, le minimum de trains, les poids des causes 
-et les années
-complètes retenues pour les classements. Elles ne représentent pas l'ensemble
-du CSV nettoyé.
+Les Annexes représentent une visualisation des données utilisées permettant de vérifier si elles on,t été correctement nettoyées.
 
 Dans l'onglet 2, le curseur règle le recours au taxi pour un retard d'au moins
 60 minutes. Il proportionne toute la courbe : à 25 %, les taux sont 1 % à 1–15 min,
