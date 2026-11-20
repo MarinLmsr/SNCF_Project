@@ -41,7 +41,7 @@
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Le document ci-dessous présente le cadre initial et les pistes de travail de
-l'équipe. Les mentions <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code> et les fonctionnalités proposées ne
+l'équipe. Les mentions et les fonctionnalités proposées ne
 constituent pas une description des fonctionnalités livrées.</p>
 <p>La version actuelle conserve uniquement les liaisons National, utilise un PAX
 fixe de 550 et ne réalise ni imputation KNN ni correction de Benjamini-Hochberg.
@@ -53,12 +53,10 @@ d'affaires mensuel se calcule à partir de l'ICP absolu.</p>
 <p>Consulter <a class="reference internal" href="methode.html"><span class="std std-doc">Données et méthode</span></a> pour les formules effectivement
 appliquées et le <a class="reference internal" href="utilisation.html"><span class="std std-doc">guide d'utilisation</span></a> pour l'application livrée.</p>
 </div>
-<p>Document d'origine : <code class="docutils literal notranslate"><span class="pre">CADRE_DE_L_ETUDE.md</span></code>. Son contenu est reproduit ci-dessous.</p>
 <section id="projet-railinsight-ou-deployer-des-taxis-vtc-en-gare-tgv-darrivee">
 <h2>PROJET RAILINSIGHT : OÙ DÉPLOYER DES TAXIS / VTC EN GARE TGV D’ARRIVÉE ?<a class="headerlink" href="#projet-railinsight-ou-deployer-des-taxis-vtc-en-gare-tgv-darrivee" title="Lien vers cette rubrique">¶</a></h2>
 <blockquote>
-<div><p><strong>Légende :</strong> <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code> = point à trancher en groupe.</p>
-</div></blockquote>
+
 <hr class="docutils" />
 <section id="concept">
 <h3>1. CONCEPT<a class="headerlink" href="#concept" title="Lien vers cette rubrique">¶</a></h3>
@@ -80,7 +78,7 @@ appliquées et le <a class="reference internal" href="utilisation.html"><span cl
 <li><p>Une pondération selon la cause du retard (parmi les causes du dataset : externes, infrastructure, gestion du trafic, matériel roulant, gestion en gare, prise en compte des voyageurs dont les correspondances).</p></li>
 </ul>
 <blockquote>
-<div><p><strong>Note :</strong> Les annulations ne sont pas intégrées à l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l’arrivée. Elles restent présentes dans le classement de fiabilité. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code></p>
+<div><p><strong>Note :</strong> Les annulations ne sont pas intégrées à l'ICP : un train annulé n'arrive jamais, donc il ne génère pas de voyageurs à l’arrivée. Elles restent présentes dans le classement de fiabilité. <code class="docutils literal notranslate"></code></p>
 </div></blockquote>
 </section>
 <hr class="docutils" />
@@ -113,7 +111,7 @@ appliquées et le <a class="reference internal" href="utilisation.html"><span cl
 <h4>LIMITES<a class="headerlink" href="#limites" title="Lien vers cette rubrique">¶</a></h4>
 <ul class="simple">
 <li><p>Le dataset est mensuel et ne contient pas l'heure d’arrivée : l'effet « arrivée tardive, moins de transports en commun » ne peut pas être mesuré. Seule la durée du retard est utilisée.</p></li>
-<li><p>Le report vers un taxi dépend aussi de la qualité de la desserte locale (métro, tram, TER), qui varie fortement d'une gare à l'autre et qui n'est pas dans les données. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER</span> <span class="pre">:</span> <span class="pre">enrichissement</span> <span class="pre">possible</span> <span class="pre">avec</span> <span class="pre">des</span> <span class="pre">données</span> <span class="pre">ouvertes</span> <span class="pre">sur</span> <span class="pre">les</span> <span class="pre">transports</span> <span class="pre">en</span> <span class="pre">commun]</span></code></p></li>
+<li><p>Le report vers un taxi dépend aussi de la qualité de la desserte locale (métro, tram, TER), qui varie fortement d'une gare à l'autre et qui n'est pas dans les données.</p></li>
 </ul>
 </section>
 </section>
@@ -160,7 +158,7 @@ appliquées et le <a class="reference internal" href="utilisation.html"><span cl
 </ul>
 <p><strong>Hypothèse :</strong> les gares dominées par des causes structurelles ont un ICP plus stable (points chauds en haut à droite, points froids en haut à gauche). Renforcer durablement l'offre de taxis se justifie surtout face à des retards récurrents, donc structurels. Si les couleurs sont mélangées, c'est aussi un résultat en soi : la nature des causes ne prédit pas la stabilité.</p>
 <blockquote>
-<div><p><strong>Précaution :</strong> pour éviter la circularité (l'ICP est pondéré par les mêmes causes que la couleur), calculer la volatilité avec des poids neutres ou sur un indicateur non pondéré. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code></p>
+<div><p><strong>Précaution :</strong> pour éviter la circularité (l'ICP est pondéré par les mêmes causes que la couleur), calculer la volatilité avec des poids neutres ou sur un indicateur non pondéré.</p>
 </div></blockquote>
 </section>
 <section id="c-quelles-caracteristiques-de-la-gare-expliquent-lintensite-des-retards">
@@ -186,20 +184,20 @@ appliquées et le <a class="reference internal" href="utilisation.html"><span cl
 <li><p><strong>PÉRIODE :</strong><br />
 Exclure 2020 et 2021 (circulations/fréquences perturbées par le COVID, qui faussent les régressions). Exclure aussi 2026 des analyses annuelles, car l’année est incomplète : les moyennes annuelles seraient biaisées par la saisonnalité. Pour les comparaisons à périmètre égal, on peut comparer les mêmes mois d'une année à l'autre.</p></li>
 <li><p><strong>PÉRIMÈTRE :</strong><br />
-Regrouper les données par gare d’arrivée. Ne garder que les gares d’arrivée situées en France. Les liaisons internationales à destination d'une gare française restent-elles incluses (colonne <em>Service</em>) ? <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code><br />
+Regrouper les données par gare d’arrivée. Ne garder que les gares d’arrivée situées en France. <br />
 Imposer un nombre minimum de circulations par gare.</p></li>
 <li><p><strong>NOMBRE DE VOYAGEURS PAR TRAIN (PAX) :</strong><br />
 PAX est déterminé gare par gare et année par année, avec une règle à deux niveaux :</p>
 <ul class="simple">
-<li><p><strong>a) Données SNCF suffisantes :</strong> si la gare est présente dans le dataset open data SNCF de fréquentation des gares, avec une fréquentation renseignée et non nulle pour l’année considérée (et un rapprochement de nom de gare fiable), PAX est estimé à partir de cette fréquentation. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER</span> <span class="pre">:</span> <span class="pre">formule</span> <span class="pre">de</span> <span class="pre">conversion]</span></code></p></li>
-<li><p><strong>b) Données insuffisantes :</strong> PAX est renseigné, soit par une valeur fixe de 550 voyageurs par train (hypothèse arbitraire, valeur par défaut), soit par une méthode KNN : moyenne du PAX des <span class="math notranslate nohighlight">\(k\)</span> gares les plus proches parmi celles du cas a), sur des variables connues pour toutes les gares (nombre de circulations, nombre de provenances, durée moyenne des trajets). Le choix entre 550 et KNN, et la valeur de <span class="math notranslate nohighlight">\(k\)</span>, sont validés par validation croisée <em>leave-one-out</em> sur les gares du cas a). <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER]</span></code></p></li>
+<li><p><strong>a) Données SNCF suffisantes :</strong> si la gare est présente dans le dataset open data SNCF de fréquentation des gares, avec une fréquentation renseignée et non nulle pour l’année considérée (et un rapprochement de nom de gare fiable), PAX est estimé à partir de cette fréquentation.</p></li>
+<li><p><strong>b) Données insuffisantes :</strong> PAX est renseigné, soit par une valeur fixe de 550 voyageurs par train (hypothèse arbitraire, valeur par défaut), soit par une méthode KNN : moyenne du PAX des <span class="math notranslate nohighlight">\(k\)</span> gares les plus proches parmi celles du cas a), sur des variables connues pour toutes les gares (nombre de circulations, nombre de provenances, durée moyenne des trajets). Le choix entre 550 et KNN, et la valeur de <span class="math notranslate nohighlight">\(k\)</span>, sont validés par validation croisée <em>leave-one-out</em> sur les gares du cas a).</p></li>
 </ul>
 <p>Chaque valeur de PAX est étiquetée avec sa source (<code class="docutils literal notranslate"><span class="pre">SNCF</span></code> / <code class="docutils literal notranslate"><span class="pre">KNN</span></code> / <code class="docutils literal notranslate"><span class="pre">défaut</span></code>), visible dans l'application, et les gares à PAX imputé (valeur par défaut) sont signalées.<br />
 <em>Conséquence :</em> comme PAX multiplie à la fois le numérateur et le dénominateur de l'ICP relatif d'une même gare, l'ICP relatif ne dépend pas de PAX. Seul l'ICP absolu est affecté par ce choix.</p>
 </li>
 <li><p><strong>CAUSES DE RETARD :</strong><br />
 La répartition des causes fournie par le dataset porte sur les retards à l’arrivée : elle est donc cohérente avec les retards utilisés dans l'ICP (même gare, même événement). Chaque cause a un coefficient propre, réglable depuis Streamlit. Les pourcentages du dataset sont re-normalisés pour sommer à 100 %, et les valeurs manquantes sont traitées explicitement.<br />
-La cause « prise en compte des voyageurs (affluence, PSH, correspondances) » est particulièrement liée au report vers un taxi : suivre son évolution dans le zoom par gare. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER</span> <span class="pre">:</span> <span class="pre">coefficient]</span></code></p></li>
+La cause « prise en compte des voyageurs (affluence, PSH, correspondances) » est particulièrement liée au report vers un taxi : suivre son évolution dans le zoom par gare. </p></li>
 <li><p><strong>QUALITÉ DES DONNÉES :</strong><br />
 Contrôle des incohérences (<span class="math notranslate nohighlight">\(\text{annulés} &gt; \text{prévus}\)</span>, <span class="math notranslate nohighlight">\(\text{retards à l’arrivée} &gt; \text{circulations}\)</span>, <span class="math notranslate nohighlight">\(N_{30} &gt; N_{15}\)</span>, <span class="math notranslate nohighlight">\(N_{60} &gt; N_{30}\)</span>, somme des causes <span class="math notranslate nohighlight">\(\neq 100\%\)</span>, doublons), avec journalisation de chaque anomalie.</p></li>
 </ol>
@@ -260,7 +258,7 @@ Contrôle des incohérences (<span class="math notranslate nohighlight">\(\text{
 <h4>6. Estimation en euros<a class="headerlink" href="#estimation-en-euros" title="Lien vers cette rubrique">¶</a></h4>
 <div class="math notranslate nohighlight">
 \[\text{CA Potentiel (€)} = \text{ICP} \times \text{prix moyen d'une course}\]</div>
-<p><em>(Prix réglable, par exemple 25 €).</em> Ce chiffre est un chiffre d'affaires potentiel pour la filière taxi / VTC de la gare, pas un bénéfice. <code class="docutils literal notranslate"><span class="pre">[A</span> <span class="pre">VALIDER</span> <span class="pre">:</span> <span class="pre">prix</span> <span class="pre">moyen]</span></code></p>
+<p><em>(Prix réglable, par exemple 25 €).</em> Ce chiffre est un chiffre d'affaires potentiel pour la filière taxi / VTC de la gare, pas un bénéfice.</p>
 </section>
 </section>
 <hr class="docutils" />
