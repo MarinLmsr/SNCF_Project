@@ -105,12 +105,12 @@ suivante : CA = ICP_absolu * panier moyen
 - L'ICP absolu désigne des courses simulées **par mois observé** ; l'ICP relatif
   les rapporte aux voyageurs prévus de la même période.
 - $ICP_{gare, période} = Retard{total de la gare sur sur la période, en min} * NB_{passager} * \tau * w$  
-où $\tau$ est l'interpolation (plus le retard de la ligne est grand, plus le pourcentage de personnes 
-susceptibles de se tourner vers une solution taxi/VTC est grand) ; w : somme des pourcentages des 
-causes de retards avec leurs poids (variables) 
+$\to$ $\tau$ est l'interpolation (plus le retard de la ligne est grand, plus le pourcentage de personnes 
+susceptibles de se tourner vers une solution taxi/VTC est grand)  
+$\to$ w : somme des pourcentages des causes de retards avec leurs poids (variables) 
 - $ICP_{absolu}(gare, période) = \sum ICP_{gare, période} $ 
-- $ICP_{relatif}(gare, période) = \frac{\sum ICP_{gare, période}}{NBTrain * PAX}  $  
-- Si on multiplie l'$ICP_{relatif}$ par 1000, on obtient le nombre de consommation 
+- $ICP_{relatif}(gare, période) = \frac{\sum ICP_{gare, période}}{NB_{Train} * PAX}  $  
+- Si on multiplie $ l'ICP_{relatif} $ par 1000, on obtient le nombre de consommation 
 pour 1000 passagers
 
 - `triDF()` conserve d'abord le service `National`, puis exclut 2020–2021 avant
