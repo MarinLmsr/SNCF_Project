@@ -1,4 +1,4 @@
-"""Fonctions utilitaires de préparation des données par gare d'arrivée pour les analyses du projet SNCF - IADATA700"""
+"""Fonctions utilitaires de préparation des données par gare d'arrivée pour les analyses du projet SNCF - RailInsight"""
 
 import json
 import logging
@@ -30,11 +30,11 @@ from .classDF import (
 def filter_data(data: pd.DataFrame, start: int, end: int, service: str = "Tous") -> pd.DataFrame:
     """Sélectionner la période historique, les gares françaises et le service."""
 
-    # Dans le cas où la date de départ est supérieur à la date finale, alors ValueError
+    # Dans le cas où la date de départ est supérieure à la date finale --> ValueError
     if start > end:
-        raise ValueError("Période inversée.")
+        raise ValueError("Période inversée")
 
-    # Création d'un mask qui barge que les données entre ces dates, et excluses les années COVID-19
+    # Création d'un masque qui ne charge que les données entre ces dates, et exclu les années COVID-19
     mask = data["annee"].between(start, end) & ~data["annee"].isin(EXCLUDED_YEARS)
     mask &= ~data["gare_arrivee"].isin(FOREIGN_STATIONS)
     if service != "Tous":
