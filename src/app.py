@@ -594,7 +594,7 @@ def main() -> None:
     """Relier les sept onglets à une seule source et à des hypothèses communes."""
     st.set_page_config(page_title="RailInsight · Taxis en gare", page_icon="🚉", layout="wide")
     configure_logging()
-    st.title("RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire V2")
+    st.title("RailInsight — Investissement dans une compagnie de taxis et VTC en gare ferroviaire")
     st.caption(
         "Étude du potentiel de recours aux taxis et VTC dans les gares d’arrivée, à partir du volume des trains, de la durée des retards et de leurs causes."
     )
