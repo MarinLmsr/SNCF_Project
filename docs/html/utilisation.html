@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html lang="fr" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Installation et utilisation &#8212; Documentation RailInsight 0.1.0</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=c22c7077"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/translations.js?v=e6b791cb"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="next" title="Cadre de l&#39;étude" href="cadre_etude.html" />
+    <link rel="prev" title="RailInsight" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="installation-et-utilisation">
+<h1>Installation et utilisation<a class="headerlink" href="#installation-et-utilisation" title="Lien vers cette rubrique">¶</a></h1>
+<section id="lancer-le-projet">
+<h2>Lancer le projet<a class="headerlink" href="#lancer-le-projet" title="Lien vers cette rubrique">¶</a></h2>
+<p>Prérequis : Python 3.12 ou plus récent et uv. Depuis la racine du dépôt :</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">uv sync --locked --group dev</span>
+<span class="go">uv run --locked streamlit run src/app.py</span>
+</pre></div>
+</div>
+<p>Ouvrir l'adresse locale affichée dans le terminal. Streamlit 1.66.0 au minimum
+est requis pour éviter le défaut de positionnement des infobulles cartographiques
+de la version 1.65.0. Après une mise à jour des dépendances, redémarrer le serveur.
+Le navigateur doit avoir accès à Internet pour charger le fond de carte CARTO.</p>
+<p>Les fichiers CSV et les coordonnées sont fournis dans <code class="docutils literal notranslate"><span class="pre">data/</span></code>. Au premier
+chargement, <code class="docutils literal notranslate"><span class="pre">core.load_data()</span></code> prépare le CSV nettoyé depuis le fichier brut.
+La préparation ne conserve que le service National. Elle est mise en cache
+jusqu'à une modification du fichier brut ou du script <code class="docutils literal notranslate"><span class="pre">triDF.py</span></code>.
+La source brute n'est jamais écrasée.</p>
+</section>
+<section id="explorer-les-sept-onglets">
+<h2>Explorer les sept onglets<a class="headerlink" href="#explorer-les-sept-onglets" title="Lien vers cette rubrique">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Accueil</strong> : question de l'étude, hypothèses et limites.</p></li>
+<li><p><strong>Cartographie</strong> : choisir l'ICP absolu ou relatif et survoler les points pour
+obtenir le nom de la gare et sa valeur exacte. Les cartes ont des échelles
+distinctes ; une couleur de chaleur n'est pas une mesure exacte du ratio.</p></li>
+<li><p><strong>Étude par gare</strong> : choisir la gare et l'ICP, lire l'évolution annuelle,
+la pente, sa p-value, Spearman, R² et le coefficient de variation.</p></li>
+<li><p><strong>Top ICP absolu</strong> : classer les gares par ICP, pente ou R² et consulter les
+extrapolations 2026 et 2027.</p></li>
+<li><p><strong>Top ICP relatif</strong> : même lecture, avec des pourcentages et des pentes en
+points de pourcentage par an.</p></li>
+<li><p><strong>Conclusion</strong> : synthèse calculée à partir des filtres et hypothèses actifs.</p></li>
+<li><p><strong>Annexes</strong> : distributions des observations retenues pour les mêmes gares
+et années complètes que les classements.</p></li>
+</ul>
+<p>La période et le minimum de trains sont communs aux onglets. Les poids des
+six causes sont réglables dans la barre latérale, de 0 à 3, et valent 1 par
+défaut. Le taux de recours au taxi à partir d'une heure, réglé dans l'onglet
+Étude par gare, proportionne toute la courbe de recours et actualise les ICP.</p>
+<p>Le prix moyen d'une course est synchronisé entre les onglets 2, 3 et 4.
+Il modifie le chiffre d'affaires potentiel, sans modifier les ICP ni les rangs.
+Ce chiffre d'affaires utilise toujours l'ICP absolu, même dans le tableau relatif.</p>
+</section>
+<section id="verifier-le-projet">
+<h2>Vérifier le projet<a class="headerlink" href="#verifier-le-projet" title="Lien vers cette rubrique">¶</a></h2>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">uv run --locked ruff check .</span>
+<span class="go">uv run --locked ruff format --check .</span>
+<span class="go">uv run --locked pytest --cov=src --cov-report=term-missing --cov-fail-under=90</span>
+<span class="go">uv run --locked sphinx-build -b html -d docs/_build/doctrees -W --keep-going docs/_sphinx docs/html</span>
+</pre></div>
+</div>
+<p>La documentation HTML complète est versionnée dans <code class="docutils literal notranslate"><span class="pre">docs/html/</span></code> et s'ouvre
+dans <code class="docutils literal notranslate"><span class="pre">docs/html/index.html</span></code>, sans installer Python ni Sphinx. Conserver les
+sous-dossiers avec les pages HTML : ils contiennent les styles et les scripts.
+Le rendu des formules charge MathJax via Internet.</p>
+<p>Après une modification des sources, relancer la commande Sphinx ci-dessus et
+inclure les fichiers générés de <code class="docutils literal notranslate"><span class="pre">docs/html/</span></code> dans le commit.
+Les sources Sphinx et les deux documents Markdown intégrés sont conservés
+localement dans <code class="docutils literal notranslate"><span class="pre">docs/_sphinx/</span></code>, ignoré par Git. L'équipe doit en garder une
+copie séparée : le dépôt seul ne permet pas de reconstruire la documentation.
+Le cache dans <code class="docutils literal notranslate"><span class="pre">docs/_build/</span></code> est également ignoré par Git.</p>
+<p>GitHub Actions exécute les contrôles de code, de docstrings, de format,
+les tests avec une couverture minimale de 90 %, et vérifie la présence des pages
+HTML et de leurs ressources principales. La CI ne reconstruit pas Sphinx.
+Les logs se trouvent dans <code class="docutils literal notranslate"><span class="pre">logs/debug.log</span></code> et <code class="docutils literal notranslate"><span class="pre">logs/errors.log</span></code>.
+Le premier reçoit DEBUG et les niveaux supérieurs,
+le second uniquement ERROR et CRITICAL.</p>
+</section>
+<section id="publication">
+<h2>Publication<a class="headerlink" href="#publication" title="Lien vers cette rubrique">¶</a></h2>
+<p>L'application en ligne est accessible à l'adresse
+<a class="reference external" href="https://sncfproject-nttqokh8ozmzqyszuwfy4v.streamlit.app/">https://sncfproject-nttqokh8ozmzqyszuwfy4v.streamlit.app/</a>.</p>
+<p>Pour reproduire le déploiement sur Streamlit Community Cloud, sélectionner
+le dépôt <code class="docutils literal notranslate"><span class="pre">MarinLmsr/SNCF_Project</span></code>, la branche <code class="docutils literal notranslate"><span class="pre">main</span></code> et le fichier d'entrée
+<code class="docutils literal notranslate"><span class="pre">src/app.py</span></code>. Python 3.14 correspond à la version utilisée par la CI.
+L'environnement doit être installé depuis <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> et <code class="docutils literal notranslate"><span class="pre">uv.lock</span></code>.
+Le service a besoin d'un accès en lecture aux fichiers de <code class="docutils literal notranslate"><span class="pre">data/</span></code> et en
+écriture au CSV nettoyé et au répertoire de journaux. Le README contient
+le lien public et les étapes de déploiement.
+Le workflow actuel vérifie le projet ; il ne publie pas l'application.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">RailInsight</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation et utilisation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#lancer-le-projet">Lancer le projet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#explorer-les-sept-onglets">Explorer les sept onglets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#verifier-le-projet">Vérifier le projet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#publication">Publication</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cadre_etude.html">Cadre de l'étude</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tracabilite.html">Traçabilité et origine des données</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methode.html">Données et méthode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Référence du code</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="Chapitre précédent">RailInsight</a></li>
+      <li>Next: <a href="cadre_etude.html" title="Chapitre suivant">Cadre de l'étude</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, équipe RailInsight.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

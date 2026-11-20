@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html lang="fr" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Données et méthode &#8212; Documentation RailInsight 0.1.0</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=c22c7077"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/translations.js?v=e6b791cb"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="next" title="Référence du code" href="api.html" />
+    <link rel="prev" title="Traçabilité et origine des données" href="tracabilite.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="donnees-et-methode">
+<h1>Données et méthode<a class="headerlink" href="#donnees-et-methode" title="Lien vers cette rubrique">¶</a></h1>
+<section id="perimetre-et-preparation">
+<h2>Périmètre et préparation<a class="headerlink" href="#perimetre-et-preparation" title="Lien vers cette rubrique">¶</a></h2>
+<p>Le fichier brut <code class="docutils literal notranslate"><span class="pre">regularite-mensuelle-tgv-aqst.csv</span></code> contient 12 544 lignes
+et 26 colonnes, de janvier 2018 à juin 2026. Chaque observation correspond
+à une liaison orientée, un service et un mois. Le fichier nettoyé contient
+8 445 lignes et 14 colonnes, uniquement de service National, dans la version
+du dépôt vérifiée le 19 novembre 2026.</p>
+<p><code class="docutils literal notranslate"><span class="pre">triDF()</span></code> conserve d'abord National, puis exclut 2020-2021 avant le calcul
+des durées de référence par liaison,
+harmonise les effectifs de retard pour respecter N15 &gt;= N30 &gt;= N60, puis
+retire les lignes aberrantes. Les autres règles de cohérence déterminent
+<code class="docutils literal notranslate"><span class="pre">eligible</span></code>. Les valeurs manquantes des causes ne sont pas imputées dans le
+CSV : le calcul pondéré les traite comme des parts nulles et re-normalise les
+parts disponibles. Si toutes les parts manquent ou valent zéro, le poids
+de cause reste neutre, à 1.</p>
+<p>Le CSV nettoyé contient uniquement National et conserve 654 observations de 2026.
+L'application exclut 2026 de son périmètre de comparaison. Une gare/année
+doit couvrir douze mois éligibles. Le minimum de trains porte sur les volumes
+des années retenues de la gare ; il ne garantit pas que toutes ses liaisons
+ont la même couverture temporelle.</p>
+<p>La localisation utilise les 51 libellés français de
+<code class="docutils literal notranslate"><span class="pre">data/station_coordinates.json</span></code>. Certaines coordonnées sont indicatives.
+Montparnasse et Vaugirard partagent une position ; le survol donne priorité
+à Montparnasse. Les détails de provenance figurent dans le
+<a class="reference internal" href="tracabilite.html"><span class="doc">formulaire de traçabilité</span></a>.</p>
+</section>
+<section id="calcul-des-icp">
+<h2>Calcul des ICP<a class="headerlink" href="#calcul-des-icp" title="Lien vers cette rubrique">¶</a></h2>
+<p>Pour une observation liaison/mois, les courses potentielles sont :</p>
+<div class="math notranslate nohighlight">
+\[C_i = N_{\mathrm{retard},i}\,\mathrm{PAX}\,p(d_i)\,w_i\]</div>
+<p><code class="docutils literal notranslate"><span class="pre">PAX</span></code> vaut 550 voyageurs par train. La courbe de référence <code class="docutils literal notranslate"><span class="pre">p</span></code> prend les
+valeurs 0 % à 0 minute, 1 % à 1 et 15 minutes, 10 % à 30 minutes et 25 %
+à partir de 60 minutes. Les valeurs intermédiaires sont interpolées
+linéairement. Le curseur multiplie toute cette courbe par le taux choisi
+divisé par 25 %.</p>
+<p><code class="docutils literal notranslate"><span class="pre">w</span></code> est la moyenne des poids des causes, pondérée par leurs parts
+re-normalisées. Les annulations n'ajoutent pas de courses à l'arrivée.
+Les voyageurs prévus des trains annulés restent compris dans le dénominateur
+de l'ICP relatif.</p>
+<p>Pour une gare sur les années retenues :</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{ICP}_{\mathrm{abs}}
+= \frac{\sum_i C_i}{\text{nombre de mois observés}}\]</div>
+<div class="math notranslate nohighlight">
+\[\mathrm{ICP}_{\mathrm{rel}}
+= \frac{\sum_i C_i}{\sum_i N_{\mathrm{prévus},i}\,\mathrm{PAX}}\]</div>
+<p>L'ICP absolu s'exprime en courses simulées par mois ; l'ICP relatif s'affiche
+en pourcentage des voyageurs prévus. On somme les volumes avant de diviser,
+sans faire une moyenne simple des ratios par liaison.</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{CA}_{\mathrm{mensuel}}
+= \mathrm{ICP}_{\mathrm{abs}}\times\text{prix moyen d'une course}\]</div>
+<p>Ce montant représente un chiffre d'affaires potentiel pour l'ensemble de
+l'offre taxi/VTC de la gare.</p>
+</section>
+<section id="tendances-et-limites">
+<h2>Tendances et limites<a class="headerlink" href="#tendances-et-limites" title="Lien vers cette rubrique">¶</a></h2>
+<p>La droite est ajustée sur les années réelles, avec au moins trois années
+complètes antérieures à 2026. La pente beta1 mesure l'évolution par an ;
+pour l'ICP relatif, son affichage est en points de pourcentage par an.
+R² est le coefficient de détermination. Spearman décrit une association
+monotone entre l'année et l'ICP. La p-value affichée est celle de la pente
+linéaire. Elle est calculée gare par gare, sans
+correction pour comparaisons multiples.</p>
+<p>Le coefficient de variation décrit les fluctuations annuelles. La jauge
+des causes décrit leur caractère imprévisible selon des coefficients fixes,
+pondérés par les minutes de retard ; elle ne mesure pas la variabilité de l'ICP.</p>
+<p>Les extrapolations 2026-2027 n'ont pas d'intervalle de prédiction. Une
+extrapolation négative, ou supérieure à 100 % pour l'ICP relatif, reste vide.
+Une série constante n'a pas de R² ou de Spearman interprétable.
+Les hypothèses de remplissage, de recours au taxi et d'une course par voyageur
+ne sont pas validées par des réservations réelles. Les transports locaux,
+le partage des courses et les coûts d'exploitation ne sont pas observés.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">RailInsight</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="utilisation.html">Installation et utilisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cadre_etude.html">Cadre de l'étude</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tracabilite.html">Traçabilité et origine des données</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Données et méthode</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#perimetre-et-preparation">Périmètre et préparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#calcul-des-icp">Calcul des ICP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tendances-et-limites">Tendances et limites</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Référence du code</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="tracabilite.html" title="Chapitre précédent">Traçabilité et origine des données</a></li>
+      <li>Next: <a href="api.html" title="Chapitre suivant">Référence du code</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, équipe RailInsight.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html lang="fr" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Traçabilité et origine des données &#8212; Documentation RailInsight 0.1.0</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=c22c7077"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/translations.js?v=e6b791cb"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="next" title="Données et méthode" href="methode.html" />
+    <link rel="prev" title="Cadre de l&#39;étude" href="cadre_etude.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section class="tex2jax_ignore mathjax_ignore" id="tracabilite-et-origine-des-donnees">
+<h1>Traçabilité et origine des données<a class="headerlink" href="#tracabilite-et-origine-des-donnees" title="Lien vers cette rubrique">¶</a></h1>
+<p>Ce formulaire décrit les sources, le périmètre, les transformations et les biais
+connus des données. Les chiffres sont ceux de la version du dépôt vérifiée à la
+date indiquée dans le formulaire ; ils doivent être revérifiés lors d'une mise à
+jour des fichiers CSV.</p>
+<p>Voir aussi <a class="reference internal" href="methode.html"><span class="std std-doc">Données et méthode</span></a> pour le calcul de l'ICP et la
+<a class="reference internal" href="api.html"><span class="std std-doc">référence du code</span></a> pour les fonctions de préparation.</p>
+<p>Document d'origine : <code class="docutils literal notranslate"><span class="pre">formulaire_de_tracabilite_et_d_origine_des_donnees_data_lineage.md</span></code>.
+Son contenu est reproduit ci-dessous. Les liens vers le code renvoient à la
+référence de l'API dans cette documentation.</p>
+<section id="formulaire-de-tracabilite-et-d-origine-des-donnees-data-lineage">
+<h2>FORMULAIRE DE TRAÇABILITÉ ET D'ORIGINE DES DONNÉES (DATA LINEAGE)<a class="headerlink" href="#formulaire-de-tracabilite-et-d-origine-des-donnees-data-lineage" title="Lien vers cette rubrique">¶</a></h2>
+<p><strong>Groupe :</strong> Lemesre, Ozden, Liu, Garel, Clavier</p>
+<hr class="docutils" />
+<section id="identification-generale-du-jeu-de-donnees">
+<h3>1. IDENTIFICATION GÉNÉRALE DU JEU DE DONNÉES<a class="headerlink" href="#identification-generale-du-jeu-de-donnees" title="Lien vers cette rubrique">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Champ / Critère</p></th>
+<th class="head text-left"><p>Valeur renseignée</p></th>
+<th class="head text-left"><p>Aide au remplissage / Exemple</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><strong>Nom du projet / Modèle IA</strong></p></td>
+<td class="text-left"><p>ICP – Consommation SNCF</p></td>
+<td class="text-left"><p>Ex : Prédiction du churn client B2C</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Nom technique du Dataset</strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">regularite-mensuelle-tgv-aqst.csv</span></code></p></td>
+<td class="text-left"><p>Ex : prod_customers_churn_features_v2</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Data Scientist responsable</strong></p></td>
+<td class="text-left"><p>Lemesre, Ozden, Liu, Garel, Clavier</p></td>
+<td class="text-left"><p>Nom, Prénom et Équipe</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Date de création / mise à jour</strong></p></td>
+<td class="text-left"><p>19/11/2026 — vérification des fichiers présents dans le dépôt</p></td>
+<td class="text-left"><p>Format JJ/MM/AAAA</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Version du Dataset</strong></p></td>
+<td class="text-left"><p>V 1.0</p></td>
+<td class="text-left"><p>Ex : v1.0</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Statut de validation</strong></p></td>
+<td class="text-left"><p>Projet étudiant : contrôles techniques automatisés ; validation métier non documentée</p></td>
+<td class="text-left"><p>Sélectionner dans la liste déroulante</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="origine-et-collecte-des-donnees">
+<h3>2. ORIGINE ET COLLECTE DES DONNÉES<a class="headerlink" href="#origine-et-collecte-des-donnees" title="Lien vers cette rubrique">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Champ / Critère</p></th>
+<th class="head text-left"><p>Valeur renseignée</p></th>
+<th class="head text-left"><p>Aide au remplissage / Exemple</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><strong>Type de source principale</strong></p></td>
+<td class="text-left"><p>Fichiers plats (CSV, Parquet, JSON, Excel)</p></td>
+<td class="text-left"><p>Sélectionner le type de source principal</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Identifiant technique de la source</strong></p></td>
+<td class="text-left"><p><a class="reference external" href="https://ressources.data.sncf.com/explore/dataset/regularite-mensuelle-tgv-aqst/information/">Régularité mensuelle TGV — AQST</a>, export local <code class="docutils literal notranslate"><span class="pre">regularite-mensuelle-tgv-aqst.csv</span></code></p></td>
+<td class="text-left"><p>Table SQL (DB.SCHEMA.TABLE), URL API, chemin S3/GCS...</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Sources secondaires / Jointures</strong></p></td>
+<td class="text-left"><p>Position phi/G des gares : https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs</p></td>
+<td class="text-left"><p>Lister les autres tables ou fichiers croisés</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Propriétaire métier (Data Owner)</strong></p></td>
+<td class="text-left"><p>SNCF Voyageurs</p></td>
+<td class="text-left"><p>Nom du responsable métier ou équipe propriétaire</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Méthode d'extraction</strong></p></td>
+<td class="text-left"><p>export manuel</p></td>
+<td class="text-left"><p>Ex : Requête SQL, pipeline Airflow, flux Kafka, export manuel</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Fréquence de rafraîchissement</strong></p></td>
+<td class="text-left"><p>Ponctuelle / Statique</p></td>
+<td class="text-left"><p>Sélectionner la fréquence de mise à jour</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="perimetre-et-caracteristiques-techniques">
+<h3>3. PÉRIMÈTRE ET CARACTÉRISTIQUES TECHNIQUES<a class="headerlink" href="#perimetre-et-caracteristiques-techniques" title="Lien vers cette rubrique">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Champ / Critère</p></th>
+<th class="head text-left"><p>Valeur renseignée</p></th>
+<th class="head text-left"><p>Aide au remplissage / Exemple</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><strong>Date de début de couverture</strong></p></td>
+<td class="text-left"><p>Janvier 2018</p></td>
+<td class="text-left"><p>Mois le plus ancien du fichier local</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Date de fin de couverture</strong></p></td>
+<td class="text-left"><p>Juin 2026 ; année 2026 incomplète</p></td>
+<td class="text-left"><p>Mois le plus récent du fichier local</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Volumétrie approximative</strong></p></td>
+<td class="text-left"><p>Brut : 12 544 lignes, 26 colonnes, 2 833 676 octets. Nettoyé : 8 445 lignes, 14 colonnes.</p></td>
+<td class="text-left"><p>Comptage hors en-tête, vérifié le 19/11/2026</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Granularité (unité d'observation)</strong></p></td>
+<td class="text-left"><p>Une liaison orientée (gare de départ → gare d'arrivée), un service et un mois. 130 liaisons et 59 libellés de gares d'arrivée dans le brut. L'export retire la gare de départ sans agréger les observations ; le calcul ICP agrège ensuite par gare d'arrivée et année.</p></td>
+<td class="text-left"><p>Granularité du fichier source et du calcul</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Population cible et filtres appliqués</strong></p></td>
+<td class="text-left"><p>Le nettoyage ne conserve que National, puis retire 2020-2021 et les lignes aberrantes. L'export contient 8 445 observations National et aucune International ; il conserve 654 observations de 2026. Le fichier brut reste complet. L'application ne retient que les gares françaises, les années complètes antérieures à 2026 et le minimum de trains sélectionné. Les Annexes suivent le même périmètre que les classements.</p></td>
+<td class="text-left"><p>Distinguer le contenu de l'export du périmètre de l'application</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="conformite-securite-et-ethique-rgpd-ai-act">
+<h3>4. CONFORMITÉ, SÉCURITÉ ET ÉTHIQUE (RGPD / AI ACT)<a class="headerlink" href="#conformite-securite-et-ethique-rgpd-ai-act" title="Lien vers cette rubrique">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Champ / Critère</p></th>
+<th class="head text-left"><p>Valeur renseignée</p></th>
+<th class="head text-left"><p>Aide au remplissage / Exemple</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><strong>Présence de données personnelles (PII)</strong></p></td>
+<td class="text-left"><p>Non</p></td>
+<td class="text-left"><p>Sélectionner Oui ou Non</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Détail des données personnelles</strong></p></td>
+<td class="text-left"><p>Aucune</p></td>
+<td class="text-left"><p>Si Oui, préciser (email, ID client, IP, localisation...)</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Niveau de sensibilité</strong></p></td>
+<td class="text-left"><p>Public</p></td>
+<td class="text-left"><p>Sélectionner le niveau de classification</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Anonymisation / Pseudonymisation</strong></p></td>
+<td class="text-left"><p>Non nécessaire</p></td>
+<td class="text-left"><p>Ex : Hachage SHA-256 des ID, suppression des noms</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Base légale / Licence d'utilisation</strong></p></td>
+<td class="text-left"><p>OpenDatabaseLicense ODbL</p></td>
+<td class="text-left"><p>Ex : Consentement, intérêt légitime, licence MIT, contrat</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Durée de conservation autorisée</strong></p></td>
+<td class="text-left"><p>/</p></td>
+<td class="text-left"><p>Ex : 3 ans après fin de contrat</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="qualite-pre-traitement-et-biais-connus">
+<h3>5. QUALITÉ, PRÉ-TRAITEMENT ET BIAIS CONNUS<a class="headerlink" href="#qualite-pre-traitement-et-biais-connus" title="Lien vers cette rubrique">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Champ / Critère</p></th>
+<th class="head text-left"><p>Valeur renseignée</p></th>
+<th class="head text-left"><p>Aide au remplissage / Exemple</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><strong>Transformations majeures appliquées</strong></p></td>
+<td class="text-left"><p>Exclusion de 1 532 observations International, puis de 2 565 observations National de 2020-2021 avant le calcul des durées de référence par liaison, puis de 2 lignes aberrantes National : 4 099 retraits au total, sans double comptage. Harmonisation des effectifs cumulés N15 ≥ N30 ≥ N60, renommage des colonnes, contrôle des effectifs et doublons, création de <code class="docutils literal notranslate"><span class="pre">eligible</span></code>, export de 14 colonnes utiles à l'ICP.</p></td>
+<td class="text-left"><p>Imputations, encodages, agrégations, règles métier</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Lien vers le code de préparation</strong></p></td>
+<td class="text-left"><p><a class="reference internal" href="api.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">src/my_package/triDF.py</span></code></span></a> ; orchestration dans <a class="reference internal" href="api.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">src/core.py</span></code></span></a></p></td>
+<td class="text-left"><p>Fichiers versionnés dans le dépôt</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Taux global de valeurs manquantes</strong></p></td>
+<td class="text-left"><p>Brut : 36 934 cellules manquantes sur 326 144, soit 11,32 %. Export nettoyé : 0 cellule manquante sur les 14 colonnes conservées.</p></td>
+<td class="text-left"><p>Comptage sur les fichiers locaux avec pandas ; les colonnes et périmètres diffèrent</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Anomalies ou limites connues</strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">rapport_anomalies_tgv.csv</span></code> est un diagnostic historique de 570 alertes : corrections, suppressions proposées et incidents conservés. Il n'est pas une liste exhaustive des 4 099 retraits actuels. <code class="docutils literal notranslate"><span class="pre">triDF()</span></code> renvoie les indices de tous les retraits et, séparément, ceux des observations National exclues pour 2020-2021 ; ces derniers sont déjà inclus dans les retraits totaux. Le diagnostic intermédiaire <code class="docutils literal notranslate"><span class="pre">quality_issues</span></code> n'est pas exporté.</p></td>
+<td class="text-left"><p>Distinguer diagnostic historique et nettoyage actuel</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Risques de biais identifiés</strong></p></td>
+<td class="text-left"><p>Couverture des liaisons variable selon les gares et les années, même avec douze mois disponibles. L'ICP applique une courbe hypothétique à un retard moyen mensuel, avec 550 voyageurs par train et une course par voyageur reporté. Absence de réservations observées, de taux de remplissage réels, de desserte locale et de coûts d'exploitation.</p></td>
+<td class="text-left"><p>Limites de la mesure et du modèle</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="validation-et-gouvernance">
+<h3>6. VALIDATION ET GOUVERNANCE<a class="headerlink" href="#validation-et-gouvernance" title="Lien vers cette rubrique">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Champ / Critère</p></th>
+<th class="head text-left"><p>Valeur renseignée</p></th>
+<th class="head text-left"><p>Aide au remplissage / Exemple</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><strong>Commentaires Data Owner</strong></p></td>
+<td class="text-left"><p><em>Non renseigné</em></p></td>
+<td class="text-left"><p>Observations du propriétaire métier de la donnée</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Date et Visa Data Owner</strong></p></td>
+<td class="text-left"><p><em>Non renseigné</em></p></td>
+<td class="text-left"><p>Nom et date de validation</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Date et Visa DPO / Sécurité</strong></p></td>
+<td class="text-left"><p><em>Non renseigné</em></p></td>
+<td class="text-left"><p>Obligatoire si présence de PII ou données sensibles</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="annexe-listes-de-valeurs-de-reference">
+<h3>Annexe : Listes de valeurs de référence<a class="headerlink" href="#annexe-listes-de-valeurs-de-reference" title="Lien vers cette rubrique">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Type de source :</strong> Base de données interne (DWH / Data Lake), API interne, API externe, Fichiers plats (CSV, Parquet, JSON, Excel), Open Data / Web Scraping, Fournisseur tiers (Data Broker), Données synthétiques / Générées.</p></li>
+<li><p><strong>Fréquence :</strong> Temps réel / Streaming, Horaire, Quotidienne, Hebdomadaire, Mensuelle, Ponctuelle / Statique.</p></li>
+<li><p><strong>Oui / Non :</strong> Oui, Non.</p></li>
+<li><p><strong>Sensibilité :</strong> Public, Interne, Confidentiel, Critique (Santé, Finance, Biométrie).</p></li>
+<li><p><strong>Statut de validation :</strong> En cours de rédaction, En attente de revue Data Owner, En attente de validation DPO, Validé pour développement, Validé pour production.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">RailInsight</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="utilisation.html">Installation et utilisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cadre_etude.html">Cadre de l'étude</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Traçabilité et origine des données</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#formulaire-de-tracabilite-et-d-origine-des-donnees-data-lineage">FORMULAIRE DE TRAÇABILITÉ ET D'ORIGINE DES DONNÉES (DATA LINEAGE)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="methode.html">Données et méthode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Référence du code</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="cadre_etude.html" title="Chapitre précédent">Cadre de l'étude</a></li>
+      <li>Next: <a href="methode.html" title="Chapitre suivant">Données et méthode</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2026, équipe RailInsight.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
