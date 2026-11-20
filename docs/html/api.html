@@ -80,6 +80,12 @@ Importer ce module ne lance ni nettoyage ni analyse.</p>
 </section>
 <section id="module-my_package.classDF">
 <span id="configuration-chargement-et-calculs"></span><h2>Configuration, chargement et calculs<a class="headerlink" href="#module-my_package.classDF" title="Lien vers cette rubrique">¶</a></h2>
+<p>Les chemins par défaut sont présentés ci-dessous relativement à la racine du projet
+pour faciliter la lecture. Dans le code, ils sont résolus à partir de l'emplacement
+du projet sur la machine qui exécute l'application ; aucun chemin personnel Windows
+n'est requis. Par exemple, <code class="docutils literal notranslate">Path('data/regularite_tgv_clean.csv')</code>
+désigne le fichier <code class="docutils literal notranslate">data/regularite_tgv_clean.csv</code>
+du projet, quel que soit son répertoire d'installation.</p>
 <p>Ce script contient les classes pour le traitement des données SNCF du projet SNCF - IADATA700
 Il inclut la configuration du modèle, le chargement des données nettoyées.
 Aussi, il inclut le calcul de l'ICP et l'analyse des données (tendances, metriques, etc...)</p>
@@ -127,7 +133,7 @@ Aussi, il inclut le calcul de l'ICP et l'analyse des données (tendances, metriq
 
 <dl class="py class">
 <dt class="sig sig-object py" id="my_package.classDF.DataLoader">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">my_package.classDF.</span></span><span class="sig-name descname"><span class="pre">DataLoader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WindowsPath('C:/Users/xings/Documents/Etudes/MS-DATA/AIDATA700_KitBigData/SNCF_Project/data/regularite_tgv_clean.csv')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.DataLoader" title="Lien vers cette définition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">my_package.classDF.</span></span><span class="sig-name descname"><span class="pre">DataLoader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Path('data/regularite_tgv_clean.csv')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.DataLoader" title="Lien vers cette définition">¶</a></dt>
 <dd><p>Bases : <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Lecture du fichier CSV préparé par triDF()</p>
 <dl class="field-list simple">
@@ -137,7 +143,7 @@ Aussi, il inclut le calcul de l'ICP et l'analyse des données (tendances, metriq
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="my_package.classDF.DataLoader.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WindowsPath('C:/Users/xings/Documents/Etudes/MS-DATA/AIDATA700_KitBigData/SNCF_Project/data/regularite_tgv_clean.csv')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.DataLoader.__init__" title="Lien vers cette définition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Path('data/regularite_tgv_clean.csv')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.classDF.DataLoader.__init__" title="Lien vers cette définition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Paramètres<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>path</strong> (<em>Path</em>)</p>
@@ -338,7 +344,7 @@ Aussi, il inclut le calcul de l'ICP et l'analyse des données (tendances, metriq
 
 <dl class="py function">
 <dt class="sig sig-object py" id="my_package.funcDF.map_points">
-<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">map_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WindowsPath('C:/Users/xings/Documents/Etudes/MS-DATA/AIDATA700_KitBigData/SNCF_Project/data/station_coordinates.json')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.map_points" title="Lien vers cette définition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">my_package.funcDF.</span></span><span class="sig-name descname"><span class="pre">map_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Path('data/station_coordinates.json')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.funcDF.map_points" title="Lien vers cette définition">¶</a></dt>
 <dd><p>Ajoute latitude/longitude à chaque gare et renvoie aussi la liste des gares sans coordonnées</p>
 <dl class="field-list simple">
 <dt class="field-odd">Paramètres<span class="colon">:</span></dt>
@@ -433,15 +439,22 @@ Aussi, il inclut le calcul de l'ICP et l'analyse des données (tendances, metriq
 <p>Par étape :
 - importation de variables et classes provenant de classDF (voir commentaires plus bas);
 - définition de la fonction triDF() qui sera reprise dans core.py</p>
-<p>La fonction triDF() réalise les vérifications et suivantes :
-- vérification de la présence de colonnes obligatoires (liées à la durée moyenne du trajet et au retard à l'arrivée) ;
-- ne garde que les lignes avec service = National (on exclut donc les gares étrangères) ;
-- supprime les années 2020 et 2021 car elles sont marquées par l'impact du COVID et faussent nos régressions linéaires ;
-- supprime les données incohérentes (e.g. somme des pourcentages des causes de retard != 1) ;
-- exportation du DF nettoyé.</p>
+<p>La fonction <code class="docutils literal notranslate">triDF()</code> applique les opérations suivantes :</p>
+<ul class="simple">
+<li><p>vérifier la présence des colonnes obligatoires ;</p></li>
+<li><p>conserver uniquement le service National et exclure les années 2020 et 2021 ;</p></li>
+<li><p>harmoniser les effectifs cumulés de retard pour respecter N15 &gt;= N30 &gt;= N60 ;</p></li>
+<li><p>retirer les lignes aberrantes selon la durée du trajet, les effectifs et les avances excessives ;</p></li>
+<li><p>marquer les autres incohérences et les doublons avec <code class="docutils literal notranslate">eligible</code>, puis exporter les colonnes utiles dans le CSV nettoyé.</p></li>
+</ul>
+<p>Une somme des parts des causes différente de 1 n'est pas un critère de suppression dans
+<code class="docutils literal notranslate">triDF()</code>. Lors du calcul de l'ICP,
+<a class="reference internal" href="#my_package.classDF.ICPCalculator.calculer_ligne">ICPCalculator.calculer_ligne()</a>
+traite les parts manquantes comme nulles et re-normalise les parts disponibles.
+Si leur somme est nulle, le poids de cause est neutre, à 1. Ce traitement ne modifie pas les parts exportées dans le CSV.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="my_package.triDF.triDF">
-<span class="sig-prename descclassname"><span class="pre">my_package.triDF.</span></span><span class="sig-name descname"><span class="pre">triDF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WindowsPath('C:/Users/xings/Documents/Etudes/MS-DATA/AIDATA700_KitBigData/SNCF_Project/data/regularite-mensuelle-tgv-aqst.csv')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WindowsPath('C:/Users/xings/Documents/Etudes/MS-DATA/AIDATA700_KitBigData/SNCF_Project/data/regularite_tgv_clean.csv')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.triDF.triDF" title="Lien vers cette définition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">my_package.triDF.</span></span><span class="sig-name descname"><span class="pre">triDF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Path('data/regularite-mensuelle-tgv-aqst.csv')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Path('data/regularite_tgv_clean.csv')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#my_package.triDF.triDF" title="Lien vers cette définition">¶</a></dt>
 <dd><p>Nettoyer, renommer et contrôler les observations avant leur export CSV.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Paramètres<span class="colon">:</span></dt>

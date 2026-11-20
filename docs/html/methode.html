@@ -45,6 +45,20 @@ et 26 colonnes, de janvier 2018 à juin 2026. Chaque observation correspond
 à une liaison orientée, un service et un mois. Le fichier nettoyé contient
 8 445 lignes et 14 colonnes, uniquement de service National, dans la version
 du dépôt vérifiée le 19 novembre 2026.</p>
+<div class="admonition note">
+<p class="admonition-title">Définition des retards et limites du comptage</p>
+<p>Dans le jeu AQST, le seuil de retard à l'arrivée dépend de la durée du trajet :
+5 minutes pour un parcours de moins de 1 h 30, 10 minutes pour un parcours entre
+1 h 30 et 3 h, et 15 minutes pour un parcours de plus de 3 h. Le nombre de trains
+en retard utilise cette définition ; il ne représente pas tous les trains ayant un retard strictement positif.</p>
+<p>La SNCF précise qu'un même TGV peut être compté dans plusieurs liaisons et que
+ce jeu ne permet pas de calculer une régularité globale TGV ou par axe.
+Nos agrégations par gare portent sur les observations de ces liaisons : sans
+identifiant de train, elles ne garantissent pas un comptage dédoublonné des trains
+ou des voyageurs. L'ICP reste une simulation fondée sur ces volumes ; il ne doit
+pas être présenté comme un nombre observé de courses ou de voyageurs uniques.</p>
+<p>Source : <a class="reference external" href="https://data.sncf.com/explore/dataset/regularite-mensuelle-tgv-aqst/">SNCF Open Data — Régularité mensuelle TGV par liaisons</a>.</p>
+</div>
 <p><code class="docutils literal notranslate"><span class="pre">triDF()</span></code> conserve d'abord National, puis exclut 2020-2021 avant le calcul
 des durées de référence par liaison,
 harmonise les effectifs de retard pour respecter N15 &gt;= N30 &gt;= N60, puis

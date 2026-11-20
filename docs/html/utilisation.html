@@ -47,6 +47,14 @@
 est requis pour éviter le défaut de positionnement des infobulles cartographiques
 de la version 1.65.0. Après une mise à jour des dépendances, redémarrer le serveur.
 Le navigateur doit avoir accès à Internet pour charger le fond de carte CARTO.</p>
+<p>Le bouton <strong>Documentation</strong> de la barre latérale ouvre les pages HTML
+dans un nouvel onglet, en local comme sur le site déployé. Ces pages proviennent
+de <code class="docutils literal notranslate">docs/html/</code> ; l'application en crée
+une copie de service dans <code class="docutils literal notranslate">src/static/documentation/</code>.
+Le service des fichiers statiques est activé par
+<code class="docutils literal notranslate">server.enableStaticServing = true</code>
+dans <code class="docutils literal notranslate">.streamlit/config.toml</code>.
+Redémarrer Streamlit après une modification de cette configuration.</p>
 <p>Les fichiers CSV et les coordonnées sont fournis dans <code class="docutils literal notranslate"><span class="pre">data/</span></code>. Au premier
 chargement, <code class="docutils literal notranslate"><span class="pre">core.load_data()</span></code> prépare le CSV nettoyé depuis le fichier brut.
 La préparation ne conserve que le service National. Elle est mise en cache
@@ -83,19 +91,31 @@ Ce chiffre d'affaires utilise toujours l'ICP absolu, même dans le tableau relat
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">uv run --locked ruff check .</span>
 <span class="go">uv run --locked ruff format --check .</span>
 <span class="go">uv run --locked pytest --cov=src --cov-report=term-missing --cov-fail-under=90</span>
-<span class="go">uv run --locked sphinx-build -b html -d docs/_build/doctrees -W --keep-going docs/_sphinx docs/html</span>
 </pre></div>
 </div>
 <p>La documentation HTML complète est versionnée dans <code class="docutils literal notranslate"><span class="pre">docs/html/</span></code> et s'ouvre
 dans <code class="docutils literal notranslate"><span class="pre">docs/html/index.html</span></code>, sans installer Python ni Sphinx. Conserver les
 sous-dossiers avec les pages HTML : ils contiennent les styles et les scripts.
 Le rendu des formules charge MathJax via Internet.</p>
-<p>Après une modification des sources, relancer la commande Sphinx ci-dessus et
-inclure les fichiers générés de <code class="docutils literal notranslate"><span class="pre">docs/html/</span></code> dans le commit.
-Les sources Sphinx et les deux documents Markdown intégrés sont conservés
-localement dans <code class="docutils literal notranslate"><span class="pre">docs/_sphinx/</span></code>, ignoré par Git. L'équipe doit en garder une
-copie séparée : le dépôt seul ne permet pas de reconstruire la documentation.
-Le cache dans <code class="docutils literal notranslate"><span class="pre">docs/_build/</span></code> est également ignoré par Git.</p>
+<p>Pour corriger le texte de la documentation livrée, modifier les fichiers HTML de
+<code class="docutils literal notranslate">docs/html/</code>, vérifier les liens et
+inclure les pages corrigées dans le commit avec leurs ressources nécessaires.</p>
+<div class="admonition note">
+<p class="admonition-title">Reconstruction avec Sphinx : réservée aux mainteneurs disposant des sources</p>
+<p>Les sources Sphinx ne sont pas versionnées et ne sont pas fournies dans le dépôt actuel.
+Le répertoire <code class="docutils literal notranslate">docs/_sphinx/</code> est ignoré par Git ;
+sa présence sur une machine n'est pas garantie. Un clonage du dépôt permet de lire
+les pages HTML, mais pas de reconstruire la documentation.</p>
+<p>La commande suivante nécessite de restaurer préalablement une sauvegarde complète
+des sources dans <code class="docutils literal notranslate">docs/_sphinx/</code> :
+<code class="docutils literal notranslate">conf.py</code>, les pages reStructuredText ou Markdown
+et tous les documents inclus. Elle ne fait pas partie des contrôles exécutables avec le dépôt HTML seul.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">uv run --locked sphinx-build -b html -d docs/_build/doctrees -W --keep-going docs/_sphinx docs/html</span>
+</pre></div></div>
+<p>Avant une reconstruction, reporter dans ces sources les corrections effectuées
+directement dans les pages HTML afin de les conserver. Le cache dans
+<code class="docutils literal notranslate">docs/_build/</code> reste ignoré par Git.</p>
+</div>
 <p>GitHub Actions exécute les contrôles de code, de docstrings, de format,
 les tests avec une couverture minimale de 90 %, et vérifie la présence des pages
 HTML et de leurs ressources principales. La CI ne reconstruit pas Sphinx.
@@ -112,7 +132,8 @@ le dépôt <code class="docutils literal notranslate"><span class="pre">MarinLms
 <code class="docutils literal notranslate"><span class="pre">src/app.py</span></code>. Python 3.14 correspond à la version utilisée par la CI.
 L'environnement doit être installé depuis <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> et <code class="docutils literal notranslate"><span class="pre">uv.lock</span></code>.
 Le service a besoin d'un accès en lecture aux fichiers de <code class="docutils literal notranslate"><span class="pre">data/</span></code> et en
-écriture au CSV nettoyé et au répertoire de journaux. Le README contient
+écriture au CSV nettoyé, au répertoire de journaux et à
+<code class="docutils literal notranslate">src/static/documentation/</code> pour servir les pages HTML. Le README contient
 le lien public et les étapes de déploiement.
 Le workflow actuel vérifie le projet ; il ne publie pas l'application.</p>
 </section>
